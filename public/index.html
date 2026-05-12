@@ -24,8 +24,8 @@
 
   .sidebar {
     background: var(--bg2); border-right: 1px solid var(--border);
-    padding: 2rem 1.5rem; display: flex; flex-direction: column; gap: 2rem;
-    position: sticky; top: 0; height: 100vh; overflow-y: auto;
+    padding: 2rem 1.5rem; display: flex; flex-direction: column; gap: 1.5rem;
+    position: sticky; top: 0; height: 100vh; overflow-y: auto; overflow-x: hidden;
   }
   .logo { font-family: var(--serif); font-size: 22px; color: var(--accent); letter-spacing: -0.01em; }
   .logo span { display: block; font-family: var(--sans); font-size: 11px; font-weight: 400; color: var(--text3); letter-spacing: 0.12em; text-transform: uppercase; margin-top: 2px; }
@@ -49,9 +49,9 @@
   .filter-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
   .filter-count { margin-left: auto; font-size: 11px; color: var(--text3); }
 
-  .config-section { margin-top: auto; }
-  .config-toggle { font-size: 12px; color: var(--text3); cursor: pointer; display: flex; align-items: center; gap: 6px; border: none; background: transparent; font-family: var(--sans); padding: 6px 0; }
-  .config-toggle:hover { color: var(--text2); }
+  .config-section { margin-top: auto; padding-top: 1rem; }
+  .config-toggle { font-size: 12px; color: var(--text2); cursor: pointer; display: flex; align-items: center; gap: 6px; border: 1px solid var(--border2); background: var(--bg3); font-family: var(--sans); padding: 8px 12px; border-radius: 8px; width: 100%; }
+  .config-toggle:hover { color: var(--text); background: var(--bg2); }
   .config-fields { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
   .config-fields label { font-size: 11px; color: var(--text3); display: block; margin-bottom: 4px; }
   .config-fields input { width: 100%; padding: 7px 10px; font-size: 12px; font-family: var(--sans); background: var(--bg3); border: 1px solid var(--border2); border-radius: 6px; color: var(--text); outline: none; }
