@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Daily Briefing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0e0e0f; --bg2: #171718; --bg3: #1e1e20;
+    --border: rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.13);
+    --text: #f0ede8; --text2: #9a9690; --text3: #5c5a56;
+    --accent: #d4b896; --accent2: #a8896a;
+    --green: #4caf7d; --red: #e05c5c; --amber: #e0a84a; --blue: #5c9be0;
+    --serif: 'DM Serif Display', Georgia, serif;
+    --sans: 'DM Sans', system-ui, sans-serif;
+  }
+  html, body { height: 100%; }
+  body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; line-height: 1.6; }
+
+  .shell { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; }
+
+  .sidebar {
+    background: var(--bg2); border-right: 1px solid var(--border);
+    padding: 2rem 1.5rem; display: flex; flex-direction: column; gap: 2rem;
+    position: sticky; top: 0; height: 100vh; overflow-y: auto;
+  }
+  .logo { font-family: var(--serif); font-size: 22px; color: var(--accent); letter-spacing: -0.01em; }
+  .logo span { display: block; font-family: var(--sans); font-size: 11px; font-weight: 400; color: var(--text3); letter-spacing: 0.12em; text-transform: uppercase; margin-top: 2px; }
+
+  .stat-cards { display: flex; flex-direction: column; gap: 8px; }
+  .stat-card { background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; }
+  .stat-label { font-size: 12px; color: var(--text2); }
+  .stat-val { font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .val-green { color: var(--green); } .val-red { color: var(--red); } .val-blue { color: var(--blue); }
+
+  .progress-section {}
+  .progress-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; display: flex; justify-content: space-between; }
+  .progress-track { height: 3px; background: var(--border2); border-radius: 2px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent2), var(--accent)); border-radius: 2px; transition: width 0.5s cubic-bezier(.4,0,.2,1); }
+
+  .sidebar-filters { display: flex; flex-direction: column; gap: 4px; }
+  .filter-title { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }
+  .filter-btn { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 8px; border: none; background: transparent; color: var(--text2); font-family: var(--sans); font-size: 13px; cursor: pointer; text-align: left; transition: all 0.15s; width: 100%; }
+  .filter-btn:hover { background: var(--bg3); color: var(--text); }
+  .filter-btn.active { background: var(--bg3); color: var(--accent); border: 1px solid var(--border2); }
+  .filter-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .filter-count { margin-left: auto; font-size: 11px; color: var(--text3); }
+
+  .config-section { margin-top: auto; }
+  .config-toggle { font-size: 12px; color: var(--text3); cursor: pointer; display: flex; align-items: center; gap: 6px; border: none; background: transparent; font-family: var(--sans); padding: 6px 0; }
+  .config-toggle:hover { color: var(--text2); }
+  .config-fields { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+  .config-fields label { font-size: 11px; color: var(--text3); display: block; margin-bottom: 4px; }
+  .config-fields input { width: 100%; padding: 7px 10px; font-size: 12px; font-family: var(--sans); background: var(--bg3); border: 1px solid var(--border2); border-radius: 6px; color: var(--text); outline: none; }
+  .config-fields input:focus { border-color: var(--accent2); }
+  .config-save { margin-top: 8px; width: 100%; padding: 7px; font-size: 12px; font-family: var(--sans); font-weight: 500; background: var(--accent2); color: var(--bg); border: none; border-radius: 6px; cursor: pointer; }
+  .config-save:hover { opacity: 0.85; }
+
+  .main { padding: 2.5rem 2.5rem 80px; }
+
+  .topbar { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 2rem; }
+  .date-big { font-family: var(--serif); font-size: 32px; color: var(--text); letter-spacing: -0.02em; }
+  .date-sub { font-size: 13px; color: var(--text3); margin-top: 2px; }
+
+  .sync-btn { display: flex; align-items: center; gap: 7px; padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border2); background: transparent; color: var(--text2); font-family: var(--sans); font-size: 13px; cursor: pointer; transition: all 0.15s; }
+  .sync-btn:hover { border-color: var(--accent2); color: var(--accent); }
+  .sync-btn svg { width: 14px; height: 14px; }
+  .sync-btn.spinning svg { animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .briefing-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem 1.75rem; margin-bottom: 1.75rem; position: relative; overflow: hidden; }
+  .briefing-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--accent2), transparent); }
+  .briefing-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--accent2); margin-bottom: 10px; font-weight: 500; }
+  .briefing-lines { display: flex; flex-direction: column; gap: 8px; }
+  .briefing-line { font-size: 14px; color: var(--text2); line-height: 1.6; display: flex; align-items: baseline; gap: 10px; }
+  .briefing-line strong { color: var(--text); font-weight: 500; }
+
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+  .section-title { font-size: 13px; font-weight: 500; color: var(--text2); text-transform: uppercase; letter-spacing: 0.08em; }
+  .add-btn { display: flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 7px; border: 1px dashed var(--border2); background: transparent; color: var(--text3); font-family: var(--sans); font-size: 13px; cursor: pointer; transition: all 0.15s; }
+  .add-btn:hover { border-color: var(--accent2); color: var(--accent); }
+
+  .task-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 2rem; }
+  .task-item { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg2); transition: all 0.15s; animation: fadeIn 0.2s ease; }
+  .task-item:hover { border-color: var(--border2); background: var(--bg3); }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+  .checkbox { width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px; border: 1.5px solid var(--border2); border-radius: 5px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s; }
+  .checkbox:hover { border-color: var(--accent2); }
+  .checkbox.checked { background: var(--green); border-color: var(--green); }
+  .checkbox svg { display: none; width: 10px; height: 10px; stroke: #fff; fill: none; stroke-width: 2.5; }
+  .checkbox.checked svg { display: block; }
+
+  .task-body { flex: 1; min-width: 0; }
+  .task-title { font-size: 14px; color: var(--text); margin-bottom: 5px; }
+  .task-title.done { text-decoration: line-through; color: var(--text3); }
+  .task-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+  .badge { font-size: 11px; padding: 2px 8px; border-radius: 100px; font-weight: 500; }
+  .badge-urgent { background: rgba(224,92,92,0.15); color: var(--red); }
+  .badge-normal { background: rgba(92,155,224,0.15); color: var(--blue); }
+  .badge-low { background: rgba(255,255,255,0.06); color: var(--text3); }
+  .badge-cat { background: rgba(212,184,150,0.1); color: var(--accent2); }
+  .badge-status { background: rgba(255,255,255,0.05); color: var(--text3); }
+  .badge-date { color: var(--text3); font-size: 11px; }
+  .badge-overdue { color: var(--red); }
+
+  .task-actions { display: flex; gap: 2px; opacity: 0; transition: opacity 0.15s; }
+  .task-item:hover .task-actions { opacity: 1; }
+  .act-btn { width: 28px; height: 28px; border: none; background: transparent; cursor: pointer; border-radius: 6px; color: var(--text3); display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+  .act-btn:hover { background: rgba(255,255,255,0.07); color: var(--red); }
+  .act-btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.8; }
+
+  .add-form { background: var(--bg2); border: 1px solid var(--border2); border-radius: 14px; padding: 1.5rem 1.75rem; margin-bottom: 1.75rem; display: none; }
+  .form-title { font-size: 14px; font-weight: 500; margin-bottom: 1rem; color: var(--text2); }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-label { font-size: 11px; color: var(--text3); }
+  .form-group input, .form-group select, .form-group textarea { padding: 8px 11px; font-size: 13px; font-family: var(--sans); background: var(--bg3); border: 1px solid var(--border2); border-radius: 7px; color: var(--text); outline: none; transition: border-color 0.15s; }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--accent2); }
+  .form-group select option { background: var(--bg3); }
+  .form-group textarea { resize: vertical; min-height: 70px; }
+  .form-full { grid-column: 1 / -1; }
+  .form-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+  .btn-cancel { padding: 8px 18px; font-size: 13px; font-family: var(--sans); background: transparent; border: 1px solid var(--border2); color: var(--text2); border-radius: 7px; cursor: pointer; }
+  .btn-cancel:hover { background: var(--bg3); }
+  .btn-save { padding: 8px 18px; font-size: 13px; font-family: var(--sans); font-weight: 500; background: var(--accent); color: var(--bg); border: none; border-radius: 7px; cursor: pointer; }
+  .btn-save:hover { opacity: 0.85; }
+  .btn-save:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .statusbar { position: fixed; bottom: 0; left: 0; right: 0; padding: 10px 2rem; background: var(--bg); border-top: 1px solid var(--border); display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--text3); z-index: 99; }
+  .sdot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .sdot-ok { background: var(--green); } .sdot-err { background: var(--red); } .sdot-loading { background: var(--amber); animation: pulse 1.2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.3} }
+
+  .empty-state { text-align: center; padding: 3rem 1rem; color: var(--text3); font-size: 14px; line-height: 2; }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  @media (max-width: 680px) {
+    .shell { grid-template-columns: 1fr; }
+    .sidebar { position: static; height: auto; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="logo">Daily Briefing<span>Notion Connected</span></div>
+
+    <div class="stat-cards">
+      <div class="stat-card"><span class="stat-label">전체 작업</span><span class="stat-val" id="st-total">—</span></div>
+      <div class="stat-card"><span class="stat-label">완료</span><span class="stat-val val-green" id="st-done">—</span></div>
+      <div class="stat-card"><span class="stat-label">진행중</span><span class="stat-val val-blue" id="st-prog">—</span></div>
+      <div class="stat-card"><span class="stat-label">긴급</span><span class="stat-val val-red" id="st-urgent">—</span></div>
+    </div>
+
+    <div class="progress-section">
+      <div class="progress-label"><span>진행률</span><span id="pct-label">0%</span></div>
+      <div class="progress-track"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+    </div>
+
+    <div class="sidebar-filters">
+      <div class="filter-title">필터</div>
+      <button class="filter-btn active" onclick="setFilter('all',this)"><span class="filter-dot" style="background:var(--text3)"></span>전체<span class="filter-count" id="fc-all">0</span></button>
+      <button class="filter-btn" onclick="setFilter('todo',this)"><span class="filter-dot" style="background:var(--text3)"></span>할 일<span class="filter-count" id="fc-todo">0</span></button>
+      <button class="filter-btn" onclick="setFilter('inprogress',this)"><span class="filter-dot" style="background:var(--blue)"></span>진행중<span class="filter-count" id="fc-prog">0</span></button>
+      <button class="filter-btn" onclick="setFilter('done',this)"><span class="filter-dot" style="background:var(--green)"></span>완료<span class="filter-count" id="fc-done">0</span></button>
+      <button class="filter-btn" onclick="setFilter('urgent',this)"><span class="filter-dot" style="background:var(--red)"></span>긴급<span class="filter-count" id="fc-urgent">0</span></button>
+      <button class="filter-btn" onclick="setFilter('overdue',this)"><span class="filter-dot" style="background:var(--amber)"></span>기한 초과<span class="filter-count" id="fc-overdue">0</span></button>
+    </div>
+
+    <div class="config-section">
+      <button class="config-toggle" onclick="toggleConfig()">⚙ Notion 설정</button>
+      <div class="config-fields" id="cfg-fields" style="display:none">
+        <div><label>Integration Token</label><input type="password" id="cfg-token" placeholder="ntn_..." /></div>
+        <div><label>Database ID</label><input type="text" id="cfg-dbid" placeholder="32자리 ID" /></div>
+        <button class="config-save" onclick="saveConfig()">저장 및 재연결</button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <div class="date-big" id="date-big"></div>
+        <div class="date-sub" id="date-sub"></div>
+      </div>
+      <button class="sync-btn" id="sync-btn" onclick="loadTasks()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+        동기화
+      </button>
+    </div>
+
+    <div class="briefing-card" id="briefing-card" style="display:none">
+      <div class="briefing-label">☀ 오늘의 브리핑</div>
+      <div class="briefing-lines" id="briefing-lines"></div>
+    </div>
+
+    <div class="section-header">
+      <div class="section-title">작업 목록</div>
+      <button class="add-btn" id="toggle-add" onclick="toggleForm()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+        새 작업
+      </button>
+    </div>
+
+    <div class="add-form" id="add-form">
+      <div class="form-title">새 작업 추가</div>
+      <div class="form-grid">
+        <div class="form-group form-full">
+          <label class="form-label">작업명 *</label>
+          <input type="text" id="f-title" placeholder="작업 제목을 입력하세요" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">우선순위</label>
+          <select id="f-priority"><option value="보통">보통</option><option value="긴급">긴급</option><option value="낮음">낮음</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">상태</label>
+          <select id="f-status"><option value="할 일">할 일</option><option value="진행중">진행중</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">마감일</label>
+          <input type="date" id="f-date" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">카테고리</label>
+          <input type="text" id="f-category" placeholder="예: 개발, 미팅, 기획" />
+        </div>
+        <div class="form-group form-full">
+          <label class="form-label">메모</label>
+          <textarea id="f-note" placeholder="추가 설명 (선택)"></textarea>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn-cancel" onclick="toggleForm()">취소</button>
+        <button class="btn-save" id="btn-save" onclick="addTask()">Notion에 저장</button>
+      </div>
+    </div>
+
+    <div class="task-list" id="task-list">
+      <div class="empty-state">불러오는 중...</div>
+    </div>
+  </main>
+</div>
+
+<div class="statusbar">
+  <div class="sdot sdot-loading" id="sdot"></div>
+  <span id="stext">Notion에 연결 중...</span>
+</div>
+
+<script>
+const PROXY = '/api/notion';
+let TOKEN = localStorage.getItem('notion_token') || '';
+let DB_ID = localStorage.getItem('notion_dbid') || '';
+let tasks = [];
+let currentFilter = 'all';
+
+(function init() {
+  const now = new Date();
+  const days = ['일요일','월요일','화요일','수요일','목요일','금요일','토요일'];
+  document.getElementById('date-big').textContent = now.toLocaleDateString('ko-KR', { month:'long', day:'numeric' });
+  document.getElementById('date-sub').textContent = `${now.getFullYear()} · ${days[now.getDay()]}`;
+
+  if (!TOKEN || !DB_ID) {
+    setStatus('err', '⚙ Notion 설정에서 Token과 DB ID를 입력해주세요');
+    document.getElementById('task-list').innerHTML = '<div class="empty-state">좌측 하단 ⚙ Notion 설정에서<br>Token과 Database ID를 입력해주세요</div>';
+    toggleConfig();
+    return;
+  }
+  loadTasks();
+})();
+
+async function notionFetch(path, method = 'POST', body = null) {
+  const opts = {
+    method,
+    headers: { 'Content-Type': 'application/json', 'X-Notion-Token': TOKEN }
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(`${PROXY}/${path}`, opts);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+async function loadTasks() {
+  const btn = document.getElementById('sync-btn');
+  btn.classList.add('spinning');
+  setStatus('loading', 'Notion에서 작업을 불러오는 중...');
+  try {
+    const result = await notionFetch(`databases/${DB_ID}/query`, 'POST', {
+      sorts: [
+        { property: '우선순위', direction: 'descending' },
+        { property: '마감일', direction: 'ascending' }
+      ]
+    });
+    tasks = result.results.map(parsePage);
+    updateStats(); renderTasks(); renderBriefing();
+    const t = new Date().toLocaleTimeString('ko-KR', { hour:'2-digit', minute:'2-digit' });
+    setStatus('ok', `${tasks.length}개 작업 동기화 완료 · ${t}`);
+  } catch(e) {
+    setStatus('err', '연결 실패: ' + e.message);
+    document.getElementById('task-list').innerHTML = `<div class="empty-state">Notion 연결에 실패했습니다.<br><small style="font-size:12px;color:var(--text3)">${e.message}</small></div>`;
+  }
+  btn.classList.remove('spinning');
+}
+
+function parsePage(page) {
+  const p = page.properties;
+  const titleKey = Object.keys(p).find(k => p[k].type === 'title') || '이름';
+  const g = {
+    title: k => p[k]?.title?.[0]?.plain_text || p[k]?.rich_text?.[0]?.plain_text || '',
+    select: k => p[k]?.select?.name || '',
+    status: k => p[k]?.status?.name || p[k]?.select?.name || '',
+    date: k => p[k]?.date?.start || null,
+    checkbox: k => p[k]?.checkbox || false,
+    text: k => p[k]?.rich_text?.[0]?.plain_text || ''
+  };
+  const status = g.status('상태') || g.status('Status') || '할 일';
+  return {
+    id: page.id,
+    title: g.title(titleKey) || '(제목 없음)',
+    status,
+    priority: g.select('우선순위') || g.select('Priority') || '보통',
+    dueDate: g.date('마감일') || g.date('Due') || g.date('날짜'),
+    category: g.select('카테고리') || g.select('Category') || '',
+    note: g.text('메모') || g.text('Notes') || '',
+    done: g.checkbox('완료') || g.checkbox('Done') || status === '완료'
+  };
+}
+
+function updateStats() {
+  const total = tasks.length;
+  const done = tasks.filter(t => t.done).length;
+  const prog = tasks.filter(t => !t.done && t.status === '진행중').length;
+  const urgent = tasks.filter(t => t.priority === '긴급' && !t.done).length;
+  const todo = tasks.filter(t => !t.done && t.status === '할 일').length;
+  const overdue = tasks.filter(t => isOverdue(t.dueDate) && !t.done).length;
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  document.getElementById('st-total').textContent = total;
+  document.getElementById('st-done').textContent = done;
+  document.getElementById('st-prog').textContent = prog;
+  document.getElementById('st-urgent').textContent = urgent;
+  document.getElementById('prog-fill').style.width = pct + '%';
+  document.getElementById('pct-label').textContent = pct + '%';
+  document.getElementById('fc-all').textContent = total;
+  document.getElementById('fc-todo').textContent = todo;
+  document.getElementById('fc-prog').textContent = prog;
+  document.getElementById('fc-done').textContent = done;
+  document.getElementById('fc-urgent').textContent = urgent;
+  document.getElementById('fc-overdue').textContent = overdue;
+}
+
+function renderBriefing() {
+  const today = new Date().toDateString();
+  const todayDue = tasks.filter(t => t.dueDate && new Date(t.dueDate).toDateString() === today && !t.done);
+  const overdue = tasks.filter(t => isOverdue(t.dueDate) && !t.done);
+  const urgent = tasks.filter(t => t.priority === '긴급' && !t.done);
+  const inprog = tasks.filter(t => t.status === '진행중' && !t.done);
+  const done = tasks.filter(t => t.done);
+  const lines = [];
+  if (overdue.length > 0) lines.push({ i:'⚠', t:`<strong>기한 초과 ${overdue.length}개</strong> — ${overdue.slice(0,3).map(t=>t.title).join(', ')}${overdue.length>3?` 외 ${overdue.length-3}개`:''}` });
+  if (urgent.length > 0) lines.push({ i:'🔴', t:`<strong>긴급 작업 ${urgent.length}개</strong> — ${urgent.slice(0,3).map(t=>t.title).join(', ')}` });
+  if (todayDue.length > 0) lines.push({ i:'📅', t:`<strong>오늘 마감 ${todayDue.length}개</strong> — ${todayDue.map(t=>t.title).join(', ')}` });
+  if (inprog.length > 0) lines.push({ i:'⚡', t:`<strong>진행중 ${inprog.length}개</strong> — ${inprog.slice(0,3).map(t=>t.title).join(', ')}` });
+  if (done.length > 0 && lines.length < 3) lines.push({ i:'✅', t:`지금까지 <strong>${done.length}개</strong> 완료했어요. 수고했어요!` });
+  if (lines.length === 0) lines.push({ i:'🌿', t:'오늘 긴급하거나 기한이 지난 작업이 없어요. 좋은 하루 되세요!' });
+  document.getElementById('briefing-lines').innerHTML = lines.map(l=>`<div class="briefing-line"><span>${l.i}</span><span>${l.t}</span></div>`).join('');
+  document.getElementById('briefing-card').style.display = 'block';
+}
+
+function renderTasks() {
+  const filtered = tasks.filter(t => {
+    if (currentFilter === 'done') return t.done;
+    if (currentFilter === 'todo') return !t.done && t.status === '할 일';
+    if (currentFilter === 'inprogress') return !t.done && t.status === '진행중';
+    if (currentFilter === 'urgent') return t.priority === '긴급' && !t.done;
+    if (currentFilter === 'overdue') return isOverdue(t.dueDate) && !t.done;
+    return true;
+  });
+  const list = document.getElementById('task-list');
+  if (!filtered.length) { list.innerHTML = '<div class="empty-state">해당하는 작업이 없습니다</div>'; return; }
+  list.innerHTML = filtered.map(t => {
+    const priClass = t.priority === '긴급' ? 'badge-urgent' : t.priority === '낮음' ? 'badge-low' : 'badge-normal';
+    const odClass = isOverdue(t.dueDate) && !t.done ? 'badge-overdue' : '';
+    return `<div class="task-item">
+      <div class="checkbox ${t.done?'checked':''}" onclick="toggleDone('${t.id}',${!t.done})">
+        <svg viewBox="0 0 12 10"><polyline points="1,5 4.5,9 11,1"/></svg>
+      </div>
+      <div class="task-body">
+        <div class="task-title ${t.done?'done':''}">${esc(t.title)}</div>
+        <div class="task-meta">
+          ${t.priority?`<span class="badge ${priClass}">${t.priority}</span>`:''}
+          ${t.category?`<span class="badge badge-cat">${esc(t.category)}</span>`:''}
+          ${t.status?`<span class="badge badge-status">${t.status}</span>`:''}
+          ${t.dueDate?`<span class="badge badge-date ${odClass}">📅 ${fmt(t.dueDate)}${isOverdue(t.dueDate)&&!t.done?' 초과':''}</span>`:''}
+        </div>
+      </div>
+      <div class="task-actions">
+        <button class="act-btn" onclick="deleteTask('${t.id}')">
+          <svg viewBox="0 0 24 24"><polyline points="3,6 5,6 21,6"/><path d="M19,6v14a2,2,0,0,1-2,2H7a2,2,0,0,1-2-2V6m3,0V4a2,2,0,0,1,2-2h4a2,2,0,0,1,2,2v2"/></svg>
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function toggleDone(id, done) {
+  setStatus('loading', '상태 업데이트 중...');
+  try {
+    await notionFetch(`pages/${id}`, 'PATCH', {
+      properties: {
+        '상태': { status: { name: done ? '완료' : '진행중' } },
+        '완료': { checkbox: done }
+      }
+    });
+    const t = tasks.find(t => t.id === id);
+    if (t) { t.done = done; t.status = done ? '완료' : '진행중'; }
+    updateStats(); renderTasks(); renderBriefing();
+    setStatus('ok', '업데이트 완료');
+  } catch(e) { setStatus('err', '업데이트 실패: ' + e.message); }
+}
+
+async function deleteTask(id) {
+  if (!confirm('이 작업을 Notion에서 삭제할까요?')) return;
+  setStatus('loading', '삭제 중...');
+  try {
+    await notionFetch(`pages/${id}`, 'PATCH', { archived: true });
+    tasks = tasks.filter(t => t.id !== id);
+    updateStats(); renderTasks(); renderBriefing();
+    setStatus('ok', '삭제 완료');
+  } catch(e) { setStatus('err', '삭제 실패: ' + e.message); }
+}
+
+async function addTask() {
+  const title = document.getElementById('f-title').value.trim();
+  if (!title) { alert('작업명을 입력해주세요'); return; }
+  const btn = document.getElementById('btn-save');
+  btn.disabled = true; btn.textContent = '저장 중...';
+  setStatus('loading', 'Notion에 저장 중...');
+  const dueDate = document.getElementById('f-date').value;
+  const priority = document.getElementById('f-priority').value;
+  const category = document.getElementById('f-category').value.trim();
+  const status = document.getElementById('f-status').value;
+  const note = document.getElementById('f-note').value.trim();
+  const props = {
+    '이름': { title: [{ text: { content: title } }] },
+    '우선순위': { select: { name: priority } },
+    '상태': { status: { name: status } }
+  };
+  if (dueDate) props['마감일'] = { date: { start: dueDate } };
+  if (category) props['카테고리'] = { select: { name: category } };
+  if (note) props['메모'] = { rich_text: [{ text: { content: note } }] };
+  try {
+    const result = await notionFetch('pages', 'POST', { parent: { database_id: DB_ID }, properties: props });
+    tasks.unshift({ id: result.id, title, status, priority, dueDate: dueDate||null, category, note, done: false });
+    updateStats(); renderTasks(); renderBriefing();
+    toggleForm();
+    ['f-title','f-date','f-note','f-category'].forEach(id => document.getElementById(id).value = '');
+    setStatus('ok', '새 작업이 Notion에 저장됐습니다');
+  } catch(e) { setStatus('err', '저장 실패: ' + e.message); }
+  btn.disabled = false; btn.textContent = 'Notion에 저장';
+}
+
+function setFilter(f, el) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderTasks();
+}
+
+function toggleForm() {
+  const form = document.getElementById('add-form');
+  const btn = document.getElementById('toggle-add');
+  const show = form.style.display !== 'block';
+  form.style.display = show ? 'block' : 'none';
+  btn.style.display = show ? 'none' : 'flex';
+  if (show) document.getElementById('f-title').focus();
+}
+
+let cfgOpen = false;
+function toggleConfig() {
+  cfgOpen = !cfgOpen;
+  document.getElementById('cfg-fields').style.display = cfgOpen ? 'flex' : 'none';
+  if (cfgOpen) { document.getElementById('cfg-token').value = TOKEN; document.getElementById('cfg-dbid').value = DB_ID; }
+}
+function saveConfig() {
+  const t = document.getElementById('cfg-token').value.trim();
+  const d = document.getElementById('cfg-dbid').value.trim();
+  if (!t || !d) { alert('모두 입력해주세요'); return; }
+  TOKEN = t; DB_ID = d;
+  localStorage.setItem('notion_token', t);
+  localStorage.setItem('notion_dbid', d);
+  cfgOpen = false;
+  document.getElementById('cfg-fields').style.display = 'none';
+  loadTasks();
+}
+function setStatus(type, text) {
+  document.getElementById('sdot').className = 'sdot sdot-' + (type==='ok'?'ok':type==='err'?'err':'loading');
+  document.getElementById('stext').textContent = text;
+}
+function isOverdue(d) { if (!d) return false; const dt = new Date(d); const today = new Date(); today.setHours(0,0,0,0); return dt < today; }
+function fmt(d) { const dt = new Date(d); return `${dt.getMonth()+1}/${dt.getDate()}`; }
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+</script>
+</body>
+</html>
