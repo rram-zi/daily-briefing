@@ -12,21 +12,28 @@ export default async function handler(req, res) {
 
   const notionPath = Array.isArray(path) ? path.join('/') : path;
   const token = req.headers['x-notion-token'] || process.env.NOTION_TOKEN;
+
+  if (!token) {
+    return res.status(401).json({ error: 'Notion token required' });
+  }
+
   const url = `https://api.notion.com/v1/${notionPath}`;
 
   try {
-    const response = await fetch(url, {
+    const fetchOpts = {
       method: req.method,
       headers: {
         'Authorization': `Bearer ${token}`,
         'Notion-Version': '2022-06-28',
         'Content-Type': 'application/json',
       },
-      body: ['POST', 'PATCH', 'PUT'].includes(req.method)
-        ? JSON.stringify(req.body)
-        : undefined,
-    });
+    };
 
+    if (['POST', 'PATCH', 'PUT'].includes(req.method) && req.body) {
+      fetchOpts.body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+    }
+
+    const response = await fetch(url, fetchOpts);
     const data = await response.json();
     return res.status(response.status).json(data);
   } catch (e) {
