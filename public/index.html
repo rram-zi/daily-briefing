@@ -402,13 +402,13 @@
   .cal-day.is-today .cal-day-num { background: var(--blue500); color: #fff; font-weight: 700; }
   .cal-task-chip {
     display: block; width: 100%; padding: 2px 5px; border-radius: 4px;
-    background: var(--green50); color: var(--green500); border: none;
+    background: var(--grey100); color: var(--grey700); border: none;
     font-size: 11px; font-weight: 500; line-height: 1.6; font-family: inherit;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     cursor: pointer; margin-bottom: 2px; text-align: left;
     transition: background 0.1s, color 0.1s;
   }
-  .cal-task-chip:hover { background: var(--green500); color: #fff; }
+  .cal-task-chip:hover { background: var(--grey300); color: var(--grey900); }
 
   /* Task detail modal */
   .detail-note { font-size: 14px; color: var(--text2); line-height: 1.8; white-space: pre-wrap; }
@@ -1150,14 +1150,14 @@ function openTaskDetail(taskId) {
   if (!t) return;
   document.getElementById('detail-title').textContent = t.title;
   document.getElementById('detail-meta').innerHTML = [
-    t.completedAt ? `<span class="badge badge-status">✅ ${fmt(t.completedAt)} 완료</span>` : '',
-    t.category    ? `<span class="badge badge-cat">${esc(t.category)}</span>` : '',
+    t.category ? `<span class="badge badge-cat">${esc(t.category)}</span>` : '',
     t.priority && t.priority !== '보통' ? `<span class="badge ${t.priority==='긴급'?'badge-urgent':'badge-low'}">${t.priority}</span>` : '',
-    t.dueDate     ? `<span class="badge badge-date">📅 ${fmt(t.dueDate)}</span>` : ''
+    t.dueDate  ? `<span class="badge badge-date">📅 ${fmt(t.dueDate)}</span>` : ''
   ].filter(Boolean).join('');
-  document.getElementById('detail-note').innerHTML = t.note
+  document.getElementById('detail-note').innerHTML = (t.note
     ? esc(t.note).replace(/\n/g, '<br>')
-    : '<span style="color:var(--text3)">설명 없음</span>';
+    : '<span style="color:var(--text3)">설명 없음</span>')
+    + (t.completedAt ? `<div style="margin-top:16px;font-size:12px;color:var(--text3)">${fmt(t.completedAt)} 완료</div>` : '');
   document.getElementById('detail-backdrop').classList.add('open');
 }
 
