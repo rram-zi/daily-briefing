@@ -243,6 +243,19 @@
   .act-btn.act-del:hover   { background: var(--red50);   color: var(--red500); }
   .act-btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.8; }
 
+  .drag-handle {
+    width: 16px; flex-shrink: 0; cursor: grab; color: var(--grey300);
+    display: flex; align-items: center; justify-content: center; align-self: stretch;
+    opacity: 0; transition: opacity 0.12s; margin-right: -2px;
+  }
+  .task-item:hover .drag-handle { opacity: 1; }
+  .drag-handle svg { width: 12px; height: 12px; }
+  .drag-handle:active { cursor: grabbing; }
+  .task-item.dragging { opacity: 0.35; box-shadow: none; }
+  .task-item.drag-over { outline: 2px solid var(--blue500); outline-offset: -2px; background: var(--blue50); }
+
+  .task-note { font-size: 13px; color: var(--text3); margin-top: 6px; line-height: 1.5; }
+
   /* ── Modal ── */
   .modal-backdrop {
     position: fixed; inset: 0;
@@ -717,7 +730,8 @@ function renderTasks() {
   list.innerHTML = filtered.map(t => {
     const priClass = t.priority === '긴급' ? 'badge-urgent' : t.priority === '낮음' ? 'badge-low' : 'badge-normal';
     const odClass  = isOverdue(t.dueDate) && !t.done ? 'badge-overdue' : '';
-    return `<div class="task-item">
+    return `<div class="task-item" data-id="${t.id}" draggable="true">
+      <div class="drag-handle"><svg viewBox="0 0 10 16" fill="currentColor"><circle cx="2" cy="2" r="1.5"/><circle cx="8" cy="2" r="1.5"/><circle cx="2" cy="8" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="2" cy="14" r="1.5"/><circle cx="8" cy="14" r="1.5"/></svg></div>
       <div class="checkbox ${t.done ? 'checked' : ''}" onclick="toggleDone('${t.id}',${!t.done})">
         <svg viewBox="0 0 12 10"><polyline points="1,5 4.5,9 11,1"/></svg>
       </div>
@@ -729,6 +743,7 @@ function renderTasks() {
           ${t.status   ? `<span class="badge badge-status">${t.status}</span>` : ''}
           ${t.dueDate  ? `<span class="badge badge-date ${odClass}">📅 ${fmt(t.dueDate)}${isOverdue(t.dueDate)&&!t.done?' 초과':''}</span>` : ''}
         </div>
+        ${t.note ? `<div class="task-note">${esc(t.note)}</div>` : ''}
       </div>
       <div class="task-actions">
         <button class="act-btn act-edit" onclick="openModal('${t.id}')" title="수정">
@@ -740,6 +755,37 @@ function renderTasks() {
       </div>
     </div>`;
   }).join('');
+
+  let dragSrc = null;
+  list.querySelectorAll('.task-item').forEach(item => {
+    item.addEventListener('dragstart', e => {
+      dragSrc = item.dataset.id;
+      e.dataTransfer.effectAllowed = 'move';
+      setTimeout(() => item.classList.add('dragging'), 0);
+    });
+    item.addEventListener('dragend', () => {
+      item.classList.remove('dragging');
+      list.querySelectorAll('.task-item').forEach(i => i.classList.remove('drag-over'));
+    });
+    item.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; });
+    item.addEventListener('dragenter', e => {
+      e.preventDefault();
+      if (item.dataset.id !== dragSrc) item.classList.add('drag-over');
+    });
+    item.addEventListener('dragleave', () => item.classList.remove('drag-over'));
+    item.addEventListener('drop', e => {
+      e.preventDefault();
+      item.classList.remove('drag-over');
+      const targetId = item.dataset.id;
+      if (!dragSrc || dragSrc === targetId) return;
+      const srcIdx = tasks.findIndex(t => t.id === dragSrc);
+      const dstIdx = tasks.findIndex(t => t.id === targetId);
+      if (srcIdx === -1 || dstIdx === -1) return;
+      const [moved] = tasks.splice(srcIdx, 1);
+      tasks.splice(dstIdx, 0, moved);
+      renderTasks();
+    });
+  });
 }
 
 /* ── Modal ── */
