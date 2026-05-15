@@ -543,7 +543,7 @@
       <div class="section-divider"></div>
 
       <div class="section-header">
-        <div class="section-title">전체 작업</div>
+        <div class="section-title">할일 목록</div>
         <button class="add-btn" onclick="openModal()">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <path d="M12 5v14M5 12h14"/>
@@ -947,7 +947,7 @@ function attachDrag(container, onDrop) {
 
 function renderTasks() {
   const todayTasks = todayIds.map(id => tasks.find(t => t.id === id)).filter(Boolean);
-  const otherTasks = tasks.filter(t => !todayIds.includes(t.id)).filter(t => {
+  const otherTasks = tasks.filter(t => {
     if (currentFilter === 'done')       return t.done;
     if (currentFilter === 'todo')       return !t.done && t.status === '할 일';
     if (currentFilter === 'inprogress') return !t.done && t.status === '진행중';
@@ -963,7 +963,7 @@ function renderTasks() {
 
   const list = document.getElementById('task-list');
   list.innerHTML = otherTasks.length
-    ? otherTasks.map(t => taskItemHTML(t, false)).join('')
+    ? otherTasks.map(t => taskItemHTML(t, todayIds.includes(t.id))).join('')
     : '<div class="empty-state">해당하는 작업이 없습니다</div>';
 
   attachDrag(todayList, (srcId, dstId) => {
