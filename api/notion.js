@@ -3,19 +3,15 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Notion-Token');
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
+  if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const { path } = req.query;
-  if (!path) return res.status(400).json({ error: 'path required' });
+  const rawPath = req.query.path;
+  const notionPath = Array.isArray(rawPath) ? rawPath.join('/') : rawPath;
 
-  const notionPath = Array.isArray(path) ? path.join('/') : path;
+  if (!notionPath) return res.status(400).json({ error: 'path required' });
+
   const token = req.headers['x-notion-token'] || process.env.NOTION_TOKEN;
-
-  if (!token) {
-    return res.status(401).json({ error: 'Notion token required' });
-  }
+  if (!token) return res.status(401).json({ error: 'Notion token required' });
 
   const url = `https://api.notion.com/v1/${notionPath}`;
 
