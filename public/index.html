@@ -218,9 +218,9 @@
   .checkbox.checked svg { display: block; }
 
   .task-body { flex: 1; min-width: 0; }
-  .task-title { font-size: 15px; font-weight: 500; color: var(--text1); margin-bottom: 6px; }
+  .task-title-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .task-title { font-size: 15px; font-weight: 500; color: var(--text1); }
   .task-title.done { text-decoration: line-through; color: var(--text3); font-weight: 400; }
-  .task-meta { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
 
   .badge { font-size: 12px; padding: 3px 9px; border-radius: 100px; font-weight: 500; }
   .badge-urgent { background: var(--red50);   color: var(--red500); }
@@ -597,30 +597,29 @@ let DB_ID  = localStorage.getItem('notion_dbid')  || '';
 let tasks = [];
 let currentFilter = 'all';
 let editingId = null;
-let todayIds = new Set();
+let todayIds = [];
 
 function loadTodayIds() {
   try {
     const stored = JSON.parse(localStorage.getItem('today_tasks') || '{}');
     const today = new Date().toISOString().slice(0, 10);
-    todayIds = stored.date === today && Array.isArray(stored.ids)
-      ? new Set(stored.ids) : new Set();
-  } catch { todayIds = new Set(); }
+    todayIds = stored.date === today && Array.isArray(stored.ids) ? stored.ids : [];
+  } catch { todayIds = []; }
 }
 
 function saveTodayIds() {
   const today = new Date().toISOString().slice(0, 10);
-  localStorage.setItem('today_tasks', JSON.stringify({ date: today, ids: [...todayIds] }));
+  localStorage.setItem('today_tasks', JSON.stringify({ date: today, ids: todayIds }));
 }
 
 function addToToday(id) {
-  todayIds.add(id);
+  if (!todayIds.includes(id)) todayIds.push(id);
   saveTodayIds();
   renderTasks();
 }
 
 function removeFromToday(id) {
-  todayIds.delete(id);
+  todayIds = todayIds.filter(i => i !== id);
   saveTodayIds();
   renderTasks();
 }
@@ -763,14 +762,14 @@ function renderBriefing() {
 function taskItemHTML(t, isToday) {
   const priClass = t.priority === '긴급' ? 'badge-urgent' : t.priority === '낮음' ? 'badge-low' : 'badge-normal';
   const odClass  = isOverdue(t.dueDate) && !t.done ? 'badge-overdue' : '';
-  return `<div class="task-item" data-id="${t.id}" ${!isToday ? 'draggable="true"' : ''}>
-    ${!isToday ? `<div class="drag-handle"><svg viewBox="0 0 10 16" fill="currentColor"><circle cx="2" cy="2" r="1.5"/><circle cx="8" cy="2" r="1.5"/><circle cx="2" cy="8" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="2" cy="14" r="1.5"/><circle cx="8" cy="14" r="1.5"/></svg></div>` : ''}
+  return `<div class="task-item" data-id="${t.id}" draggable="true">
+    <div class="drag-handle"><svg viewBox="0 0 10 16" fill="currentColor"><circle cx="2" cy="2" r="1.5"/><circle cx="8" cy="2" r="1.5"/><circle cx="2" cy="8" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="2" cy="14" r="1.5"/><circle cx="8" cy="14" r="1.5"/></svg></div>
     <div class="checkbox ${t.done ? 'checked' : ''}" onclick="toggleDone('${t.id}',${!t.done})">
       <svg viewBox="0 0 12 10"><polyline points="1,5 4.5,9 11,1"/></svg>
     </div>
     <div class="task-body">
-      <div class="task-title ${t.done ? 'done' : ''}">${esc(t.title)}</div>
-      <div class="task-meta">
+      <div class="task-title-row">
+        <span class="task-title ${t.done ? 'done' : ''}">${esc(t.title)}</span>
         ${t.priority ? `<span class="badge ${priClass}">${t.priority}</span>` : ''}
         ${t.category ? `<span class="badge badge-cat">${esc(t.category)}</span>` : ''}
         ${t.status   ? `<span class="badge badge-status">${t.status}</span>` : ''}
@@ -793,9 +792,36 @@ function taskItemHTML(t, isToday) {
   </div>`;
 }
 
+function attachDrag(container, onDrop) {
+  let dragSrc = null;
+  container.querySelectorAll('.task-item').forEach(item => {
+    item.addEventListener('dragstart', e => {
+      dragSrc = item.dataset.id;
+      e.dataTransfer.effectAllowed = 'move';
+      setTimeout(() => item.classList.add('dragging'), 0);
+    });
+    item.addEventListener('dragend', () => {
+      item.classList.remove('dragging');
+      container.querySelectorAll('.task-item').forEach(i => i.classList.remove('drag-over'));
+    });
+    item.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; });
+    item.addEventListener('dragenter', e => {
+      e.preventDefault();
+      if (item.dataset.id !== dragSrc) item.classList.add('drag-over');
+    });
+    item.addEventListener('dragleave', () => item.classList.remove('drag-over'));
+    item.addEventListener('drop', e => {
+      e.preventDefault();
+      item.classList.remove('drag-over');
+      if (!dragSrc || dragSrc === item.dataset.id) return;
+      onDrop(dragSrc, item.dataset.id);
+    });
+  });
+}
+
 function renderTasks() {
-  const todayTasks = tasks.filter(t => todayIds.has(t.id));
-  const otherTasks = tasks.filter(t => !todayIds.has(t.id)).filter(t => {
+  const todayTasks = todayIds.map(id => tasks.find(t => t.id === id)).filter(Boolean);
+  const otherTasks = tasks.filter(t => !todayIds.includes(t.id)).filter(t => {
     if (currentFilter === 'done')       return t.done;
     if (currentFilter === 'todo')       return !t.done && t.status === '할 일';
     if (currentFilter === 'inprogress') return !t.done && t.status === '진행중';
@@ -814,43 +840,29 @@ function renderTasks() {
     ? otherTasks.map(t => taskItemHTML(t, false)).join('')
     : '<div class="empty-state">해당하는 작업이 없습니다</div>';
 
-  let dragSrc = null;
-  list.querySelectorAll('.task-item').forEach(item => {
-    item.addEventListener('dragstart', e => {
-      dragSrc = item.dataset.id;
-      e.dataTransfer.effectAllowed = 'move';
-      setTimeout(() => item.classList.add('dragging'), 0);
-    });
-    item.addEventListener('dragend', () => {
-      item.classList.remove('dragging');
-      list.querySelectorAll('.task-item').forEach(i => i.classList.remove('drag-over'));
-    });
-    item.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; });
-    item.addEventListener('dragenter', e => {
-      e.preventDefault();
-      if (item.dataset.id !== dragSrc) item.classList.add('drag-over');
-    });
-    item.addEventListener('dragleave', () => item.classList.remove('drag-over'));
-    item.addEventListener('drop', async e => {
-      e.preventDefault();
-      item.classList.remove('drag-over');
-      const targetId = item.dataset.id;
-      if (!dragSrc || dragSrc === targetId) return;
-      const srcIdx = tasks.findIndex(t => t.id === dragSrc);
-      const dstIdx = tasks.findIndex(t => t.id === targetId);
-      if (srcIdx === -1 || dstIdx === -1) return;
-      const [moved] = tasks.splice(srcIdx, 1);
-      tasks.splice(dstIdx, 0, moved);
-      tasks.forEach((t, i) => t.order = i + 1);
-      renderTasks();
-      setStatus('loading', '순서를 Notion에 저장 중...');
-      try {
-        await Promise.all(tasks.map((t, i) =>
-          notionFetch(`pages/${t.id}`, 'PATCH', { properties: { '순서': { number: i + 1 } } })
-        ));
-        setStatus('ok', '순서가 저장됐습니다');
-      } catch(e) { setStatus('err', '순서 저장 실패: ' + e.message); }
-    });
+  attachDrag(todayList, (srcId, dstId) => {
+    const si = todayIds.indexOf(srcId), di = todayIds.indexOf(dstId);
+    if (si === -1 || di === -1) return;
+    const [m] = todayIds.splice(si, 1);
+    todayIds.splice(di, 0, m);
+    saveTodayIds();
+    renderTasks();
+  });
+
+  attachDrag(list, async (srcId, dstId) => {
+    const si = tasks.findIndex(t => t.id === srcId), di = tasks.findIndex(t => t.id === dstId);
+    if (si === -1 || di === -1) return;
+    const [moved] = tasks.splice(si, 1);
+    tasks.splice(di, 0, moved);
+    tasks.forEach((t, i) => t.order = i + 1);
+    renderTasks();
+    setStatus('loading', '순서를 Notion에 저장 중...');
+    try {
+      await Promise.all(tasks.map((t, i) =>
+        notionFetch(`pages/${t.id}`, 'PATCH', { properties: { '순서': { number: i + 1 } } })
+      ));
+      setStatus('ok', '순서가 저장됐습니다');
+    } catch(e) { setStatus('err', '순서 저장 실패: ' + e.message); }
   });
 }
 
@@ -968,7 +980,7 @@ async function deleteTask(id) {
   try {
     await notionFetch(`pages/${id}`, 'PATCH', { archived: true });
     tasks = tasks.filter(t => t.id !== id);
-    todayIds.delete(id); saveTodayIds();
+    todayIds = todayIds.filter(i => i !== id); saveTodayIds();
     updateStats(); renderTasks(); renderBriefing();
     setStatus('ok', '삭제 완료');
   } catch(e) { setStatus('err', '삭제 실패: ' + e.message); }
