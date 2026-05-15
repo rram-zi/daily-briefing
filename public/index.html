@@ -635,6 +635,12 @@ async function loadTasks() {
       ]
     });
     tasks = result.results.map(parsePage);
+    tasks.sort((a, b) => {
+      if (a.order !== null && b.order !== null) return a.order - b.order;
+      if (a.order !== null) return -1;
+      if (b.order !== null) return 1;
+      return 0;
+    });
     updateStats(); renderTasks(); renderBriefing();
     const t = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
     setStatus('ok', `${tasks.length}개 작업 동기화 완료 · ${t}`);
@@ -668,7 +674,8 @@ function parsePage(page) {
     dueDate:  g.date('마감일') || g.date('Due') || g.date('날짜'),
     category: g.select('카테고리') || g.select('Category') || '',
     note:     g.text('메모') || g.text('Notes') || '',
-    done:     rawStatus === 'Done'
+    done:     rawStatus === 'Done',
+    order:    p['순서']?.number ?? null
   };
 }
 
@@ -773,7 +780,7 @@ function renderTasks() {
       if (item.dataset.id !== dragSrc) item.classList.add('drag-over');
     });
     item.addEventListener('dragleave', () => item.classList.remove('drag-over'));
-    item.addEventListener('drop', e => {
+    item.addEventListener('drop', async e => {
       e.preventDefault();
       item.classList.remove('drag-over');
       const targetId = item.dataset.id;
@@ -783,7 +790,19 @@ function renderTasks() {
       if (srcIdx === -1 || dstIdx === -1) return;
       const [moved] = tasks.splice(srcIdx, 1);
       tasks.splice(dstIdx, 0, moved);
+      tasks.forEach((t, i) => t.order = i + 1);
       renderTasks();
+      setStatus('loading', '순서를 Notion에 저장 중...');
+      try {
+        await Promise.all(tasks.map((t, i) =>
+          notionFetch(`pages/${t.id}`, 'PATCH', {
+            properties: { '순서': { number: i + 1 } }
+          })
+        ));
+        setStatus('ok', '순서가 저장됐습니다');
+      } catch(e) {
+        setStatus('err', '순서 저장 실패: ' + e.message);
+      }
     });
   });
 }
