@@ -228,7 +228,7 @@
         </div>
         <div class="form-group">
           <label class="form-label">상태</label>
-          <select id="f-status"><option value="할 일">할 일</option><option value="진행중">진행중</option></select>
+          <select id="f-status"><option value="Not started">할 일</option><option value="In progress">진행중</option></select>
         </div>
         <div class="form-group">
           <label class="form-label">마감일</label>
@@ -331,7 +331,9 @@ function parsePage(page) {
     checkbox: k => p[k]?.checkbox || false,
     text: k => p[k]?.rich_text?.[0]?.plain_text || ''
   };
-  const status = g.status('상태') || g.status('Status') || '할 일';
+  const rawStatus = g.status('상태') || g.status('Status') || 'Not started';
+  const statusMap = { 'Not started': '할 일', 'In progress': '진행중', 'Done': '완료' };
+  const status = statusMap[rawStatus] || rawStatus;
   return {
     id: page.id,
     title: g.title(titleKey) || '(제목 없음)',
@@ -340,7 +342,7 @@ function parsePage(page) {
     dueDate: g.date('마감일') || g.date('Due') || g.date('날짜'),
     category: g.select('카테고리') || g.select('Category') || '',
     note: g.text('메모') || g.text('Notes') || '',
-    done: g.checkbox('완료') || g.checkbox('Done') || status === '완료'
+    done: g.checkbox('완료') || g.checkbox('Done') || rawStatus === 'Done'
   };
 }
 
@@ -425,7 +427,7 @@ async function toggleDone(id, done) {
   try {
     await notionFetch(`pages/${id}`, 'PATCH', {
       properties: {
-        '상태': { status: { name: done ? '완료' : '진행중' } },
+        '상태': { status: { name: done ? 'Done' : 'In progress' } },
         '완료': { checkbox: done }
       }
     });
