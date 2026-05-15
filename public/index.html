@@ -4,8 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Daily Briefing</title>
-<link rel="preconnect" href="https://cdn.jsdelivr.net" />
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/sunn-us/SUIT@1.0.4/packages/static/woff2/SUIT.css" />
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -25,8 +24,8 @@
     --blue500: #3182f6;
     --blue600: #2272eb;
 
-    --red50:   #ffeeee;
-    --red500:  #f04452;
+    --red50:  #ffeeee;
+    --red500: #f04452;
 
     --green50:  #edfaf4;
     --green500: #00c471;
@@ -44,7 +43,7 @@
 
   html, body { height: 100%; }
   body {
-    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: 'SUIT', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     background: var(--bg);
     color: var(--text1);
     min-height: 100vh;
@@ -70,30 +69,14 @@
   }
 
   .logo { padding: 0 8px; }
-  .logo-title {
-    font-size: 17px;
-    font-weight: 700;
-    color: var(--text1);
-    letter-spacing: -0.3px;
-  }
-  .logo-sub {
-    font-size: 12px;
-    font-weight: 400;
-    color: var(--text3);
-    margin-top: 2px;
-  }
+  .logo-title { font-size: 17px; font-weight: 700; color: var(--text1); letter-spacing: -0.3px; }
+  .logo-sub   { font-size: 12px; font-weight: 400; color: var(--text3); margin-top: 2px; }
 
-  /* Stat cards */
   .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .stat-card {
-    background: var(--grey50);
-    border-radius: 12px;
-    padding: 14px 14px 12px;
-  }
+  .stat-card { background: var(--grey50); border-radius: 12px; padding: 14px 14px 12px; }
   .stat-label { font-size: 12px; color: var(--text3); font-weight: 500; margin-bottom: 6px; }
   .stat-val {
-    font-size: 24px;
-    font-weight: 700;
+    font-size: 24px; font-weight: 700;
     letter-spacing: -0.5px;
     font-variant-numeric: tabular-nums;
     color: var(--text1);
@@ -102,65 +85,39 @@
   .val-red   { color: var(--red500); }
   .val-green { color: var(--green500); }
 
-  /* Progress */
   .progress-wrap { padding: 0 8px; }
   .progress-head {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 8px;
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
   }
   .progress-title { font-size: 12px; font-weight: 600; color: var(--text3); }
   .progress-pct   { font-size: 13px; font-weight: 700; color: var(--blue500); }
   .progress-track { height: 4px; background: var(--grey200); border-radius: 100px; overflow: hidden; }
   .progress-fill  {
-    height: 100%;
-    background: var(--blue500);
-    border-radius: 100px;
+    height: 100%; background: var(--blue500); border-radius: 100px;
     transition: width 0.5s cubic-bezier(.4,0,.2,1);
   }
 
-  /* Filters */
   .filter-section { display: flex; flex-direction: column; gap: 2px; }
   .filter-heading {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--text3);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    padding: 0 10px;
-    margin-bottom: 4px;
+    font-size: 11px; font-weight: 600; color: var(--text3);
+    text-transform: uppercase; letter-spacing: 0.08em;
+    padding: 0 10px; margin-bottom: 4px;
   }
   .filter-btn {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    padding: 9px 10px;
-    border-radius: 10px;
-    border: none;
-    background: transparent;
-    color: var(--text2);
-    font-family: inherit;
-    font-size: 14px;
-    font-weight: 400;
-    cursor: pointer;
-    text-align: left;
-    transition: background 0.1s, color 0.1s;
-    width: 100%;
+    display: flex; align-items: center; gap: 9px;
+    padding: 9px 10px; border-radius: 10px; border: none;
+    background: transparent; color: var(--text2);
+    font-family: inherit; font-size: 14px; font-weight: 400;
+    cursor: pointer; text-align: left;
+    transition: background 0.1s, color 0.1s; width: 100%;
   }
   .filter-btn:hover { background: var(--grey50); color: var(--text1); }
   .filter-btn.active { background: var(--blue50); color: var(--blue500); font-weight: 600; }
   .filter-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
   .filter-count {
-    margin-left: auto;
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--text3);
-    background: var(--grey100);
-    padding: 1px 7px;
-    border-radius: 100px;
-    min-width: 22px;
-    text-align: center;
+    margin-left: auto; font-size: 11px; font-weight: 500; color: var(--text3);
+    background: var(--grey100); padding: 1px 7px; border-radius: 100px;
+    min-width: 22px; text-align: center;
   }
   .filter-btn.active .filter-count { background: var(--blue100); color: var(--blue600); }
 
@@ -169,176 +126,107 @@
 
   /* Config card */
   .notion-config-card {
-    background: var(--surface);
-    border-radius: 16px;
-    padding: 20px 24px;
-    margin-bottom: 20px;
+    background: var(--surface); border-radius: 16px;
+    padding: 20px 24px; margin-bottom: 20px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 0 0 1px var(--border);
   }
   .cfg-label {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--text3);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin-bottom: 14px;
+    font-size: 11px; font-weight: 600; color: var(--text3);
+    text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 14px;
   }
   .cfg-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: flex-end; }
   .cfg-field label { font-size: 12px; font-weight: 500; color: var(--text3); display: block; margin-bottom: 5px; }
   .cfg-field input {
-    width: 100%;
-    padding: 10px 12px;
-    font-size: 14px;
-    font-family: inherit;
-    background: var(--grey50);
-    border: 1.5px solid var(--border);
-    border-radius: 10px;
-    color: var(--text1);
-    outline: none;
+    width: 100%; padding: 10px 12px; font-size: 14px; font-family: inherit;
+    background: var(--grey50); border: 1.5px solid var(--border);
+    border-radius: 10px; color: var(--text1); outline: none;
     transition: border-color 0.12s, background 0.12s;
   }
   .cfg-field input:focus { border-color: var(--blue500); background: var(--surface); }
   .cfg-save-btn {
-    padding: 10px 20px;
-    font-size: 14px;
-    font-family: inherit;
-    font-weight: 600;
-    background: var(--blue500);
-    color: #fff;
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: background 0.12s;
-    height: 42px;
+    padding: 10px 20px; font-size: 14px; font-family: inherit; font-weight: 600;
+    background: var(--blue500); color: #fff; border: none; border-radius: 10px;
+    cursor: pointer; white-space: nowrap; transition: background 0.12s; height: 42px;
   }
   .cfg-save-btn:hover { background: var(--blue600); }
 
   /* Topbar */
   .topbar {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    margin-bottom: 20px;
+    display: flex; align-items: flex-start;
+    justify-content: space-between; margin-bottom: 20px;
   }
   .date-big {
-    font-size: 26px;
-    font-weight: 700;
-    color: var(--text1);
-    letter-spacing: -0.5px;
-    line-height: 1.2;
+    font-size: 26px; font-weight: 700; color: var(--text1);
+    letter-spacing: -0.5px; line-height: 1.2;
   }
   .date-sub { font-size: 13px; color: var(--text3); margin-top: 4px; }
 
   .sync-btn {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 9px 16px;
-    border-radius: 10px;
-    border: 1.5px solid var(--border);
-    background: var(--surface);
-    color: var(--text2);
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: border-color 0.12s, color 0.12s;
-    flex-shrink: 0;
+    display: flex; align-items: center; gap: 6px;
+    padding: 9px 16px; border-radius: 10px;
+    border: 1.5px solid var(--border); background: var(--surface);
+    color: var(--text2); font-family: inherit; font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: border-color 0.12s, color 0.12s; flex-shrink: 0;
   }
   .sync-btn:hover { border-color: var(--blue500); color: var(--blue500); }
   .sync-btn svg { width: 14px; height: 14px; }
   .sync-btn.spinning svg { animation: spin 1s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* Briefing card */
+  /* Briefing */
   .briefing-card {
-    background: var(--surface);
-    border-radius: 16px;
-    padding: 20px 24px;
-    margin-bottom: 20px;
+    background: var(--surface); border-radius: 16px;
+    padding: 20px 24px; margin-bottom: 20px;
     border-left: 3px solid var(--blue500);
     box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 0 0 1px var(--border);
     display: none;
   }
   .briefing-label {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--blue500);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin-bottom: 12px;
+    font-size: 11px; font-weight: 600; color: var(--blue500);
+    text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px;
   }
   .briefing-lines { display: flex; flex-direction: column; gap: 8px; }
   .briefing-line {
-    font-size: 14px;
-    color: var(--text2);
-    line-height: 1.6;
-    display: flex;
-    align-items: baseline;
-    gap: 10px;
+    font-size: 14px; color: var(--text2); line-height: 1.6;
+    display: flex; align-items: baseline; gap: 10px;
   }
   .briefing-line strong { color: var(--text1); font-weight: 600; }
 
   /* Section header */
   .section-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 12px;
+    display: flex; align-items: center;
+    justify-content: space-between; margin-bottom: 12px;
   }
   .section-title {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text3);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
+    font-size: 13px; font-weight: 600; color: var(--text3);
+    text-transform: uppercase; letter-spacing: 0.08em;
   }
   .add-btn {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    padding: 8px 14px;
-    border-radius: 8px;
-    border: none;
-    background: var(--blue500);
-    color: #fff;
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.12s;
+    display: flex; align-items: center; gap: 5px;
+    padding: 8px 14px; border-radius: 8px; border: none;
+    background: var(--blue500); color: #fff;
+    font-family: inherit; font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: background 0.12s;
   }
   .add-btn:hover { background: var(--blue600); }
 
   /* Task list */
   .task-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 2rem; }
   .task-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 16px 18px;
-    border-radius: 12px;
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 16px 18px; border-radius: 12px;
     background: var(--surface);
     box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 0 0 1px var(--border);
-    transition: box-shadow 0.12s;
-    animation: fadeIn 0.18s ease;
+    transition: box-shadow 0.12s; animation: fadeIn 0.18s ease;
   }
   .task-item:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08), 0 0 0 1px var(--grey300); }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 
   .checkbox {
-    width: 20px;
-    height: 20px;
-    flex-shrink: 0;
-    margin-top: 2px;
-    border: 1.5px solid var(--grey300);
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: border-color 0.12s, background 0.12s;
+    width: 20px; height: 20px; flex-shrink: 0; margin-top: 2px;
+    border: 1.5px solid var(--grey300); border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: border-color 0.12s, background 0.12s;
   }
   .checkbox:hover { border-color: var(--green500); }
   .checkbox.checked { background: var(--green500); border-color: var(--green500); }
@@ -362,86 +250,100 @@
   .task-actions { display: flex; gap: 2px; opacity: 0; transition: opacity 0.12s; }
   .task-item:hover .task-actions { opacity: 1; }
   .act-btn {
-    width: 30px; height: 30px;
-    border: none; background: transparent; cursor: pointer;
-    border-radius: 8px; color: var(--text3);
+    width: 30px; height: 30px; border: none; background: transparent;
+    cursor: pointer; border-radius: 8px; color: var(--text3);
     display: flex; align-items: center; justify-content: center;
     transition: background 0.12s, color 0.12s;
   }
-  .act-btn:hover { background: var(--red50); color: var(--red500); }
+  .act-btn.act-edit:hover  { background: var(--blue50);  color: var(--blue500); }
+  .act-btn.act-del:hover   { background: var(--red50);   color: var(--red500); }
   .act-btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.8; }
 
-  /* Add form */
-  .add-form {
-    background: var(--surface);
-    border-radius: 16px;
-    padding: 24px;
-    margin-bottom: 16px;
-    display: none;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 0 0 1px var(--border);
+  /* ── Modal ── */
+  .modal-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(25,31,40,0.45);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 200;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.2s;
   }
-  .form-title { font-size: 15px; font-weight: 700; color: var(--text1); margin-bottom: 16px; }
-  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
-  .form-group { display: flex; flex-direction: column; gap: 5px; }
-  .form-label { font-size: 12px; color: var(--text3); font-weight: 500; }
+  .modal-backdrop.open { opacity: 1; pointer-events: all; }
+
+  .modal {
+    background: var(--surface);
+    border-radius: 20px;
+    width: 100%;
+    max-width: 520px;
+    margin: 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.18), 0 0 0 1px var(--border);
+    transform: translateY(12px) scale(0.98);
+    transition: transform 0.2s cubic-bezier(.34,1.56,.64,1);
+  }
+  .modal-backdrop.open .modal { transform: translateY(0) scale(1); }
+
+  .modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 22px 24px 0;
+  }
+  .modal-title { font-size: 17px; font-weight: 700; color: var(--text1); letter-spacing: -0.2px; }
+  .modal-close {
+    width: 32px; height: 32px; border: none; background: var(--grey100);
+    border-radius: 50%; cursor: pointer; color: var(--text3);
+    font-size: 18px; line-height: 1; display: flex; align-items: center; justify-content: center;
+    transition: background 0.12s, color 0.12s;
+  }
+  .modal-close:hover { background: var(--grey200); color: var(--text1); }
+
+  .modal-body { padding: 20px 24px; }
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-label { font-size: 12px; color: var(--text3); font-weight: 600; }
   .form-group input,
-  .form-group select,
   .form-group textarea {
-    padding: 10px 12px;
-    font-size: 14px;
-    font-family: inherit;
-    background: var(--grey50);
-    border: 1.5px solid var(--border);
-    border-radius: 10px;
-    color: var(--text1);
-    outline: none;
+    padding: 10px 12px; font-size: 14px; font-family: inherit;
+    background: var(--grey50); border: 1.5px solid var(--border);
+    border-radius: 10px; color: var(--text1); outline: none;
     transition: border-color 0.12s, background 0.12s;
   }
   .form-group input:focus,
-  .form-group select:focus,
   .form-group textarea:focus { border-color: var(--blue500); background: var(--surface); }
-  .form-group select option { background: var(--surface); }
-  .form-group textarea { resize: vertical; min-height: 70px; }
+  .form-group textarea { resize: vertical; min-height: 72px; }
   .form-full { grid-column: 1 / -1; }
-  .form-actions { display: flex; justify-content: flex-end; gap: 8px; }
 
   /* Segment selector */
   .seg-group { display: flex; gap: 6px; }
   .seg-btn {
-    flex: 1;
-    padding: 9px 10px;
-    border: 1.5px solid var(--border);
-    border-radius: 10px;
-    background: var(--grey50);
-    color: var(--text2);
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.12s;
-    text-align: center;
-    white-space: nowrap;
+    flex: 1; padding: 9px 10px;
+    border: 1.5px solid var(--border); border-radius: 10px;
+    background: var(--grey50); color: var(--text2);
+    font-family: inherit; font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: all 0.12s; text-align: center;
   }
   .seg-btn:hover { border-color: var(--grey300); color: var(--text1); background: var(--grey100); }
   .seg-btn.active { font-weight: 600; }
-
-  /* Priority colors */
-  .seg-btn[data-val="보통"].active  { border-color: var(--blue500);  background: var(--blue50);  color: var(--blue500); }
-  .seg-btn[data-val="긴급"].active  { border-color: var(--red500);   background: var(--red50);   color: var(--red500); }
-  .seg-btn[data-val="낮음"].active  { border-color: var(--grey400);  background: var(--grey100); color: var(--grey600); }
-
-  /* Status colors */
+  .seg-btn[data-val="보통"].active     { border-color: var(--blue500);  background: var(--blue50);  color: var(--blue500); }
+  .seg-btn[data-val="긴급"].active     { border-color: var(--red500);   background: var(--red50);   color: var(--red500); }
+  .seg-btn[data-val="낮음"].active     { border-color: var(--grey400);  background: var(--grey100); color: var(--grey600); }
   .seg-btn[data-val="Not started"].active { border-color: var(--grey400);  background: var(--grey100); color: var(--grey700); }
   .seg-btn[data-val="In progress"].active { border-color: var(--blue500);  background: var(--blue50);  color: var(--blue500); }
   .seg-btn[data-val="Done"].active        { border-color: var(--green500); background: var(--green50); color: var(--green500); }
+
+  .modal-footer {
+    display: flex; justify-content: flex-end; gap: 8px;
+    padding: 0 24px 22px;
+  }
   .btn-cancel {
-    padding: 10px 18px; font-size: 14px; font-family: inherit; font-weight: 500;
+    padding: 11px 20px; font-size: 14px; font-family: inherit; font-weight: 500;
     background: var(--grey100); border: none; color: var(--text2);
     border-radius: 10px; cursor: pointer; transition: background 0.12s;
   }
   .btn-cancel:hover { background: var(--grey200); }
   .btn-save {
-    padding: 10px 18px; font-size: 14px; font-family: inherit; font-weight: 600;
+    padding: 11px 20px; font-size: 14px; font-family: inherit; font-weight: 600;
     background: var(--blue500); color: #fff; border: none;
     border-radius: 10px; cursor: pointer; transition: background 0.12s;
   }
@@ -457,8 +359,7 @@
     -webkit-backdrop-filter: blur(16px);
     border-top: 1px solid var(--border);
     display: flex; align-items: center; gap: 8px;
-    font-size: 12px; color: var(--text3);
-    z-index: 99;
+    font-size: 12px; color: var(--text3); z-index: 99;
   }
   .sdot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
   .sdot-ok      { background: var(--green500); }
@@ -479,6 +380,7 @@
     .sidebar { position: static; height: auto; }
     .cfg-row { grid-template-columns: 1fr; }
     .main { padding: 20px 16px 80px; }
+    .form-grid { grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -593,7 +495,7 @@
     <!-- Section header -->
     <div class="section-header">
       <div class="section-title">작업 목록</div>
-      <button class="add-btn" id="toggle-add" onclick="toggleForm()">
+      <button class="add-btn" onclick="openModal()">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
           <path d="M12 5v14M5 12h14"/>
         </svg>
@@ -601,9 +503,22 @@
       </button>
     </div>
 
-    <!-- Add form -->
-    <div class="add-form" id="add-form">
-      <div class="form-title">새 작업 추가</div>
+    <!-- Task list -->
+    <div class="task-list" id="task-list">
+      <div class="empty-state">불러오는 중...</div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Modal -->
+<div class="modal-backdrop" id="modal-backdrop" onclick="handleBackdropClick(event)">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">새 작업 추가</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
       <div class="form-grid">
         <div class="form-group form-full">
           <label class="form-label">작업명 *</label>
@@ -638,18 +553,12 @@
           <textarea id="f-note" placeholder="추가 설명 (선택)"></textarea>
         </div>
       </div>
-      <div class="form-actions">
-        <button class="btn-cancel" onclick="toggleForm()">취소</button>
-        <button class="btn-save" id="btn-save" onclick="addTask()">Notion에 저장</button>
-      </div>
     </div>
-
-    <!-- Task list -->
-    <div class="task-list" id="task-list">
-      <div class="empty-state">불러오는 중...</div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal()">취소</button>
+      <button class="btn-save" id="btn-save" onclick="saveTask()">저장</button>
     </div>
-
-  </main>
+  </div>
 </div>
 
 <!-- Status bar -->
@@ -664,6 +573,7 @@ let TOKEN = localStorage.getItem('notion_token') || '';
 let DB_ID  = localStorage.getItem('notion_dbid')  || '';
 let tasks = [];
 let currentFilter = 'all';
+let editingId = null; // null = 새 작업, string = 수정 중인 task id
 
 (function init() {
   const now  = new Date();
@@ -675,6 +585,8 @@ let currentFilter = 'all';
 
   document.getElementById('cfg-token').value = TOKEN;
   document.getElementById('cfg-dbid').value  = DB_ID;
+
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
   if (!TOKEN || !DB_ID) {
     setStatus('err', '상단 Notion 설정에서 Token과 DB ID를 입력해주세요');
@@ -727,12 +639,11 @@ function parsePage(page) {
   const p = page.properties;
   const titleKey = Object.keys(p).find(k => p[k].type === 'title') || '이름';
   const g = {
-    title:    k => p[k]?.title?.[0]?.plain_text    || p[k]?.rich_text?.[0]?.plain_text || '',
-    select:   k => p[k]?.select?.name              || '',
-    status:   k => p[k]?.status?.name              || p[k]?.select?.name               || '',
-    date:     k => p[k]?.date?.start               || null,
-    checkbox: k => p[k]?.checkbox                  || false,
-    text:     k => p[k]?.rich_text?.[0]?.plain_text || ''
+    title:  k => p[k]?.title?.[0]?.plain_text    || p[k]?.rich_text?.[0]?.plain_text || '',
+    select: k => p[k]?.select?.name              || '',
+    status: k => p[k]?.status?.name              || p[k]?.select?.name               || '',
+    date:   k => p[k]?.date?.start               || null,
+    text:   k => p[k]?.rich_text?.[0]?.plain_text || ''
   };
   const rawStatus = g.status('상태') || g.status('Status') || 'Not started';
   const statusMap  = { 'Not started': '할 일', 'In progress': '진행중', 'Done': '완료' };
@@ -742,9 +653,9 @@ function parsePage(page) {
     title:    g.title(titleKey) || '(제목 없음)',
     status,
     priority: g.select('우선순위') || g.select('Priority') || '보통',
-    dueDate:  g.date('마감일')    || g.date('Due')         || g.date('날짜'),
+    dueDate:  g.date('마감일') || g.date('Due') || g.date('날짜'),
     category: g.select('카테고리') || g.select('Category') || '',
-    note:     g.text('메모')      || g.text('Notes')       || '',
+    note:     g.text('메모') || g.text('Notes') || '',
     done:     rawStatus === 'Done'
   };
 }
@@ -757,19 +668,18 @@ function updateStats() {
   const todo    = tasks.filter(t => !t.done && t.status === '할 일').length;
   const overdue = tasks.filter(t =>  isOverdue(t.dueDate) && !t.done).length;
   const pct     = total > 0 ? Math.round((done / total) * 100) : 0;
-
-  document.getElementById('st-total').textContent  = total;
-  document.getElementById('st-done').textContent   = done;
-  document.getElementById('st-prog').textContent   = prog;
-  document.getElementById('st-urgent').textContent = urgent;
-  document.getElementById('prog-fill').style.width = pct + '%';
-  document.getElementById('pct-label').textContent = pct + '%';
-  document.getElementById('fc-all').textContent    = total;
-  document.getElementById('fc-todo').textContent   = todo;
-  document.getElementById('fc-prog').textContent   = prog;
-  document.getElementById('fc-done').textContent   = done;
-  document.getElementById('fc-urgent').textContent = urgent;
-  document.getElementById('fc-overdue').textContent= overdue;
+  document.getElementById('st-total').textContent   = total;
+  document.getElementById('st-done').textContent    = done;
+  document.getElementById('st-prog').textContent    = prog;
+  document.getElementById('st-urgent').textContent  = urgent;
+  document.getElementById('prog-fill').style.width  = pct + '%';
+  document.getElementById('pct-label').textContent  = pct + '%';
+  document.getElementById('fc-all').textContent     = total;
+  document.getElementById('fc-todo').textContent    = todo;
+  document.getElementById('fc-prog').textContent    = prog;
+  document.getElementById('fc-done').textContent    = done;
+  document.getElementById('fc-urgent').textContent  = urgent;
+  document.getElementById('fc-overdue').textContent = overdue;
 }
 
 function renderBriefing() {
@@ -815,14 +725,17 @@ function renderTasks() {
       <div class="task-body">
         <div class="task-title ${t.done ? 'done' : ''}">${esc(t.title)}</div>
         <div class="task-meta">
-          ${t.priority  ? `<span class="badge ${priClass}">${t.priority}</span>` : ''}
-          ${t.category  ? `<span class="badge badge-cat">${esc(t.category)}</span>` : ''}
-          ${t.status    ? `<span class="badge badge-status">${t.status}</span>` : ''}
-          ${t.dueDate   ? `<span class="badge badge-date ${odClass}">📅 ${fmt(t.dueDate)}${isOverdue(t.dueDate)&&!t.done?' 초과':''}</span>` : ''}
+          ${t.priority ? `<span class="badge ${priClass}">${t.priority}</span>` : ''}
+          ${t.category ? `<span class="badge badge-cat">${esc(t.category)}</span>` : ''}
+          ${t.status   ? `<span class="badge badge-status">${t.status}</span>` : ''}
+          ${t.dueDate  ? `<span class="badge badge-date ${odClass}">📅 ${fmt(t.dueDate)}${isOverdue(t.dueDate)&&!t.done?' 초과':''}</span>` : ''}
         </div>
       </div>
       <div class="task-actions">
-        <button class="act-btn" onclick="deleteTask('${t.id}')">
+        <button class="act-btn act-edit" onclick="openModal('${t.id}')" title="수정">
+          <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+        <button class="act-btn act-del" onclick="deleteTask('${t.id}')" title="삭제">
           <svg viewBox="0 0 24 24"><polyline points="3,6 5,6 21,6"/><path d="M19,6v14a2,2,0,0,1-2,2H7a2,2,0,0,1-2-2V6m3,0V4a2,2,0,0,1,2-2h4a2,2,0,0,1,2,2v2"/></svg>
         </button>
       </div>
@@ -830,13 +743,106 @@ function renderTasks() {
   }).join('');
 }
 
+/* ── Modal ── */
+const statusToRaw = { '할 일': 'Not started', '진행중': 'In progress', '완료': 'Done' };
+
+function openModal(taskId = null) {
+  editingId = taskId;
+  const task = taskId ? tasks.find(t => t.id === taskId) : null;
+
+  document.getElementById('modal-title').textContent = task ? '작업 수정' : '새 작업 추가';
+  document.getElementById('btn-save').textContent    = task ? '수정 완료' : '저장';
+
+  document.getElementById('f-title').value    = task ? task.title    : '';
+  document.getElementById('f-date').value     = task ? (task.dueDate || '') : '';
+  document.getElementById('f-category').value = task ? task.category : '';
+  document.getElementById('f-note').value     = task ? task.note     : '';
+
+  const rawPriority = task ? task.priority : '보통';
+  const rawStatus   = task ? (statusToRaw[task.status] || 'Not started') : 'Not started';
+  resetSeg('f-priority', rawPriority);
+  resetSeg('f-status',   rawStatus);
+
+  document.getElementById('modal-backdrop').classList.add('open');
+  setTimeout(() => document.getElementById('f-title').focus(), 120);
+}
+
+function closeModal() {
+  document.getElementById('modal-backdrop').classList.remove('open');
+  editingId = null;
+}
+
+function handleBackdropClick(e) {
+  if (e.target === document.getElementById('modal-backdrop')) closeModal();
+}
+
+async function saveTask() {
+  const title = document.getElementById('f-title').value.trim();
+  if (!title) { alert('작업명을 입력해주세요'); return; }
+
+  const btn = document.getElementById('btn-save');
+  btn.disabled = true; btn.textContent = '저장 중...';
+  setStatus('loading', 'Notion에 저장 중...');
+
+  const dueDate  = document.getElementById('f-date').value;
+  const priority = document.getElementById('f-priority').dataset.value;
+  const category = document.getElementById('f-category').value.trim();
+  const status   = document.getElementById('f-status').dataset.value;
+  const note     = document.getElementById('f-note').value.trim();
+
+  const props = {
+    '이름':     { title:  [{ text: { content: title } }] },
+    '우선순위': { select: { name: priority } },
+    '상태':     { status: { name: status } },
+    '마감일':   dueDate  ? { date: { start: dueDate } } : { date: null },
+    '카테고리': category ? { select: { name: category } } : { select: null },
+    '메모':     { rich_text: note ? [{ text: { content: note } }] : [] }
+  };
+
+  const statusMap = { 'Not started': '할 일', 'In progress': '진행중', 'Done': '완료' };
+
+  try {
+    if (editingId) {
+      await notionFetch(`pages/${editingId}`, 'PATCH', { properties: props });
+      const t = tasks.find(t => t.id === editingId);
+      if (t) {
+        t.title    = title;
+        t.priority = priority;
+        t.status   = statusMap[status] || status;
+        t.dueDate  = dueDate  || null;
+        t.category = category;
+        t.note     = note;
+        t.done     = status === 'Done';
+      }
+      setStatus('ok', '작업이 수정됐습니다');
+    } else {
+      const result = await notionFetch('pages', 'POST', {
+        parent: { database_id: DB_ID },
+        properties: props
+      });
+      tasks.unshift({
+        id: result.id, title,
+        status: statusMap[status] || status,
+        priority, dueDate: dueDate || null, category, note,
+        done: status === 'Done'
+      });
+      setStatus('ok', '새 작업이 Notion에 저장됐습니다');
+    }
+    updateStats(); renderTasks(); renderBriefing();
+    closeModal();
+  } catch(e) {
+    setStatus('err', '저장 실패: ' + e.message);
+  }
+
+  btn.disabled = false;
+  btn.textContent = editingId ? '수정 완료' : '저장';
+}
+
 async function toggleDone(id, done) {
   setStatus('loading', '상태 업데이트 중...');
   try {
     await notionFetch(`pages/${id}`, 'PATCH', {
-      properties: {
-        '상태': { status: { name: done ? 'Done' : 'In progress' } }
-      }
+      properties: { '상태': { status: { name: done ? 'Done' : 'In progress' } } }
     });
     const t = tasks.find(t => t.id === id);
     if (t) { t.done = done; t.status = done ? '완료' : '진행중'; }
@@ -854,39 +860,6 @@ async function deleteTask(id) {
     updateStats(); renderTasks(); renderBriefing();
     setStatus('ok', '삭제 완료');
   } catch(e) { setStatus('err', '삭제 실패: ' + e.message); }
-}
-
-async function addTask() {
-  const title = document.getElementById('f-title').value.trim();
-  if (!title) { alert('작업명을 입력해주세요'); return; }
-  const btn = document.getElementById('btn-save');
-  btn.disabled = true; btn.textContent = '저장 중...';
-  setStatus('loading', 'Notion에 저장 중...');
-  const dueDate  = document.getElementById('f-date').value;
-  const priority = document.getElementById('f-priority').dataset.value;
-  const category = document.getElementById('f-category').value.trim();
-  const status   = document.getElementById('f-status').dataset.value;
-  const note     = document.getElementById('f-note').value.trim();
-  const props = {
-    '이름':    { title:  [{ text: { content: title } }] },
-    '우선순위': { select: { name: priority } },
-    '상태':    { status: { name: status } }
-  };
-  if (dueDate)  props['마감일']  = { date:      { start: dueDate } };
-  if (category) props['카테고리'] = { select:    { name: category } };
-  if (note)     props['메모']    = { rich_text: [{ text: { content: note } }] };
-  try {
-    const result = await notionFetch('pages', 'POST', { parent: { database_id: DB_ID }, properties: props });
-    const statusMap = { 'Not started': '할 일', 'In progress': '진행중', 'Done': '완료' };
-    tasks.unshift({ id: result.id, title, status: statusMap[status] || status, priority, dueDate: dueDate || null, category, note, done: false });
-    updateStats(); renderTasks(); renderBriefing();
-    toggleForm();
-    ['f-title','f-date','f-note','f-category'].forEach(id => document.getElementById(id).value = '');
-    resetSeg('f-priority', '보통');
-    resetSeg('f-status', 'Not started');
-    setStatus('ok', '새 작업이 Notion에 저장됐습니다');
-  } catch(e) { setStatus('err', '저장 실패: ' + e.message); }
-  btn.disabled = false; btn.textContent = 'Notion에 저장';
 }
 
 function selectSeg(btn, groupId) {
@@ -911,15 +884,6 @@ function setFilter(f, el) {
   renderTasks();
 }
 
-function toggleForm() {
-  const form = document.getElementById('add-form');
-  const btn  = document.getElementById('toggle-add');
-  const show = form.style.display !== 'block';
-  form.style.display = show ? 'block' : 'none';
-  btn.style.display  = show ? 'none'  : 'flex';
-  if (show) document.getElementById('f-title').focus();
-}
-
 function saveConfig() {
   const t = document.getElementById('cfg-token').value.trim();
   const d = document.getElementById('cfg-dbid').value.trim();
@@ -931,7 +895,8 @@ function saveConfig() {
 }
 
 function setStatus(type, text) {
-  document.getElementById('sdot').className = 'sdot sdot-' + (type === 'ok' ? 'ok' : type === 'err' ? 'err' : 'loading');
+  document.getElementById('sdot').className =
+    'sdot sdot-' + (type === 'ok' ? 'ok' : type === 'err' ? 'err' : 'loading');
   document.getElementById('stext').textContent = text;
 }
 function isOverdue(d) {
