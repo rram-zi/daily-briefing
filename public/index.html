@@ -165,12 +165,12 @@
     display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;
   }
   .briefing-label {
-    font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.45);
+    font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.6);
     text-transform: uppercase; letter-spacing: 0.08em;
   }
   .briefing-close {
     width: 24px; height: 24px; border: none; background: transparent;
-    color: rgba(255,255,255,0.35); cursor: pointer; border-radius: 6px;
+    color: rgba(255,255,255,0.45); cursor: pointer; border-radius: 6px;
     display: flex; align-items: center; justify-content: center;
     transition: background 0.1s, color 0.1s; flex-shrink: 0;
   }
@@ -178,7 +178,7 @@
   .briefing-close svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2.5; }
   .briefing-lines { display: flex; flex-direction: column; gap: 8px; }
   .briefing-line {
-    font-size: 14px; color: rgba(255,255,255,0.65); line-height: 1.6;
+    font-size: 14px; color: rgba(255,255,255,0.88); line-height: 1.6;
     display: flex; align-items: baseline; gap: 10px;
   }
   .briefing-line strong { color: #ffffff; font-weight: 600; }
@@ -252,6 +252,45 @@
   .act-btn.act-today-remove:hover{ background: var(--red50);   color: var(--red500); }
 
   .section-divider { height: 1px; background: var(--border); margin: 8px 0 24px; }
+
+  /* Today plan prompt */
+  .today-prompt-card {
+    border: 1.5px dashed var(--border); border-radius: 16px;
+    padding: 24px; margin-bottom: 12px;
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+  }
+  .today-prompt-text { font-size: 14px; color: var(--text3); }
+  .today-plan-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 18px; border-radius: 10px; border: none;
+    background: var(--blue500); color: #fff;
+    font-family: inherit; font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: background 0.12s;
+  }
+  .today-plan-btn:hover { background: var(--blue600); }
+  .today-plan-btn svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2.5; }
+
+  /* Today select modal items */
+  .today-select-list { max-height: 420px; overflow-y: auto; padding: 8px 0; }
+  .today-select-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 20px; cursor: pointer; transition: background 0.1s;
+    user-select: none;
+  }
+  .today-select-item:hover { background: var(--grey50); }
+  .today-select-item.selected { background: var(--blue50); }
+  .today-select-box {
+    width: 18px; height: 18px; border-radius: 5px; border: 1.5px solid var(--border);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    transition: all 0.1s;
+  }
+  .today-select-item.selected .today-select-box {
+    background: var(--blue500); border-color: var(--blue500);
+  }
+  .today-select-box svg { width: 10px; height: 10px; stroke: #fff; fill: none; stroke-width: 3; display: none; }
+  .today-select-item.selected .today-select-box svg { display: block; }
+  .today-select-title { font-size: 14px; color: var(--text1); font-weight: 500; flex: 1; min-width: 0; }
+  .today-select-meta { font-size: 12px; color: var(--text3); flex-shrink: 0; }
   .act-btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.8; }
 
   .drag-handle {
@@ -549,11 +588,24 @@
         <div class="briefing-lines" id="briefing-lines"></div>
       </div>
 
-      <div class="section-header">
-        <div class="section-title">오늘의 할 일</div>
+      <!-- Today prompt (before setup) -->
+      <div id="today-prompt">
+        <div class="today-prompt-card">
+          <div class="today-prompt-text">오늘의 할 일 리스트를 작성하세요</div>
+          <button class="today-plan-btn" onclick="openTodayModal()">
+            <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+            할 일 선택하기
+          </button>
+        </div>
       </div>
-      <div class="task-list" id="today-list">
-        <div class="empty-state">아래 목록에서 오늘 할 일을 추가해주세요</div>
+
+      <!-- Today section (after setup) -->
+      <div id="today-section" style="display:none">
+        <div class="section-header">
+          <div class="section-title">오늘의 할 일</div>
+          <button class="add-btn" onclick="openTodayModal()">수정</button>
+        </div>
+        <div class="task-list" id="today-list"></div>
       </div>
 
       <div class="section-divider"></div>
@@ -621,6 +673,21 @@
     </div>
 
   </main>
+</div>
+
+<!-- Today Select Modal -->
+<div class="modal-backdrop" id="today-modal-backdrop" onclick="handleTodayModalBackdropClick(event)">
+  <div class="modal" style="max-width:480px;padding:0;overflow:hidden">
+    <div class="modal-header" style="padding:16px 20px">
+      <div class="modal-title">오늘의 할 일 선택</div>
+      <button class="modal-close" onclick="closeTodayModal()">✕</button>
+    </div>
+    <div class="today-select-list" id="today-select-list"></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeTodayModal()">취소</button>
+      <button class="btn-save" onclick="confirmTodaySelection()">확인</button>
+    </div>
+  </div>
 </div>
 
 <!-- Search Modal -->
@@ -742,30 +809,89 @@ let viewMode = 'tasks';
 let historyMonth = new Date();
 let historySearch = '';
 let todayIds = [];
+let todaySetupDone = false;
+
+function todayKey() { return new Date().toISOString().slice(0, 10); }
 
 function loadTodayIds() {
   try {
     const stored = JSON.parse(localStorage.getItem('today_tasks') || '{}');
-    const today = new Date().toISOString().slice(0, 10);
-    todayIds = stored.date === today && Array.isArray(stored.ids) ? stored.ids : [];
+    todayIds = stored.date === todayKey() && Array.isArray(stored.ids) ? stored.ids : [];
   } catch { todayIds = []; }
 }
-
 function saveTodayIds() {
-  const today = new Date().toISOString().slice(0, 10);
-  localStorage.setItem('today_tasks', JSON.stringify({ date: today, ids: todayIds }));
+  localStorage.setItem('today_tasks', JSON.stringify({ date: todayKey(), ids: todayIds }));
+}
+function loadTodaySetup() {
+  todaySetupDone = localStorage.getItem('today_setup') === todayKey();
+}
+function saveTodaySetup() {
+  todaySetupDone = true;
+  localStorage.setItem('today_setup', todayKey());
 }
 
 function addToToday(id) {
   if (!todayIds.includes(id)) todayIds.push(id);
-  saveTodayIds();
-  renderTasks();
+  saveTodayIds(); saveTodaySetup();
+  renderTodaySection(); renderTasks();
 }
-
 function removeFromToday(id) {
   todayIds = todayIds.filter(i => i !== id);
   saveTodayIds();
-  renderTasks();
+  renderTodaySection(); renderTasks();
+}
+
+function renderTodaySection() {
+  const prompt  = document.getElementById('today-prompt');
+  const section = document.getElementById('today-section');
+  if (todaySetupDone) {
+    prompt.style.display  = 'none';
+    section.style.display = '';
+  } else {
+    prompt.style.display  = '';
+    section.style.display = 'none';
+  }
+}
+
+let todaySelectTemp = [];
+function openTodayModal() {
+  todaySelectTemp = [...todayIds];
+  const incomplete = tasks.filter(t => !t.done);
+  const priLabel = { '긴급': '🔴', '낮음': '🔵' };
+  document.getElementById('today-select-list').innerHTML = incomplete.length
+    ? incomplete.map(t => `
+      <div class="today-select-item${todaySelectTemp.includes(t.id) ? ' selected' : ''}"
+           onclick="toggleTodaySelect('${t.id}',this)">
+        <div class="today-select-box">
+          <svg viewBox="0 0 12 10"><polyline points="1,5 4.5,9 11,1"/></svg>
+        </div>
+        <span class="today-select-title">${esc(t.title)}</span>
+        ${t.priority && t.priority !== '보통' ? `<span class="today-select-meta">${priLabel[t.priority]||''} ${t.priority}</span>` : ''}
+        ${t.dueDate ? `<span class="today-select-meta">📅 ${fmt(t.dueDate)}</span>` : ''}
+      </div>`).join('')
+    : '<div style="padding:24px;text-align:center;color:var(--text3);font-size:14px">할 일이 없어요</div>';
+  document.getElementById('today-modal-backdrop').classList.add('open');
+}
+function closeTodayModal() {
+  document.getElementById('today-modal-backdrop').classList.remove('open');
+}
+function handleTodayModalBackdropClick(e) {
+  if (e.target === document.getElementById('today-modal-backdrop')) closeTodayModal();
+}
+function toggleTodaySelect(id, el) {
+  if (todaySelectTemp.includes(id)) {
+    todaySelectTemp = todaySelectTemp.filter(i => i !== id);
+    el.classList.remove('selected');
+  } else {
+    todaySelectTemp.push(id);
+    el.classList.add('selected');
+  }
+}
+function confirmTodaySelection() {
+  todayIds = [...todaySelectTemp];
+  saveTodayIds(); saveTodaySetup();
+  closeTodayModal();
+  renderTodaySection(); renderTasks();
 }
 
 (function init() {
@@ -776,11 +902,13 @@ function removeFromToday(id) {
   document.getElementById('date-sub').textContent = '';
 
   loadTodayIds();
+  loadTodaySetup();
+  renderTodaySection();
 
   document.getElementById('cfg-token').value = TOKEN;
   document.getElementById('cfg-dbid').value  = DB_ID;
 
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeConfig(); closeTaskDetail(); closeSearchModal(); } });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeConfig(); closeTaskDetail(); closeSearchModal(); closeTodayModal(); } });
 
   if (!TOKEN || !DB_ID) {
     setStatus('err', '좌측 하단 설정에서 Token과 DB ID를 입력해주세요');
@@ -984,7 +1112,7 @@ function renderTasks() {
   const todayList = document.getElementById('today-list');
   todayList.innerHTML = todayTasks.length
     ? todayTasks.map(t => taskItemHTML(t, true)).join('')
-    : '<div class="empty-state">아래 목록에서 오늘 할 일을 추가해주세요</div>';
+    : '<div class="empty-state">선택한 할 일이 없어요. 수정 버튼으로 추가해보세요</div>';
 
   const list = document.getElementById('task-list');
   list.innerHTML = otherTasks.length
