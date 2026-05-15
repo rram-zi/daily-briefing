@@ -590,9 +590,8 @@ let editingId = null; // null = 새 작업, string = 수정 중인 task id
   const now  = new Date();
   const days = ['일요일','월요일','화요일','수요일','목요일','금요일','토요일'];
   document.getElementById('date-big').textContent =
-    '오늘은 ' + now.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' });
-  document.getElementById('date-sub').textContent =
-    `${now.getFullYear()} · ${days[now.getDay()]}`;
+    '오늘은 ' + now.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' }) + ' ' + days[now.getDay()];
+  document.getElementById('date-sub').textContent = '';
 
   document.getElementById('cfg-token').value = TOKEN;
   document.getElementById('cfg-dbid').value  = DB_ID;
