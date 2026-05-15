@@ -825,6 +825,7 @@ function addToToday(id) {
 }
 function removeFromToday(id) {
   todayIds = todayIds.filter(i => i !== id);
+  if (todayIds.length === 0) todayConfirmed = false;
   saveTodayIds();
   renderTodaySection(); renderTasks();
 }
@@ -869,7 +870,7 @@ function toggleTodaySelect(id, el) {
 }
 function confirmTodaySelection() {
   todayIds = [...todaySelectTemp];
-  todayConfirmed = true;
+  todayConfirmed = todayIds.length > 0;
   saveTodayIds();
   closeTodayModal();
   renderTodaySection(); renderTasks();
@@ -933,7 +934,7 @@ async function loadTasks() {
       return 0;
     });
     updateStats(); renderTasks(); renderBriefing();
-    if (!todayConfirmed) openTodayModal();
+    if (!todayConfirmed || todayIds.length === 0) openTodayModal();
     const t = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
     setStatus('ok', `${tasks.length}개 작업 동기화 완료 · ${t}`);
   } catch(e) {
