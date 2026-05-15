@@ -342,7 +342,7 @@ function parsePage(page) {
     dueDate: g.date('마감일') || g.date('Due') || g.date('날짜'),
     category: g.select('카테고리') || g.select('Category') || '',
     note: g.text('메모') || g.text('Notes') || '',
-    done: g.checkbox('완료') || g.checkbox('Done') || rawStatus === 'Done'
+    done: rawStatus === 'Done'
   };
 }
 
@@ -427,8 +427,7 @@ async function toggleDone(id, done) {
   try {
     await notionFetch(`pages/${id}`, 'PATCH', {
       properties: {
-        '상태': { status: { name: done ? 'Done' : 'In progress' } },
-        '완료': { checkbox: done }
+        '상태': { status: { name: done ? 'Done' : 'In progress' } }
       }
     });
     const t = tasks.find(t => t.id === id);
