@@ -266,10 +266,12 @@ let currentFilter = 'all';
   document.getElementById('date-big').textContent = now.toLocaleDateString('ko-KR', { month:'long', day:'numeric' });
   document.getElementById('date-sub').textContent = `${now.getFullYear()} · ${days[now.getDay()]}`;
 
+  document.getElementById('cfg-token').value = TOKEN;
+  document.getElementById('cfg-dbid').value = DB_ID;
+
   if (!TOKEN || !DB_ID) {
     setStatus('err', '⚙ Notion 설정에서 Token과 DB ID를 입력해주세요');
     document.getElementById('task-list').innerHTML = '<div class="empty-state">좌측 하단 ⚙ Notion 설정에서<br>Token과 Database ID를 입력해주세요</div>';
-    toggleConfig();
     return;
   }
   loadTasks();
@@ -484,12 +486,6 @@ function toggleForm() {
   if (show) document.getElementById('f-title').focus();
 }
 
-let cfgOpen = false;
-function toggleConfig() {
-  cfgOpen = !cfgOpen;
-  document.getElementById('cfg-fields').style.display = cfgOpen ? 'flex' : 'none';
-  if (cfgOpen) { document.getElementById('cfg-token').value = TOKEN; document.getElementById('cfg-dbid').value = DB_ID; }
-}
 function saveConfig() {
   const t = document.getElementById('cfg-token').value.trim();
   const d = document.getElementById('cfg-dbid').value.trim();
@@ -497,8 +493,6 @@ function saveConfig() {
   TOKEN = t; DB_ID = d;
   localStorage.setItem('notion_token', t);
   localStorage.setItem('notion_dbid', d);
-  cfgOpen = false;
-  document.getElementById('cfg-fields').style.display = 'none';
   loadTasks();
 }
 function setStatus(type, text) {
