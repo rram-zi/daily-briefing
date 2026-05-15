@@ -411,17 +411,17 @@
   .cal-task-chip:hover { background: var(--grey300); color: var(--grey900); }
 
   /* History search */
-  .cal-search-btn {
-    width: 32px; height: 32px; border: 1.5px solid var(--border); background: var(--surface);
-    border-radius: 8px; cursor: pointer; color: var(--text2);
-    display: flex; align-items: center; justify-content: center; transition: all 0.12s;
+  .topbar-search-btn {
+    display: flex; align-items: center; gap: 6px;
+    padding: 9px 16px; border-radius: 10px;
+    border: 1.5px solid var(--border); background: var(--surface);
+    color: var(--text2); font-family: inherit; font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: border-color 0.12s, color 0.12s; flex-shrink: 0;
   }
-  .cal-search-btn:hover { border-color: var(--blue500); color: var(--blue500); }
-  .cal-search-btn.active { border-color: var(--blue500); color: var(--blue500); background: var(--blue50); }
-  .cal-search-btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2.5; }
-  .search-modal-wrap {
-    padding: 20px 20px 12px;
-  }
+  .topbar-search-btn:hover { border-color: var(--blue500); color: var(--blue500); }
+  .topbar-search-btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2.5; }
+  .topbar-search-btn.active { border-color: var(--blue500); color: var(--blue500); background: var(--blue50); }
+  .search-modal-wrap { padding: 16px 16px 0; }
   .search-modal-input {
     width: 100%; height: 44px; padding: 0 14px 0 40px;
     border: 1.5px solid var(--border); border-radius: 10px;
@@ -429,11 +429,21 @@
     font-size: 15px; font-family: inherit; outline: none;
     transition: border-color 0.15s, background 0.15s;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238b95a1' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: 12px center;
+    background-repeat: no-repeat; background-position: 12px center;
   }
   .search-modal-input:focus { border-color: var(--blue500); background: var(--surface); }
   .search-modal-input::placeholder { color: var(--text3); }
+  .search-results { margin-top: 8px; max-height: 320px; overflow-y: auto; }
+  .search-result-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 11px 16px; cursor: pointer; border-radius: 8px; margin: 2px 0;
+    transition: background 0.1s;
+  }
+  .search-result-item:hover { background: var(--grey50); }
+  .search-result-title { font-size: 14px; font-weight: 500; color: var(--text1); }
+  .search-result-date { font-size: 12px; color: var(--text3); flex-shrink: 0; margin-left: 12px; }
+  .search-empty { padding: 24px 16px; text-align: center; font-size: 14px; color: var(--text3); }
+  .search-modal-footer { height: 8px; }
 
   /* Task detail modal */
   .detail-note { font-size: 14px; color: var(--text2); line-height: 1.8; white-space: pre-wrap; }
@@ -533,17 +543,23 @@
 
     <!-- Topbar -->
     <div class="topbar">
-      <div>
+      <div id="topbar-date">
         <div class="date-big" id="date-big"></div>
         <div class="date-sub" id="date-sub"></div>
       </div>
-      <button class="sync-btn" id="sync-btn" onclick="loadTasks()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M23 4v6h-6M1 20v-6h6"/>
-          <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
-        </svg>
-        동기화
-      </button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="topbar-search-btn" id="topbar-search-btn" onclick="openSearchModal()" style="display:none">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          검색
+        </button>
+        <button class="sync-btn" id="sync-btn" onclick="loadTasks()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M23 4v6h-6M1 20v-6h6"/>
+            <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+          </svg>
+          동기화
+        </button>
+      </div>
     </div>
 
     <!-- Task view -->
@@ -584,14 +600,9 @@
             <svg viewBox="0 0 24 24"><polyline points="15,18 9,12 15,6"/></svg>
           </button>
           <span class="cal-month-label" id="cal-month-label"></span>
-          <div style="display:flex;gap:6px;align-items:center">
-            <button class="cal-search-btn" id="cal-search-btn" onclick="openSearchModal()">
-              <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            </button>
-            <button class="cal-nav-btn" onclick="changeMonth(1)">
-              <svg viewBox="0 0 24 24"><polyline points="9,18 15,12 9,6"/></svg>
-            </button>
-          </div>
+          <button class="cal-nav-btn" onclick="changeMonth(1)">
+            <svg viewBox="0 0 24 24"><polyline points="9,18 15,12 9,6"/></svg>
+          </button>
         </div>
         <div class="cal-weekdays">
           <div class="cal-weekday" style="color:var(--red500)">일</div>
@@ -614,6 +625,8 @@
       <input class="search-modal-input" id="search-modal-input" type="search"
         placeholder="완료한 할 일 검색..." oninput="onHistorySearch(this.value)" />
     </div>
+    <div class="search-results" id="search-results"></div>
+    <div class="search-modal-footer"></div>
   </div>
 </div>
 
@@ -1141,6 +1154,8 @@ function setView(mode, el) {
   viewMode = mode;
   document.getElementById('task-view').style.display    = mode === 'tasks'   ? 'block' : 'none';
   document.getElementById('history-view').style.display = mode === 'history' ? 'block' : 'none';
+  document.getElementById('topbar-date').style.display  = mode === 'history' ? 'none' : '';
+  document.getElementById('topbar-search-btn').style.display = mode === 'history' ? '' : 'none';
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
   if (el) el.classList.add('active');
   if (mode !== 'history') {
@@ -1154,18 +1169,41 @@ function setView(mode, el) {
 
 function openSearchModal() {
   document.getElementById('search-backdrop').classList.add('open');
-  document.getElementById('cal-search-btn').classList.add('active');
+  document.getElementById('topbar-search-btn').classList.add('active');
+  renderSearchResults('');
   setTimeout(() => document.getElementById('search-modal-input').focus(), 80);
 }
 function closeSearchModal() {
   document.getElementById('search-backdrop').classList.remove('open');
-  document.getElementById('cal-search-btn').classList.remove('active');
+  document.getElementById('topbar-search-btn').classList.remove('active');
 }
 function handleSearchBackdropClick(e) {
   if (e.target === document.getElementById('search-backdrop')) closeSearchModal();
 }
 function onHistorySearch(val) {
   historySearch = val.trim();
+  renderHistory();
+  renderSearchResults(val.trim());
+}
+function renderSearchResults(q) {
+  const el = document.getElementById('search-results');
+  const matched = tasks.filter(t => t.done && t.completedAt &&
+    (!q || t.title.toLowerCase().includes(q.toLowerCase())));
+  matched.sort((a, b) => b.completedAt.localeCompare(a.completedAt));
+  if (!matched.length) {
+    el.innerHTML = `<div class="search-empty">${q ? '검색 결과가 없어요' : '완료한 할 일이 없어요'}</div>`;
+    return;
+  }
+  el.innerHTML = matched.map(t => `
+    <div class="search-result-item" onclick="goToDate('${t.completedAt}')">
+      <span class="search-result-title">${esc(t.title)}</span>
+      <span class="search-result-date">${fmt(t.completedAt)} 완료</span>
+    </div>`).join('');
+}
+function goToDate(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  historyMonth = new Date(d.getFullYear(), d.getMonth(), 1);
+  closeSearchModal();
   renderHistory();
 }
 
