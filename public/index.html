@@ -588,17 +588,6 @@
         <div class="briefing-lines" id="briefing-lines"></div>
       </div>
 
-      <!-- Today prompt (before setup) -->
-      <div id="today-prompt">
-        <div class="today-prompt-card">
-          <div class="today-prompt-text">오늘의 할 일 리스트를 작성하세요</div>
-          <button class="today-plan-btn" onclick="openTodayModal()">
-            <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-            할 일 선택하기
-          </button>
-        </div>
-      </div>
-
       <!-- Today section (after setup) -->
       <div id="today-section" style="display:none">
         <div class="section-header">
@@ -679,7 +668,7 @@
 <div class="modal-backdrop" id="today-modal-backdrop" onclick="handleTodayModalBackdropClick(event)">
   <div class="modal" style="max-width:480px;padding:0;overflow:hidden">
     <div class="modal-header" style="padding:16px 20px">
-      <div class="modal-title">오늘의 할 일 선택</div>
+      <div class="modal-title">오늘의 할 일 리스트를 작성하세요</div>
       <button class="modal-close" onclick="closeTodayModal()">✕</button>
     </div>
     <div class="today-select-list" id="today-select-list"></div>
@@ -842,15 +831,7 @@ function removeFromToday(id) {
 }
 
 function renderTodaySection() {
-  const prompt  = document.getElementById('today-prompt');
-  const section = document.getElementById('today-section');
-  if (todaySetupDone) {
-    prompt.style.display  = 'none';
-    section.style.display = '';
-  } else {
-    prompt.style.display  = '';
-    section.style.display = 'none';
-  }
+  document.getElementById('today-section').style.display = todaySetupDone ? '' : 'none';
 }
 
 let todaySelectTemp = [];
@@ -953,6 +934,7 @@ async function loadTasks() {
       return 0;
     });
     updateStats(); renderTasks(); renderBriefing();
+    if (!todaySetupDone) openTodayModal();
     const t = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
     setStatus('ok', `${tasks.length}개 작업 동기화 완료 · ${t}`);
   } catch(e) {
