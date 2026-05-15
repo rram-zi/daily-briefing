@@ -798,30 +798,29 @@ let viewMode = 'tasks';
 let historyMonth = new Date();
 let historySearch = '';
 let todayIds = [];
-let todaySetupDone = false;
+let todayConfirmed = false;
 
 function todayKey() { return new Date().toISOString().slice(0, 10); }
 
 function loadTodayIds() {
   try {
     const stored = JSON.parse(localStorage.getItem('today_tasks') || '{}');
-    todayIds = stored.date === todayKey() && Array.isArray(stored.ids) ? stored.ids : [];
-  } catch { todayIds = []; }
+    if (stored.date === todayKey() && Array.isArray(stored.ids)) {
+      todayIds = stored.ids;
+      todayConfirmed = !!stored.confirmed;
+    } else {
+      todayIds = []; todayConfirmed = false;
+    }
+  } catch { todayIds = []; todayConfirmed = false; }
 }
 function saveTodayIds() {
-  localStorage.setItem('today_tasks', JSON.stringify({ date: todayKey(), ids: todayIds }));
-}
-function loadTodaySetup() {
-  todaySetupDone = localStorage.getItem('today_setup') === todayKey();
-}
-function saveTodaySetup() {
-  todaySetupDone = true;
-  localStorage.setItem('today_setup', todayKey());
+  localStorage.setItem('today_tasks', JSON.stringify({ date: todayKey(), ids: todayIds, confirmed: todayConfirmed }));
 }
 
 function addToToday(id) {
   if (!todayIds.includes(id)) todayIds.push(id);
-  saveTodayIds(); saveTodaySetup();
+  todayConfirmed = true;
+  saveTodayIds();
   renderTodaySection(); renderTasks();
 }
 function removeFromToday(id) {
@@ -831,7 +830,7 @@ function removeFromToday(id) {
 }
 
 function renderTodaySection() {
-  document.getElementById('today-section').style.display = todaySetupDone ? '' : 'none';
+  document.getElementById('today-section').style.display = todayConfirmed ? '' : 'none';
 }
 
 let todaySelectTemp = [];
@@ -870,7 +869,8 @@ function toggleTodaySelect(id, el) {
 }
 function confirmTodaySelection() {
   todayIds = [...todaySelectTemp];
-  saveTodayIds(); saveTodaySetup();
+  todayConfirmed = true;
+  saveTodayIds();
   closeTodayModal();
   renderTodaySection(); renderTasks();
 }
@@ -883,7 +883,6 @@ function confirmTodaySelection() {
   document.getElementById('date-sub').textContent = '';
 
   loadTodayIds();
-  loadTodaySetup();
   renderTodaySection();
 
   document.getElementById('cfg-token').value = TOKEN;
@@ -934,7 +933,7 @@ async function loadTasks() {
       return 0;
     });
     updateStats(); renderTasks(); renderBriefing();
-    if (!todaySetupDone) openTodayModal();
+    if (!todayConfirmed) openTodayModal();
     const t = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
     setStatus('ok', `${tasks.length}개 작업 동기화 완료 · ${t}`);
   } catch(e) {
