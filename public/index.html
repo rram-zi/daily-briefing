@@ -373,6 +373,25 @@
     color: var(--text3); font-size: 14px; line-height: 2;
   }
 
+  /* ── History ── */
+  .history-group { margin-bottom: 32px; }
+  .history-date-heading {
+    font-size: 13px; font-weight: 700; color: var(--text2);
+    padding-bottom: 10px; border-bottom: 1px solid var(--border); margin-bottom: 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .history-count {
+    font-size: 11px; font-weight: 500; color: var(--text3);
+    background: var(--grey100); padding: 1px 8px; border-radius: 100px;
+  }
+  .history-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 16px; background: var(--surface); border-radius: 10px;
+    margin-bottom: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 0 0 1px var(--border);
+  }
+  .history-check { width: 16px; height: 16px; flex-shrink: 0; stroke: var(--green500); fill: none; stroke-width: 2.5; }
+  .history-item-title { font-size: 14px; color: var(--text2); flex: 1; min-width: 0; }
+
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-thumb { background: var(--grey200); border-radius: 4px; }
 
@@ -449,6 +468,11 @@
         <span class="filter-dot" style="background:var(--orange500)"></span>기한 초과
         <span class="filter-count" id="fc-overdue">0</span>
       </button>
+      <div style="height:1px;background:var(--border);margin:8px 0 4px"></div>
+      <button class="filter-btn" id="history-nav-btn" onclick="setView('history',this)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        완료 기록
+      </button>
     </div>
 
     <button class="settings-btn" onclick="openConfig()" title="Notion 설정">
@@ -475,34 +499,44 @@
       </button>
     </div>
 
-    <!-- Briefing -->
-    <div class="briefing-card" id="briefing-card">
-      <div class="briefing-label">☀ 오늘의 브리핑</div>
-      <div class="briefing-lines" id="briefing-lines"></div>
+    <!-- Task view -->
+    <div id="task-view">
+      <div class="briefing-card" id="briefing-card">
+        <div class="briefing-label">☀ 오늘의 브리핑</div>
+        <div class="briefing-lines" id="briefing-lines"></div>
+      </div>
+
+      <div class="section-header">
+        <div class="section-title">오늘의 할 일</div>
+      </div>
+      <div class="task-list" id="today-list">
+        <div class="empty-state">아래 목록에서 오늘 할 일을 추가해주세요</div>
+      </div>
+
+      <div class="section-divider"></div>
+
+      <div class="section-header">
+        <div class="section-title">전체 작업</div>
+        <button class="add-btn" onclick="openModal()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+          새 작업
+        </button>
+      </div>
+      <div class="task-list" id="task-list">
+        <div class="empty-state">불러오는 중...</div>
+      </div>
     </div>
 
-    <!-- 오늘의 할 일 -->
-    <div class="section-header">
-      <div class="section-title">오늘의 할 일</div>
-    </div>
-    <div class="task-list" id="today-list">
-      <div class="empty-state">아래 목록에서 오늘 할 일을 추가해주세요</div>
-    </div>
-
-    <div class="section-divider"></div>
-
-    <!-- 전체 작업 -->
-    <div class="section-header">
-      <div class="section-title">전체 작업</div>
-      <button class="add-btn" onclick="openModal()">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <path d="M12 5v14M5 12h14"/>
-        </svg>
-        새 작업
-      </button>
-    </div>
-    <div class="task-list" id="task-list">
-      <div class="empty-state">불러오는 중...</div>
+    <!-- History view -->
+    <div id="history-view" style="display:none">
+      <div class="section-header" style="margin-bottom:20px">
+        <div class="section-title">완료 기록</div>
+      </div>
+      <div id="history-content">
+        <div class="empty-state">완료된 작업이 없습니다</div>
+      </div>
     </div>
 
   </main>
@@ -597,6 +631,7 @@ let DB_ID  = localStorage.getItem('notion_dbid')  || '';
 let tasks = [];
 let currentFilter = 'all';
 let editingId = null;
+let viewMode = 'tasks';
 let todayIds = [];
 
 function loadTodayIds() {
@@ -713,8 +748,9 @@ function parsePage(page) {
     dueDate:  g.date('마감일') || g.date('Due') || g.date('날짜'),
     category: g.select('카테고리') || g.select('Category') || '',
     note:     g.text('메모') || g.text('Notes') || '',
-    done:     rawStatus === 'Done',
-    order:    p['순서']?.number ?? null
+    done:        rawStatus === 'Done',
+    order:       p['순서']?.number ?? null,
+    completedAt: p['완료일']?.date?.start ?? null
   };
 }
 
@@ -962,14 +998,23 @@ async function saveTask() {
 }
 
 async function toggleDone(id, done) {
+  const today = new Date().toISOString().slice(0, 10);
   setStatus('loading', '상태 업데이트 중...');
   try {
     await notionFetch(`pages/${id}`, 'PATCH', {
-      properties: { '상태': { status: { name: done ? 'Done' : 'In progress' } } }
+      properties: {
+        '상태':  { status: { name: done ? 'Done' : 'In progress' } },
+        '완료일': done ? { date: { start: today } } : { date: null }
+      }
     });
     const t = tasks.find(t => t.id === id);
-    if (t) { t.done = done; t.status = done ? '완료' : '진행중'; }
+    if (t) {
+      t.done = done;
+      t.status = done ? '완료' : '진행중';
+      t.completedAt = done ? today : null;
+    }
     updateStats(); renderTasks(); renderBriefing();
+    if (viewMode === 'history') renderHistory();
     setStatus('ok', '업데이트 완료');
   } catch(e) { setStatus('err', '업데이트 실패: ' + e.message); }
 }
@@ -1001,7 +1046,51 @@ function resetSeg(groupId, defaultVal) {
   group.dataset.value = defaultVal;
 }
 
+function setView(mode, el) {
+  viewMode = mode;
+  document.getElementById('task-view').style.display    = mode === 'tasks'   ? 'block' : 'none';
+  document.getElementById('history-view').style.display = mode === 'history' ? 'block' : 'none';
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  if (el) el.classList.add('active');
+  if (mode === 'history') renderHistory();
+}
+
+function renderHistory() {
+  const doneTasks = tasks.filter(t => t.done && t.completedAt);
+  const grouped = {};
+  doneTasks.forEach(t => {
+    if (!grouped[t.completedAt]) grouped[t.completedAt] = [];
+    grouped[t.completedAt].push(t);
+  });
+  const dates = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
+  const content = document.getElementById('history-content');
+  if (!dates.length) {
+    content.innerHTML = '<div class="empty-state">완료된 작업이 없습니다.<br><small style="font-size:12px;color:var(--text3)">작업을 체크하면 완료 날짜가 기록됩니다.</small></div>';
+    return;
+  }
+  const days = ['일','월','화','수','목','금','토'];
+  content.innerHTML = dates.map(d => {
+    const dt = new Date(d + 'T00:00:00');
+    const label = `${dt.getFullYear()}년 ${dt.getMonth()+1}월 ${dt.getDate()}일 (${days[dt.getDay()]})`;
+    const items = grouped[d];
+    return `<div class="history-group">
+      <div class="history-date-heading">
+        ${label}
+        <span class="history-count">${items.length}개 완료</span>
+      </div>
+      ${items.map(t => `
+        <div class="history-item">
+          <svg class="history-check" viewBox="0 0 12 10"><polyline points="1,5 4.5,9 11,1"/></svg>
+          <span class="history-item-title">${esc(t.title)}</span>
+          ${t.category ? `<span class="badge badge-cat">${esc(t.category)}</span>` : ''}
+          ${t.priority && t.priority !== '보통' ? `<span class="badge ${t.priority==='긴급'?'badge-urgent':'badge-low'}">${t.priority}</span>` : ''}
+        </div>`).join('')}
+    </div>`;
+  }).join('');
+}
+
 function setFilter(f, el) {
+  if (viewMode === 'history') setView('tasks', null);
   currentFilter = f;
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
   el.classList.add('active');
