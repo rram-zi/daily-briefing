@@ -124,31 +124,16 @@
   /* ── Main ── */
   .main { padding: 32px 32px 80px; min-width: 0; }
 
-  /* Config card */
-  .notion-config-card {
-    background: var(--surface); border-radius: 16px;
-    padding: 20px 24px; margin-bottom: 20px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 0 0 1px var(--border);
+  .settings-btn {
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 10px; border-radius: 10px; border: none;
+    background: transparent; color: var(--text3);
+    font-family: inherit; font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: background 0.1s, color 0.1s;
+    width: 100%; margin-top: auto;
   }
-  .cfg-label {
-    font-size: 11px; font-weight: 600; color: var(--text3);
-    text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 14px;
-  }
-  .cfg-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: flex-end; }
-  .cfg-field label { font-size: 12px; font-weight: 500; color: var(--text3); display: block; margin-bottom: 5px; }
-  .cfg-field input {
-    width: 100%; padding: 10px 12px; font-size: 14px; font-family: inherit;
-    background: var(--grey50); border: 1.5px solid var(--border);
-    border-radius: 10px; color: var(--text1); outline: none;
-    transition: border-color 0.12s, background 0.12s;
-  }
-  .cfg-field input:focus { border-color: var(--blue500); background: var(--surface); }
-  .cfg-save-btn {
-    padding: 10px 20px; font-size: 14px; font-family: inherit; font-weight: 600;
-    background: var(--blue500); color: #fff; border: none; border-radius: 10px;
-    cursor: pointer; white-space: nowrap; transition: background 0.12s; height: 42px;
-  }
-  .cfg-save-btn:hover { background: var(--blue600); }
+  .settings-btn:hover { background: var(--grey50); color: var(--text2); }
+  .settings-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.8; flex-shrink: 0; }
 
   /* Topbar */
   .topbar {
@@ -391,7 +376,6 @@
   <aside class="sidebar">
     <div class="logo">
       <div class="logo-title">Daily Briefing</div>
-      <div class="logo-sub">Notion 연동</div>
     </div>
 
     <div class="stat-grid">
@@ -450,26 +434,15 @@
         <span class="filter-count" id="fc-overdue">0</span>
       </button>
     </div>
+
+    <button class="settings-btn" onclick="openConfig()" title="Notion 설정">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      설정
+    </button>
   </aside>
 
   <!-- Main -->
   <main class="main">
-
-    <!-- Notion Config -->
-    <div class="notion-config-card">
-      <div class="cfg-label">⚙ Notion 설정</div>
-      <div class="cfg-row">
-        <div class="cfg-field">
-          <label>Integration Token</label>
-          <input type="password" id="cfg-token" placeholder="ntn_..." />
-        </div>
-        <div class="cfg-field">
-          <label>Database ID</label>
-          <input type="text" id="cfg-dbid" placeholder="32자리 ID" />
-        </div>
-        <button class="cfg-save-btn" onclick="saveConfig()">저장 및 연결</button>
-      </div>
-    </div>
 
     <!-- Topbar -->
     <div class="topbar">
@@ -511,7 +484,33 @@
   </main>
 </div>
 
-<!-- Modal -->
+<!-- Config Modal -->
+<div class="modal-backdrop" id="cfg-backdrop" onclick="handleCfgBackdropClick(event)">
+  <div class="modal" id="cfg-modal">
+    <div class="modal-header">
+      <div class="modal-title">Notion 설정</div>
+      <button class="modal-close" onclick="closeConfig()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group form-full">
+          <label class="form-label">Integration Token</label>
+          <input type="password" id="cfg-token" placeholder="ntn_..." />
+        </div>
+        <div class="form-group form-full">
+          <label class="form-label">Database ID</label>
+          <input type="text" id="cfg-dbid" placeholder="32자리 ID" />
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeConfig()">취소</button>
+      <button class="btn-save" onclick="saveConfig()">저장 및 연결</button>
+    </div>
+  </div>
+</div>
+
+<!-- Task Modal -->
 <div class="modal-backdrop" id="modal-backdrop" onclick="handleBackdropClick(event)">
   <div class="modal" id="modal">
     <div class="modal-header">
@@ -586,12 +585,13 @@ let editingId = null; // null = 새 작업, string = 수정 중인 task id
   document.getElementById('cfg-token').value = TOKEN;
   document.getElementById('cfg-dbid').value  = DB_ID;
 
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeConfig(); } });
 
   if (!TOKEN || !DB_ID) {
-    setStatus('err', '상단 Notion 설정에서 Token과 DB ID를 입력해주세요');
+    setStatus('err', '좌측 하단 설정에서 Token과 DB ID를 입력해주세요');
     document.getElementById('task-list').innerHTML =
-      '<div class="empty-state">상단 Notion 설정에서<br>Token과 Database ID를 입력해주세요</div>';
+      '<div class="empty-state">좌측 하단 설정 버튼에서<br>Notion Token과 Database ID를 입력해주세요</div>';
+    openConfig();
     return;
   }
   loadTasks();
@@ -884,6 +884,21 @@ function setFilter(f, el) {
   renderTasks();
 }
 
+function openConfig() {
+  document.getElementById('cfg-token').value = TOKEN;
+  document.getElementById('cfg-dbid').value  = DB_ID;
+  document.getElementById('cfg-backdrop').classList.add('open');
+  setTimeout(() => document.getElementById('cfg-token').focus(), 120);
+}
+
+function closeConfig() {
+  document.getElementById('cfg-backdrop').classList.remove('open');
+}
+
+function handleCfgBackdropClick(e) {
+  if (e.target === document.getElementById('cfg-backdrop')) closeConfig();
+}
+
 function saveConfig() {
   const t = document.getElementById('cfg-token').value.trim();
   const d = document.getElementById('cfg-dbid').value.trim();
@@ -891,6 +906,7 @@ function saveConfig() {
   TOKEN = t; DB_ID = d;
   localStorage.setItem('notion_token', t);
   localStorage.setItem('notion_dbid',  d);
+  closeConfig();
   loadTasks();
 }
 
