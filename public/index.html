@@ -404,6 +404,36 @@
   .form-group textarea { resize: vertical; min-height: 70px; }
   .form-full { grid-column: 1 / -1; }
   .form-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+  /* Segment selector */
+  .seg-group { display: flex; gap: 6px; }
+  .seg-btn {
+    flex: 1;
+    padding: 9px 10px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    background: var(--grey50);
+    color: var(--text2);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.12s;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .seg-btn:hover { border-color: var(--grey300); color: var(--text1); background: var(--grey100); }
+  .seg-btn.active { font-weight: 600; }
+
+  /* Priority colors */
+  .seg-btn[data-val="보통"].active  { border-color: var(--blue500);  background: var(--blue50);  color: var(--blue500); }
+  .seg-btn[data-val="긴급"].active  { border-color: var(--red500);   background: var(--red50);   color: var(--red500); }
+  .seg-btn[data-val="낮음"].active  { border-color: var(--grey400);  background: var(--grey100); color: var(--grey600); }
+
+  /* Status colors */
+  .seg-btn[data-val="Not started"].active { border-color: var(--grey400);  background: var(--grey100); color: var(--grey700); }
+  .seg-btn[data-val="In progress"].active { border-color: var(--blue500);  background: var(--blue50);  color: var(--blue500); }
+  .seg-btn[data-val="Done"].active        { border-color: var(--green500); background: var(--green50); color: var(--green500); }
   .btn-cancel {
     padding: 10px 18px; font-size: 14px; font-family: inherit; font-weight: 500;
     background: var(--grey100); border: none; color: var(--text2);
@@ -581,18 +611,19 @@
         </div>
         <div class="form-group">
           <label class="form-label">우선순위</label>
-          <select id="f-priority">
-            <option value="보통">보통</option>
-            <option value="긴급">긴급</option>
-            <option value="낮음">낮음</option>
-          </select>
+          <div class="seg-group" id="f-priority" data-value="보통">
+            <button type="button" class="seg-btn active" data-val="보통" onclick="selectSeg(this,'f-priority')">보통</button>
+            <button type="button" class="seg-btn" data-val="긴급" onclick="selectSeg(this,'f-priority')">긴급</button>
+            <button type="button" class="seg-btn" data-val="낮음" onclick="selectSeg(this,'f-priority')">낮음</button>
+          </div>
         </div>
         <div class="form-group">
           <label class="form-label">상태</label>
-          <select id="f-status">
-            <option value="Not started">할 일</option>
-            <option value="In progress">진행중</option>
-          </select>
+          <div class="seg-group" id="f-status" data-value="Not started">
+            <button type="button" class="seg-btn active" data-val="Not started" onclick="selectSeg(this,'f-status')">할 일</button>
+            <button type="button" class="seg-btn" data-val="In progress" onclick="selectSeg(this,'f-status')">진행중</button>
+            <button type="button" class="seg-btn" data-val="Done" onclick="selectSeg(this,'f-status')">완료</button>
+          </div>
         </div>
         <div class="form-group">
           <label class="form-label">마감일</label>
@@ -832,9 +863,9 @@ async function addTask() {
   btn.disabled = true; btn.textContent = '저장 중...';
   setStatus('loading', 'Notion에 저장 중...');
   const dueDate  = document.getElementById('f-date').value;
-  const priority = document.getElementById('f-priority').value;
+  const priority = document.getElementById('f-priority').dataset.value;
   const category = document.getElementById('f-category').value.trim();
-  const status   = document.getElementById('f-status').value;
+  const status   = document.getElementById('f-status').dataset.value;
   const note     = document.getElementById('f-note').value.trim();
   const props = {
     '이름':    { title:  [{ text: { content: title } }] },
@@ -851,9 +882,26 @@ async function addTask() {
     updateStats(); renderTasks(); renderBriefing();
     toggleForm();
     ['f-title','f-date','f-note','f-category'].forEach(id => document.getElementById(id).value = '');
+    resetSeg('f-priority', '보통');
+    resetSeg('f-status', 'Not started');
     setStatus('ok', '새 작업이 Notion에 저장됐습니다');
   } catch(e) { setStatus('err', '저장 실패: ' + e.message); }
   btn.disabled = false; btn.textContent = 'Notion에 저장';
+}
+
+function selectSeg(btn, groupId) {
+  const group = document.getElementById(groupId);
+  group.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  group.dataset.value = btn.dataset.val;
+}
+
+function resetSeg(groupId, defaultVal) {
+  const group = document.getElementById(groupId);
+  group.querySelectorAll('.seg-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.val === defaultVal);
+  });
+  group.dataset.value = defaultVal;
 }
 
 function setFilter(f, el) {
