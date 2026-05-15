@@ -411,19 +411,29 @@
   .cal-task-chip:hover { background: var(--grey300); color: var(--grey900); }
 
   /* History search */
-  .history-search-wrap { margin-bottom: 12px; }
-  .history-search {
-    width: 100%; height: 40px; padding: 0 14px 0 38px;
+  .cal-search-btn {
+    width: 32px; height: 32px; border: 1.5px solid var(--border); background: var(--surface);
+    border-radius: 8px; cursor: pointer; color: var(--text2);
+    display: flex; align-items: center; justify-content: center; transition: all 0.12s;
+  }
+  .cal-search-btn:hover { border-color: var(--blue500); color: var(--blue500); }
+  .cal-search-btn.active { border-color: var(--blue500); color: var(--blue500); background: var(--blue50); }
+  .cal-search-btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2.5; }
+  .search-modal-wrap {
+    padding: 20px 20px 12px;
+  }
+  .search-modal-input {
+    width: 100%; height: 44px; padding: 0 14px 0 40px;
     border: 1.5px solid var(--border); border-radius: 10px;
-    background: var(--surface); color: var(--text1);
-    font-size: 14px; font-family: inherit; outline: none;
-    transition: border-color 0.15s;
+    background: var(--grey50); color: var(--text1);
+    font-size: 15px; font-family: inherit; outline: none;
+    transition: border-color 0.15s, background 0.15s;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238b95a1' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: 12px center;
   }
-  .history-search:focus { border-color: var(--blue500); }
-  .history-search::placeholder { color: var(--text3); }
+  .search-modal-input:focus { border-color: var(--blue500); background: var(--surface); }
+  .search-modal-input::placeholder { color: var(--text3); }
 
   /* Task detail modal */
   .detail-note { font-size: 14px; color: var(--text2); line-height: 1.8; white-space: pre-wrap; }
@@ -568,18 +578,20 @@
 
     <!-- History view -->
     <div id="history-view" style="display:none">
-      <div class="history-search-wrap">
-        <input class="history-search" type="search" placeholder="완료한 할 일 검색..." oninput="onHistorySearch(this.value)" />
-      </div>
       <div class="cal-wrap">
         <div class="cal-header">
           <button class="cal-nav-btn" onclick="changeMonth(-1)">
             <svg viewBox="0 0 24 24"><polyline points="15,18 9,12 15,6"/></svg>
           </button>
           <span class="cal-month-label" id="cal-month-label"></span>
-          <button class="cal-nav-btn" onclick="changeMonth(1)">
-            <svg viewBox="0 0 24 24"><polyline points="9,18 15,12 9,6"/></svg>
-          </button>
+          <div style="display:flex;gap:6px;align-items:center">
+            <button class="cal-search-btn" id="cal-search-btn" onclick="openSearchModal()">
+              <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </button>
+            <button class="cal-nav-btn" onclick="changeMonth(1)">
+              <svg viewBox="0 0 24 24"><polyline points="9,18 15,12 9,6"/></svg>
+            </button>
+          </div>
         </div>
         <div class="cal-weekdays">
           <div class="cal-weekday" style="color:var(--red500)">일</div>
@@ -593,6 +605,16 @@
     </div>
 
   </main>
+</div>
+
+<!-- Search Modal -->
+<div class="modal-backdrop" id="search-backdrop" onclick="handleSearchBackdropClick(event)">
+  <div class="modal" style="max-width:480px;padding:0;overflow:hidden">
+    <div class="search-modal-wrap">
+      <input class="search-modal-input" id="search-modal-input" type="search"
+        placeholder="완료한 할 일 검색..." oninput="onHistorySearch(this.value)" />
+    </div>
+  </div>
 </div>
 
 <!-- Task Detail Modal -->
@@ -740,7 +762,7 @@ function removeFromToday(id) {
   document.getElementById('cfg-token').value = TOKEN;
   document.getElementById('cfg-dbid').value  = DB_ID;
 
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeConfig(); closeTaskDetail(); } });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeConfig(); closeTaskDetail(); closeSearchModal(); } });
 
   if (!TOKEN || !DB_ID) {
     setStatus('err', '좌측 하단 설정에서 Token과 DB ID를 입력해주세요');
@@ -1121,9 +1143,27 @@ function setView(mode, el) {
   document.getElementById('history-view').style.display = mode === 'history' ? 'block' : 'none';
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
   if (el) el.classList.add('active');
+  if (mode !== 'history') {
+    historySearch = '';
+    const inp = document.getElementById('search-modal-input');
+    if (inp) inp.value = '';
+    closeSearchModal();
+  }
   if (mode === 'history') renderHistory();
 }
 
+function openSearchModal() {
+  document.getElementById('search-backdrop').classList.add('open');
+  document.getElementById('cal-search-btn').classList.add('active');
+  setTimeout(() => document.getElementById('search-modal-input').focus(), 80);
+}
+function closeSearchModal() {
+  document.getElementById('search-backdrop').classList.remove('open');
+  document.getElementById('cal-search-btn').classList.remove('active');
+}
+function handleSearchBackdropClick(e) {
+  if (e.target === document.getElementById('search-backdrop')) closeSearchModal();
+}
 function onHistorySearch(val) {
   historySearch = val.trim();
   renderHistory();
