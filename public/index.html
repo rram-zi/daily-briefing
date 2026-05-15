@@ -161,10 +161,21 @@
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     display: none;
   }
+  .briefing-header {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;
+  }
   .briefing-label {
     font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.45);
-    text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px;
+    text-transform: uppercase; letter-spacing: 0.08em;
   }
+  .briefing-close {
+    width: 24px; height: 24px; border: none; background: transparent;
+    color: rgba(255,255,255,0.35); cursor: pointer; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.1s, color 0.1s; flex-shrink: 0;
+  }
+  .briefing-close:hover { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.7); }
+  .briefing-close svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2.5; }
   .briefing-lines { display: flex; flex-direction: column; gap: 8px; }
   .briefing-line {
     font-size: 14px; color: rgba(255,255,255,0.65); line-height: 1.6;
@@ -529,7 +540,12 @@
     <!-- Task view -->
     <div id="task-view">
       <div class="briefing-card" id="briefing-card">
-        <div class="briefing-label">☀ 오늘의 브리핑</div>
+        <div class="briefing-header">
+          <div class="briefing-label">☀ 오늘의 브리핑</div>
+          <button class="briefing-close" onclick="dismissBriefing()" title="오늘 하루 닫기">
+            <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
         <div class="briefing-lines" id="briefing-lines"></div>
       </div>
 
@@ -866,7 +882,16 @@ function updateStats() {
   document.getElementById('fc-overdue').textContent = overdue;
 }
 
+function isBriefingDismissed() {
+  return localStorage.getItem('briefing_dismissed') === new Date().toISOString().slice(0, 10);
+}
+function dismissBriefing() {
+  localStorage.setItem('briefing_dismissed', new Date().toISOString().slice(0, 10));
+  document.getElementById('briefing-card').style.display = 'none';
+}
+
 function renderBriefing() {
+  if (isBriefingDismissed()) return;
   const today    = new Date().toDateString();
   const todayDue = tasks.filter(t => t.dueDate && new Date(t.dueDate).toDateString() === today && !t.done);
   const overdue  = tasks.filter(t => isOverdue(t.dueDate) && !t.done);
