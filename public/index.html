@@ -934,6 +934,7 @@ async function loadTasks() {
       return 0;
     });
     updateStats(); renderTasks(); renderBriefing();
+    await checkWeeklyTask();
     if (!todayConfirmed || todayIds.length === 0) openTodayModal();
     const t = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
     setStatus('ok', `${tasks.length}개 작업 동기화 완료 · ${t}`);
@@ -990,6 +991,34 @@ function updateStats() {
   document.getElementById('fc-done').textContent    = done;
   document.getElementById('fc-urgent').textContent  = urgent;
   document.getElementById('fc-overdue').textContent = overdue;
+}
+
+async function checkWeeklyTask() {
+  const now = new Date();
+  if (now.getDay() !== 0) return;           // 일요일만
+  if (now.getHours() < 10) return;          // 오전 10시 이후만
+  const sunday = now.toISOString().slice(0, 10);
+  if (localStorage.getItem('weekly_task_sunday') === sunday) return; // 이미 생성함
+  const TITLE = '주간 회고 작성';
+  if (tasks.some(t => !t.done && t.title === TITLE)) {             // 이미 존재하면 스킵
+    localStorage.setItem('weekly_task_sunday', sunday); return;
+  }
+  try {
+    const result = await notionFetch('pages', 'POST', {
+      parent: { database_id: DB_ID },
+      properties: {
+        '이름':     { title:  [{ text: { content: TITLE } }] },
+        '우선순위': { select: { name: '보통' } },
+        '상태':     { status: { name: 'Not started' } },
+        '마감일':   { date: { start: sunday } }
+      }
+    });
+    tasks.unshift({ id: result.id, title: TITLE, status: '할 일', priority: '보통',
+      dueDate: sunday, category: '', note: '', done: false, order: null, completedAt: null });
+    localStorage.setItem('weekly_task_sunday', sunday);
+    updateStats(); renderTasks();
+    setStatus('ok', '주간 회고 작성 할 일이 추가됐습니다');
+  } catch(e) { /* 실패해도 무시 */ }
 }
 
 function isBriefingDismissed() {
