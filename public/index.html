@@ -361,6 +361,18 @@
   .form-group textarea { resize: vertical; min-height: 72px; }
   .form-full { grid-column: 1 / -1; }
 
+  /* Day picker */
+  .day-picker { display: flex; gap: 6px; flex-wrap: wrap; }
+  .day-btn {
+    width: 38px; height: 38px; border-radius: 50%;
+    border: 1.5px solid var(--border); background: var(--surface); color: var(--text2);
+    font-family: inherit; font-size: 13px; font-weight: 500;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: all 0.1s;
+  }
+  .day-btn:hover { border-color: var(--blue500); color: var(--blue500); }
+  .day-btn.active { background: var(--blue500); border-color: var(--blue500); color: #fff; font-weight: 700; }
+
   /* Segment selector */
   .seg-group { display: flex; gap: 6px; }
   .seg-btn {
@@ -740,6 +752,25 @@
     </div>
     <div class="modal-body">
       <div class="form-grid">
+        <div class="form-group form-full" id="task-type-row">
+          <label class="form-label">작업 유형</label>
+          <div class="seg-group" id="f-task-type" data-value="once">
+            <button type="button" class="seg-btn active" data-val="once" onclick="selectTaskType('once')">1회성</button>
+            <button type="button" class="seg-btn" data-val="repeat" onclick="selectTaskType('repeat')">반복</button>
+          </div>
+        </div>
+        <div class="form-group form-full" id="repeat-days-row" style="display:none">
+          <label class="form-label">반복 요일 <span style="color:var(--text3);font-weight:400">(복수 선택 가능)</span></label>
+          <div class="day-picker" id="f-days">
+            <button type="button" class="day-btn" data-day="월" onclick="this.classList.toggle('active')">월</button>
+            <button type="button" class="day-btn" data-day="화" onclick="this.classList.toggle('active')">화</button>
+            <button type="button" class="day-btn" data-day="수" onclick="this.classList.toggle('active')">수</button>
+            <button type="button" class="day-btn" data-day="목" onclick="this.classList.toggle('active')">목</button>
+            <button type="button" class="day-btn" data-day="금" onclick="this.classList.toggle('active')">금</button>
+            <button type="button" class="day-btn" data-day="토" onclick="this.classList.toggle('active')">토</button>
+            <button type="button" class="day-btn" data-day="일" onclick="this.classList.toggle('active')">일</button>
+          </div>
+        </div>
         <div class="form-group form-full">
           <label class="form-label">작업명 *</label>
           <input type="text" id="f-title" placeholder="작업 제목을 입력하세요" />
@@ -752,7 +783,7 @@
             <button type="button" class="seg-btn" data-val="낮음" onclick="selectSeg(this,'f-priority')">낮음</button>
           </div>
         </div>
-        <div class="form-group">
+        <div class="form-group" id="f-status-row">
           <label class="form-label">상태</label>
           <div class="seg-group" id="f-status" data-value="Not started">
             <button type="button" class="seg-btn active" data-val="Not started" onclick="selectSeg(this,'f-status')">할 일</button>
@@ -760,7 +791,7 @@
             <button type="button" class="seg-btn" data-val="Done" onclick="selectSeg(this,'f-status')">완료</button>
           </div>
         </div>
-        <div class="form-group">
+        <div class="form-group" id="f-date-row">
           <label class="form-label">마감일</label>
           <input type="date" id="f-date" />
         </div>
@@ -799,6 +830,73 @@ let historyMonth = new Date();
 let historySearch = '';
 let todayIds = [];
 let todayConfirmed = false;
+let recurringTasks = [];
+
+function loadRecurring() {
+  try { recurringTasks = JSON.parse(localStorage.getItem('recurring_tasks') || '[]'); }
+  catch { recurringTasks = []; }
+}
+function saveRecurring() {
+  localStorage.setItem('recurring_tasks', JSON.stringify(recurringTasks));
+}
+
+function selectTaskType(type) {
+  const grp = document.getElementById('f-task-type');
+  grp.dataset.value = type;
+  grp.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('active', b.dataset.val === type));
+  const isRepeat = type === 'repeat';
+  document.getElementById('repeat-days-row').style.display = isRepeat ? '' : 'none';
+  document.getElementById('f-status-row').style.display   = isRepeat ? 'none' : '';
+  document.getElementById('f-date-row').style.display     = isRepeat ? 'none' : '';
+}
+
+async function checkRecurringTasks() {
+  if (!DB_ID || recurringTasks.length === 0) return;
+  const dayName = ['일','월','화','수','목','금','토'][new Date().getDay()];
+  const dateStr = todayKey();
+  const lastRun = JSON.parse(localStorage.getItem('recurring_last') || '{}');
+  let changed = false;
+
+  for (const rt of recurringTasks) {
+    if (!rt.days.includes(dayName)) continue;
+    if (lastRun[rt.id] === dateStr) continue;
+
+    let taskId = null;
+    const existing = tasks.find(t => !t.done && t.title === rt.title);
+    if (!existing) {
+      try {
+        const result = await notionFetch('pages', 'POST', {
+          parent: { database_id: DB_ID },
+          properties: {
+            '이름':     { title: [{ text: { content: rt.title } }] },
+            '우선순위': { select: { name: rt.priority || '보통' } },
+            '상태':     { status: { name: 'Not started' } },
+            '카테고리': rt.category ? { select: { name: rt.category } } : { select: null },
+            '메모':     { rich_text: rt.note ? [{ text: { content: rt.note } }] : [] }
+          }
+        });
+        tasks.unshift({ id: result.id, title: rt.title, status: '할 일',
+          priority: rt.priority || '보통', dueDate: null,
+          category: rt.category || '', note: rt.note || '',
+          done: false, order: null, completedAt: null });
+        taskId = result.id;
+      } catch(e) { continue; }
+    } else {
+      taskId = existing.id;
+    }
+
+    if (taskId && !todayIds.includes(taskId)) {
+      todayIds.push(taskId);
+      todayConfirmed = true;
+      saveTodayIds();
+    }
+    lastRun[rt.id] = dateStr;
+    changed = true;
+  }
+
+  localStorage.setItem('recurring_last', JSON.stringify(lastRun));
+  if (changed) { updateStats(); renderTasks(); renderTodaySection(); }
+}
 
 function todayKey() { return new Date().toISOString().slice(0, 10); }
 
@@ -884,6 +982,7 @@ function confirmTodaySelection() {
   document.getElementById('date-sub').textContent = '';
 
   loadTodayIds();
+  loadRecurring();
   renderTodaySection();
 
   document.getElementById('cfg-token').value = TOKEN;
@@ -935,6 +1034,7 @@ async function loadTasks() {
     });
     updateStats(); renderTasks(); renderBriefing();
     await checkWeeklyTask();
+    await checkRecurringTasks();
     if (!todayConfirmed || todayIds.length === 0) openTodayModal();
     const t = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
     setStatus('ok', `${tasks.length}개 작업 동기화 완료 · ${t}`);
@@ -1176,6 +1276,18 @@ function openModal(taskId = null) {
   resetSeg('f-priority', rawPriority);
   resetSeg('f-status',   rawStatus);
 
+  // 작업 유형 초기화 (편집 시에는 숨김)
+  const typeRow = document.getElementById('task-type-row');
+  typeRow.style.display = task ? 'none' : '';
+  if (!task) {
+    selectTaskType('once');
+    document.querySelectorAll('#f-days .day-btn').forEach(b => b.classList.remove('active'));
+  } else {
+    document.getElementById('repeat-days-row').style.display = 'none';
+    document.getElementById('f-status-row').style.display = '';
+    document.getElementById('f-date-row').style.display = '';
+  }
+
   document.getElementById('modal-backdrop').classList.add('open');
   setTimeout(() => document.getElementById('f-title').focus(), 120);
 }
@@ -1192,6 +1304,26 @@ function handleBackdropClick(e) {
 async function saveTask() {
   const title = document.getElementById('f-title').value.trim();
   if (!title) { alert('작업명을 입력해주세요'); return; }
+
+  // 반복 작업 처리
+  const taskType = document.getElementById('f-task-type').dataset.value;
+  if (!editingId && taskType === 'repeat') {
+    const days = [...document.querySelectorAll('#f-days .day-btn.active')].map(b => b.dataset.day);
+    if (days.length === 0) { alert('반복 요일을 선택해주세요'); return; }
+    const priority = document.getElementById('f-priority').dataset.value;
+    const category = document.getElementById('f-category').value.trim();
+    const note     = document.getElementById('f-note').value.trim();
+    const rt = {
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2),
+      title, days, priority, category, note
+    };
+    recurringTasks.push(rt);
+    saveRecurring();
+    closeModal();
+    await checkRecurringTasks();
+    setStatus('ok', `반복 작업 "${title}" 이(가) 저장됐습니다 (${days.join(', ')} 반복)`);
+    return;
+  }
 
   const btn = document.getElementById('btn-save');
   btn.disabled = true; btn.textContent = '저장 중...';
