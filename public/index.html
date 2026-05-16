@@ -4,7 +4,11 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Daily Briefing</title>
+<link rel="icon" type="image/svg+xml" href="/emoji/u1F31E.svg">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/sunn-us/SUIT@1.0.4/packages/static/woff2/SUIT.css" />
+<style>
+  .t-emoji { display: inline-block; width: 1.1em; height: 1.1em; vertical-align: -0.25em; flex-shrink: 0; }
+</style>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -52,7 +56,7 @@
   }
 
   /* ── Layout ── */
-  .shell { display: grid; grid-template-columns: 248px 1fr; min-height: 100vh; }
+  .shell { display: grid; grid-template-columns: auto 1fr; min-height: 100vh; }
 
   /* ── Sidebar ── */
   .sidebar {
@@ -66,20 +70,67 @@
     top: 0;
     height: 100vh;
     overflow-y: auto;
+    overflow-x: hidden;
+    width: 248px;
+    min-width: 248px;
+    transition: min-width 0.25s ease, width 0.25s ease, padding 0.25s ease, border-color 0.25s ease;
+  }
+  .sidebar.collapsed {
+    min-width: 0; width: 0;
+    padding-left: 0; padding-right: 0;
+    border-color: transparent;
+    overflow: hidden;
   }
 
-  .logo { padding: 0 8px; }
-  .logo-title { font-size: 17px; font-weight: 700; color: var(--text1); letter-spacing: -0.3px; }
-  .logo-sub   { font-size: 12px; font-weight: 400; color: var(--text3); margin-top: 2px; }
+  /* 사이드바 로고 행 */
+  .logo-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 8px;
+  }
 
-  /* Stat cards */
-  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .stat-card { background: var(--grey50); border-radius: 12px; padding: 14px 14px 12px; }
-  .stat-label { font-size: 12px; color: var(--text3); font-weight: 500; margin-bottom: 6px; }
-  .stat-val { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; font-variant-numeric: tabular-nums; color: var(--text1); }
-  .val-blue  { color: var(--blue500); }
-  .val-red   { color: var(--red500); }
-  .val-green { color: var(--green500); }
+  /* 사이드바 접기 버튼 (데스크톱) - 헤더에서 제거됨 */
+  .sidebar-collapse-btn { display: none; }
+
+  /* 사이드바 토글 버튼 (데스크톱) — 사이드바 우측 하단 경계에 절반 걸침 */
+  .sidebar-expand-btn {
+    display: flex;
+    position: fixed; bottom: 32px; left: 228px; z-index: 100;
+    width: 40px; height: 40px;
+    align-items: center; justify-content: center;
+    border: 1.5px solid var(--border); background: var(--surface); color: var(--text3);
+    border-radius: 50%; cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    transition: border-color 0.12s, color 0.12s, box-shadow 0.12s, left 0.25s ease;
+  }
+  .sidebar-expand-btn:hover { border-color: var(--blue500); color: var(--blue500); box-shadow: 0 4px 16px rgba(49,130,246,0.2); }
+  .sidebar-expand-btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2.2; }
+
+  /* 햄버거 버튼 (모바일) */
+  .hamburger-btn {
+    display: none;
+    align-items: center; justify-content: center;
+    width: 36px; height: 36px; flex-shrink: 0;
+    border: 1.5px solid var(--border); background: var(--surface); color: var(--text2);
+    border-radius: 10px; cursor: pointer;
+    transition: border-color 0.12s, color 0.12s;
+  }
+  .hamburger-btn:hover { border-color: var(--blue500); color: var(--blue500); }
+  .hamburger-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+  /* 모바일 오버레이 */
+  .sidebar-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(25,31,40,0.45);
+    backdrop-filter: blur(2px);
+    z-index: 299;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.25s;
+  }
+  .sidebar-overlay.visible { opacity: 1; pointer-events: all; }
+
+  .logo { padding: 0 8px; }
+  .logo-icon { width: 36px; height: 36px; }
 
   /* Sidebar nav */
   .sidebar-nav { display: flex; flex-direction: column; gap: 2px; }
@@ -136,6 +187,7 @@
     display: flex; align-items: flex-start;
     justify-content: space-between; margin-bottom: 20px;
   }
+  .topbar-actions { display: flex; gap: 8px; align-items: center; }
   .date-big {
     font-size: 26px; font-weight: 700; color: var(--text1);
     letter-spacing: -0.5px; line-height: 1.2;
@@ -179,7 +231,7 @@
   .briefing-lines { display: flex; flex-direction: column; gap: 8px; }
   .briefing-line {
     font-size: 14px; color: rgba(255,255,255,0.88); line-height: 1.6;
-    display: flex; align-items: baseline; gap: 10px;
+    display: flex; align-items: center; gap: 10px;
   }
   .briefing-line strong { color: #ffffff; font-weight: 600; }
 
@@ -253,6 +305,17 @@
 
   .section-divider { height: 1px; background: var(--border); margin: 8px 0 24px; }
 
+  /* Today add area */
+  .today-add-area {
+    width: 100%; display: flex; align-items: center; justify-content: center; gap: 7px;
+    padding: 14px; border: 1.5px dashed var(--border); border-radius: 12px;
+    background: transparent; color: var(--text3);
+    font-family: inherit; font-size: 14px; font-weight: 500;
+    cursor: pointer; transition: border-color 0.12s, color 0.12s, background 0.12s;
+    margin-bottom: 12px;
+  }
+  .today-add-area:hover { border-color: var(--blue500); color: var(--blue500); background: var(--blue50); }
+
   /* Today plan prompt */
   .today-prompt-card {
     border: 1.5px dashed var(--border); border-radius: 16px;
@@ -305,6 +368,8 @@
   .task-item.drag-over { outline: 2px solid var(--blue500); outline-offset: -2px; background: var(--blue50); }
 
   .task-note { font-size: 13px; color: var(--text3); margin-top: 6px; line-height: 1.5; }
+
+  .task-flag { display: inline-flex; align-items: center; flex-shrink: 0; font-size: 14px; line-height: 1; }
 
   /* ── Modal ── */
   .modal-backdrop {
@@ -380,16 +445,19 @@
     border: 1.5px solid var(--border); border-radius: 10px;
     background: var(--grey50); color: var(--text2);
     font-family: inherit; font-size: 13px; font-weight: 500;
-    cursor: pointer; transition: all 0.12s; text-align: center;
+    cursor: pointer; transition: all 0.12s;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
   }
   .seg-btn:hover { border-color: var(--grey300); color: var(--text1); background: var(--grey100); }
-  .seg-btn.active { font-weight: 600; }
-  .seg-btn[data-val="보통"].active     { border-color: var(--blue500);  background: var(--blue50);  color: var(--blue500); }
-  .seg-btn[data-val="긴급"].active     { border-color: var(--red500);   background: var(--red50);   color: var(--red500); }
-  .seg-btn[data-val="낮음"].active     { border-color: var(--grey400);  background: var(--grey100); color: var(--grey600); }
-  .seg-btn[data-val="Not started"].active { border-color: var(--grey400);  background: var(--grey100); color: var(--grey700); }
-  .seg-btn[data-val="In progress"].active { border-color: var(--blue500);  background: var(--blue50);  color: var(--blue500); }
-  .seg-btn[data-val="Done"].active        { border-color: var(--green500); background: var(--green50); color: var(--green500); }
+  .seg-btn.active { font-weight: 600; border-color: var(--blue500); background: var(--blue50); color: var(--blue500); }
+  .seg-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+  .btn-end-recurring {
+    padding: 11px 16px; font-size: 13px; font-family: inherit; font-weight: 500;
+    background: var(--red50); border: none; color: var(--red500);
+    border-radius: 10px; cursor: pointer; transition: background 0.12s; margin-right: auto;
+  }
+  .btn-end-recurring:hover { background: #ffd6d9; }
 
   .modal-footer {
     display: flex; justify-content: flex-end; gap: 8px;
@@ -511,11 +579,38 @@
   ::-webkit-scrollbar-thumb { background: var(--grey200); border-radius: 4px; }
 
   @media (max-width: 680px) {
-    .shell { grid-template-columns: 1fr; }
-    .sidebar { position: static; height: auto; }
+    .shell { grid-template-columns: 1fr !important; }
+    .sidebar {
+      position: fixed !important;
+      left: -280px !important; top: 0; bottom: 0; z-index: 300;
+      width: 248px !important; min-width: 248px !important;
+      padding: 28px 16px 28px 20px !important;
+      border-right: 1px solid var(--border) !important;
+      border-color: var(--border) !important;
+      box-shadow: none;
+      transition: left 0.25s ease, box-shadow 0.25s ease !important;
+      overflow-y: auto !important;
+    }
+    .sidebar.mobile-open {
+      left: 0 !important;
+      box-shadow: 4px 0 24px rgba(0,0,0,0.15) !important;
+    }
+    .sidebar-overlay { display: block; }
+    .sidebar-collapse-btn { display: none !important; }
+    .sidebar-expand-btn { display: none !important; }
+    .hamburger-btn { display: flex; border: none !important; background: none !important; box-shadow: none !important; }
     .cfg-row { grid-template-columns: 1fr; }
     .main { padding: 20px 16px 80px; }
     .form-grid { grid-template-columns: 1fr; }
+
+    /* 모바일 탑바: 햄버거 | 날짜(중앙) | 동기화 */
+    .topbar { position: relative; align-items: center; }
+    #topbar-date { position: absolute; left: 50%; transform: translateX(-50%); text-align: center; pointer-events: none; }
+    .date-big { font-size: 16px; white-space: nowrap; }
+    .date-sub { display: none; }
+    .btn-text { display: none; }
+    .sync-btn { border: none !important; background: none !important; box-shadow: none !important; color: var(--text2); padding: 8px; }
+    .topbar-search-btn { border: none !important; background: none !important; color: var(--text2); padding: 8px; }
   }
 </style>
 </head>
@@ -524,27 +619,8 @@
 
   <!-- Sidebar -->
   <aside class="sidebar">
-    <div class="logo">
-      <div class="logo-title">Daily Briefing</div>
-    </div>
-
-    <div class="stat-grid">
-      <div class="stat-card">
-        <div class="stat-label">전체</div>
-        <div class="stat-val" id="st-total">—</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">완료</div>
-        <div class="stat-val val-green" id="st-done">—</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">진행중</div>
-        <div class="stat-val val-blue" id="st-prog">—</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">긴급</div>
-        <div class="stat-val val-red" id="st-urgent">—</div>
-      </div>
+    <div class="logo-row">
+      <img class="logo-icon" src="/emoji/u1F31E.svg" alt="Daily Briefing">
     </div>
 
     <div class="sidebar-nav">
@@ -569,21 +645,24 @@
 
     <!-- Topbar -->
     <div class="topbar">
+      <button class="hamburger-btn" onclick="openMobileSidebar()" title="메뉴">
+        <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
       <div id="topbar-date">
         <div class="date-big" id="date-big"></div>
         <div class="date-sub" id="date-sub"></div>
       </div>
-      <div style="display:flex;gap:8px;align-items:center">
+      <div class="topbar-actions">
         <button class="topbar-search-btn" id="topbar-search-btn" onclick="openSearchModal()" style="display:none">
           <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          검색
+          <span class="btn-text">검색</span>
         </button>
         <button class="sync-btn" id="sync-btn" onclick="loadTasks()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M23 4v6h-6M1 20v-6h6"/>
             <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
           </svg>
-          동기화
+          <span class="btn-text">동기화</span>
         </button>
       </div>
     </div>
@@ -592,7 +671,7 @@
     <div id="task-view">
       <div class="briefing-card" id="briefing-card">
         <div class="briefing-header">
-          <div class="briefing-label">☀ 오늘의 브리핑</div>
+          <div class="briefing-label"><img class="t-emoji" src="/emoji/u2600.svg" alt="☀"> 오늘의 브리핑</div>
           <button class="briefing-close" onclick="dismissBriefing()" title="오늘 하루 닫기">
             <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
@@ -600,33 +679,45 @@
         <div class="briefing-lines" id="briefing-lines"></div>
       </div>
 
-      <!-- Today section (after setup) -->
-      <div id="today-section" style="display:none">
-        <div class="section-header">
-          <div class="section-title">오늘의 할 일</div>
-          <button class="add-btn" onclick="openTodayModal()">수정</button>
+      <!-- Today section -->
+      <div id="today-section">
+        <div id="today-empty-state">
+          <div class="section-header">
+            <div class="section-title">오늘의 할 일</div>
+          </div>
+          <button class="today-add-area" onclick="openTodayModal()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+            추가하기
+          </button>
         </div>
-        <div class="task-list" id="today-list"></div>
+        <div id="today-filled-state" style="display:none">
+          <div class="section-header">
+            <div class="section-title">오늘의 할 일 <span id="today-count" style="font-weight:500;color:var(--text3)"></span></div>
+            <button class="add-btn" onclick="openTodayModal()">수정</button>
+          </div>
+          <div class="task-list" id="today-list"></div>
+        </div>
       </div>
 
       <div class="section-divider"></div>
 
       <div class="section-header">
-        <div class="section-title">할일 목록</div>
+        <div class="section-title">할 일 목록</div>
         <button class="add-btn" onclick="openModal()">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <path d="M12 5v14M5 12h14"/>
           </svg>
-          새 작업
+          새 할 일
         </button>
       </div>
       <div class="task-filter-row">
         <button class="task-filter-chip active" onclick="setFilter('all',this)">
-          <span class="task-filter-dot" style="background:var(--grey400)"></span>전체
+          전체
           <span class="task-filter-count" id="fc-all">0</span>
         </button>
         <button class="task-filter-chip" onclick="setFilter('todo',this)">
-          할 일 <span class="task-filter-count" id="fc-todo">0</span>
+          <span class="task-filter-dot" style="background:var(--grey400)"></span>할 일
+          <span class="task-filter-count" id="fc-todo">0</span>
         </button>
         <button class="task-filter-chip" onclick="setFilter('inprogress',this)">
           <span class="task-filter-dot" style="background:var(--blue500)"></span>진행중
@@ -635,14 +726,6 @@
         <button class="task-filter-chip" onclick="setFilter('done',this)">
           <span class="task-filter-dot" style="background:var(--green500)"></span>완료
           <span class="task-filter-count" id="fc-done">0</span>
-        </button>
-        <button class="task-filter-chip" onclick="setFilter('urgent',this)">
-          <span class="task-filter-dot" style="background:var(--red500)"></span>긴급
-          <span class="task-filter-count" id="fc-urgent">0</span>
-        </button>
-        <button class="task-filter-chip" onclick="setFilter('overdue',this)">
-          <span class="task-filter-dot" style="background:var(--orange500)"></span>기한 초과
-          <span class="task-filter-count" id="fc-overdue">0</span>
         </button>
       </div>
       <div class="task-list" id="task-list">
@@ -685,6 +768,7 @@
     </div>
     <div class="today-select-list" id="today-select-list"></div>
     <div class="modal-footer">
+      <span id="today-select-count" style="font-size:13px;font-weight:500;color:var(--text3);margin-right:auto;align-self:center;line-height:1">0개 선택</span>
       <button class="btn-cancel" onclick="closeTodayModal()">취소</button>
       <button class="btn-save" onclick="confirmTodaySelection()">확인</button>
     </div>
@@ -747,15 +831,15 @@
 <div class="modal-backdrop" id="modal-backdrop" onclick="handleBackdropClick(event)">
   <div class="modal" id="modal">
     <div class="modal-header">
-      <div class="modal-title" id="modal-title">새 작업 추가</div>
+      <div class="modal-title" id="modal-title">새 할 일 추가</div>
       <button class="modal-close" onclick="closeModal()">✕</button>
     </div>
     <div class="modal-body">
       <div class="form-grid">
         <div class="form-group form-full" id="task-type-row">
-          <label class="form-label">작업 유형</label>
+          <label class="form-label">할 일 유형</label>
           <div class="seg-group" id="f-task-type" data-value="once">
-            <button type="button" class="seg-btn active" data-val="once" onclick="selectTaskType('once')">1회성</button>
+            <button type="button" class="seg-btn active" data-val="once" onclick="selectTaskType('once')">한 번만</button>
             <button type="button" class="seg-btn" data-val="repeat" onclick="selectTaskType('repeat')">반복</button>
           </div>
         </div>
@@ -772,23 +856,22 @@
           </div>
         </div>
         <div class="form-group form-full">
-          <label class="form-label">작업명 *</label>
-          <input type="text" id="f-title" placeholder="작업 제목을 입력하세요" />
+          <label class="form-label">할 일 이름 *</label>
+          <input type="text" id="f-title" placeholder="할 일 이름을 입력하세요" />
         </div>
         <div class="form-group">
-          <label class="form-label">우선순위</label>
-          <div class="seg-group" id="f-priority" data-value="보통">
-            <button type="button" class="seg-btn active" data-val="보통" onclick="selectSeg(this,'f-priority')">보통</button>
-            <button type="button" class="seg-btn" data-val="긴급" onclick="selectSeg(this,'f-priority')">긴급</button>
-            <button type="button" class="seg-btn" data-val="낮음" onclick="selectSeg(this,'f-priority')">낮음</button>
+          <label class="form-label">분류</label>
+          <div class="seg-group" id="f-priority" data-value="일반">
+            <button type="button" class="seg-btn active" data-val="일반" onclick="selectSeg(this,'f-priority')"><span class="seg-dot" style="background:var(--grey400)"></span>일반</button>
+            <button type="button" class="seg-btn" data-val="긴급" onclick="selectSeg(this,'f-priority')"><span class="seg-dot" style="background:var(--red500)"></span>긴급</button>
           </div>
         </div>
         <div class="form-group" id="f-status-row">
           <label class="form-label">상태</label>
           <div class="seg-group" id="f-status" data-value="Not started">
-            <button type="button" class="seg-btn active" data-val="Not started" onclick="selectSeg(this,'f-status')">할 일</button>
-            <button type="button" class="seg-btn" data-val="In progress" onclick="selectSeg(this,'f-status')">진행중</button>
-            <button type="button" class="seg-btn" data-val="Done" onclick="selectSeg(this,'f-status')">완료</button>
+            <button type="button" class="seg-btn active" data-val="Not started" onclick="selectSeg(this,'f-status')"><span class="seg-dot" style="background:var(--grey400)"></span>할 일</button>
+            <button type="button" class="seg-btn" data-val="In progress" onclick="selectSeg(this,'f-status')"><span class="seg-dot" style="background:var(--blue500)"></span>진행중</button>
+            <button type="button" class="seg-btn" data-val="Done" onclick="selectSeg(this,'f-status')"><span class="seg-dot" style="background:var(--green500)"></span>완료</button>
           </div>
         </div>
         <div class="form-group" id="f-date-row">
@@ -806,11 +889,20 @@
       </div>
     </div>
     <div class="modal-footer">
+      <button class="btn-end-recurring" id="btn-end-recurring" style="display:none" onclick="endRecurring()">반복 종료</button>
       <button class="btn-cancel" onclick="closeModal()">취소</button>
       <button class="btn-save" id="btn-save" onclick="saveTask()">저장</button>
     </div>
   </div>
 </div>
+
+<!-- 데스크톱 사이드바 펼치기 버튼 -->
+<button class="sidebar-expand-btn" id="sidebar-expand-btn" onclick="toggleSidebar()" title="사이드바 접기">
+  <svg viewBox="0 0 24 24"><polyline points="15,18 9,12 15,6"/></svg>
+</button>
+
+<!-- 모바일 오버레이 -->
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeMobileSidebar()"></div>
 
 <!-- Status bar -->
 <div class="statusbar">
@@ -825,12 +917,36 @@ let DB_ID  = localStorage.getItem('notion_dbid')  || '';
 let tasks = [];
 let currentFilter = 'all';
 let editingId = null;
+let editingRecurringId = null;
 let viewMode = 'tasks';
 let historyMonth = new Date();
 let historySearch = '';
 let todayIds = [];
 let todayConfirmed = false;
 let recurringTasks = [];
+
+function toNotionPriority(p) { return p === '긴급' ? '긴급' : '보통'; }
+
+function toggleSidebar() {
+  const sidebar = document.querySelector('.sidebar');
+  const btn = document.getElementById('sidebar-expand-btn');
+  const isCollapsed = sidebar.classList.toggle('collapsed');
+  btn.style.left = isCollapsed ? '16px' : '228px';
+  btn.querySelector('svg').innerHTML = isCollapsed
+    ? '<polyline points="9,18 15,12 9,6"/>'
+    : '<polyline points="15,18 9,12 15,6"/>';
+  btn.title = isCollapsed ? '사이드바 펼치기' : '사이드바 접기';
+}
+
+function openMobileSidebar() {
+  document.querySelector('.sidebar').classList.add('mobile-open');
+  document.getElementById('sidebar-overlay').classList.add('visible');
+}
+
+function closeMobileSidebar() {
+  document.querySelector('.sidebar').classList.remove('mobile-open');
+  document.getElementById('sidebar-overlay').classList.remove('visible');
+}
 
 function loadRecurring() {
   try { recurringTasks = JSON.parse(localStorage.getItem('recurring_tasks') || '[]'); }
@@ -846,8 +962,11 @@ function selectTaskType(type) {
   grp.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('active', b.dataset.val === type));
   const isRepeat = type === 'repeat';
   document.getElementById('repeat-days-row').style.display = isRepeat ? '' : 'none';
-  document.getElementById('f-status-row').style.display   = isRepeat ? 'none' : '';
-  document.getElementById('f-date-row').style.display     = isRepeat ? 'none' : '';
+  // 편집 모드에서는 상태/날짜 항상 노출
+  if (!editingId) {
+    document.getElementById('f-status-row').style.display = 'none';
+    document.getElementById('f-date-row').style.display   = isRepeat ? 'none' : '';
+  }
 }
 
 async function checkRecurringTasks() {
@@ -869,7 +988,7 @@ async function checkRecurringTasks() {
           parent: { database_id: DB_ID },
           properties: {
             '이름':     { title: [{ text: { content: rt.title } }] },
-            '우선순위': { select: { name: rt.priority || '보통' } },
+            '우선순위': { select: { name: toNotionPriority(rt.priority || '일반') } },
             '상태':     { status: { name: 'Not started' } },
             '카테고리': rt.category ? { select: { name: rt.category } } : { select: null },
             '메모':     { rich_text: rt.note ? [{ text: { content: rt.note } }] : [] }
@@ -929,14 +1048,17 @@ function removeFromToday(id) {
 }
 
 function renderTodaySection() {
-  document.getElementById('today-section').style.display = todayConfirmed ? '' : 'none';
+  const filled = todayConfirmed && todayIds.length > 0;
+  document.getElementById('today-empty-state').style.display  = filled ? 'none' : '';
+  document.getElementById('today-filled-state').style.display = filled ? '' : 'none';
+  const countEl = document.getElementById('today-count');
+  if (countEl) countEl.textContent = filled ? `(${todayIds.length})` : '';
 }
 
 let todaySelectTemp = [];
 function openTodayModal() {
   todaySelectTemp = [...todayIds];
   const incomplete = tasks.filter(t => !t.done);
-  const priLabel = { '긴급': '🔴', '낮음': '🔵' };
   document.getElementById('today-select-list').innerHTML = incomplete.length
     ? incomplete.map(t => `
       <div class="today-select-item${todaySelectTemp.includes(t.id) ? ' selected' : ''}"
@@ -945,11 +1067,14 @@ function openTodayModal() {
           <svg viewBox="0 0 12 10"><polyline points="1,5 4.5,9 11,1"/></svg>
         </div>
         <span class="today-select-title">${esc(t.title)}</span>
-        ${t.priority && t.priority !== '보통' ? `<span class="today-select-meta">${priLabel[t.priority]||''} ${t.priority}</span>` : ''}
-        ${t.dueDate ? `<span class="today-select-meta">📅 ${fmt(t.dueDate)}</span>` : ''}
       </div>`).join('')
     : '<div style="padding:24px;text-align:center;color:var(--text3);font-size:14px">할 일이 없어요</div>';
+  updateTodaySelectCount();
   document.getElementById('today-modal-backdrop').classList.add('open');
+}
+function updateTodaySelectCount() {
+  const el = document.getElementById('today-select-count');
+  if (el) el.textContent = todaySelectTemp.length ? `${todaySelectTemp.length}개 선택` : '0개 선택';
 }
 function closeTodayModal() {
   document.getElementById('today-modal-backdrop').classList.remove('open');
@@ -965,6 +1090,7 @@ function toggleTodaySelect(id, el) {
     todaySelectTemp.push(id);
     el.classList.add('selected');
   }
+  updateTodaySelectCount();
 }
 function confirmTodaySelection() {
   todayIds = [...todaySelectTemp];
@@ -988,7 +1114,7 @@ function confirmTodaySelection() {
   document.getElementById('cfg-token').value = TOKEN;
   document.getElementById('cfg-dbid').value  = DB_ID;
 
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeConfig(); closeTaskDetail(); closeSearchModal(); closeTodayModal(); } });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeConfig(); closeTaskDetail(); closeSearchModal(); closeTodayModal(); closeMobileSidebar(); } });
 
   if (!TOKEN || !DB_ID) {
     setStatus('err', '좌측 하단 설정에서 Token과 DB ID를 입력해주세요');
@@ -1017,7 +1143,7 @@ async function notionFetch(path, method = 'POST', body = null) {
 async function loadTasks() {
   const btn = document.getElementById('sync-btn');
   btn.classList.add('spinning');
-  setStatus('loading', 'Notion에서 작업을 불러오는 중...');
+  setStatus('loading', 'Notion에서 할 일을 불러오는 중...');
   try {
     const result = await notionFetch(`databases/${DB_ID}/query`, 'POST', {
       sorts: [
@@ -1037,7 +1163,7 @@ async function loadTasks() {
     await checkRecurringTasks();
     if (!todayConfirmed || todayIds.length === 0) openTodayModal();
     const t = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
-    setStatus('ok', `${tasks.length}개 작업 동기화 완료 · ${t}`);
+    setStatus('ok', `${tasks.length}개 할 일 동기화 완료 · ${t}`);
   } catch(e) {
     setStatus('err', '연결 실패: ' + e.message);
     document.getElementById('task-list').innerHTML =
@@ -1064,7 +1190,7 @@ function parsePage(page) {
     id:       page.id,
     title:    g.title(titleKey) || '(제목 없음)',
     status,
-    priority: g.select('우선순위') || g.select('Priority') || '보통',
+    priority: ({ '긴급': '긴급' })[g.select('우선순위') || g.select('Priority')] || '일반',
     dueDate:  g.date('마감일') || g.date('Due') || g.date('날짜'),
     category: g.select('카테고리') || g.select('Category') || '',
     note:     g.text('메모') || g.text('Notes') || '',
@@ -1078,19 +1204,11 @@ function updateStats() {
   const total   = tasks.length;
   const done    = tasks.filter(t =>  t.done).length;
   const prog    = tasks.filter(t => !t.done && t.status === '진행중').length;
-  const urgent  = tasks.filter(t =>  t.priority === '긴급' && !t.done).length;
   const todo    = tasks.filter(t => !t.done && t.status === '할 일').length;
-  const overdue = tasks.filter(t =>  isOverdue(t.dueDate) && !t.done).length;
-  document.getElementById('st-total').textContent   = total;
-  document.getElementById('st-done').textContent    = done;
-  document.getElementById('st-prog').textContent    = prog;
-  document.getElementById('st-urgent').textContent  = urgent;
-  document.getElementById('fc-all').textContent     = total;
-  document.getElementById('fc-todo').textContent    = todo;
-  document.getElementById('fc-prog').textContent    = prog;
-  document.getElementById('fc-done').textContent    = done;
-  document.getElementById('fc-urgent').textContent  = urgent;
-  document.getElementById('fc-overdue').textContent = overdue;
+  document.getElementById('fc-all').textContent  = total;
+  document.getElementById('fc-todo').textContent = todo;
+  document.getElementById('fc-prog').textContent = prog;
+  document.getElementById('fc-done').textContent = done;
 }
 
 async function checkWeeklyTask() {
@@ -1138,32 +1256,42 @@ function renderBriefing() {
   const inprog   = tasks.filter(t => t.status === '진행중' && !t.done);
   const done     = tasks.filter(t => t.done);
   const lines    = [];
-  if (overdue.length)  lines.push({ i:'⚠', t:`<strong>기한 초과 ${overdue.length}개</strong> — ${overdue.slice(0,3).map(t=>t.title).join(', ')}${overdue.length>3?` 외 ${overdue.length-3}개`:''}` });
-  if (urgent.length)   lines.push({ i:'🔴', t:`<strong>긴급 작업 ${urgent.length}개</strong> — ${urgent.slice(0,3).map(t=>t.title).join(', ')}` });
-  if (todayDue.length) lines.push({ i:'📅', t:`<strong>오늘 마감 ${todayDue.length}개</strong> — ${todayDue.map(t=>t.title).join(', ')}` });
-  if (inprog.length)   lines.push({ i:'⚡', t:`<strong>진행중 ${inprog.length}개</strong> — ${inprog.slice(0,3).map(t=>t.title).join(', ')}` });
-  if (done.length && lines.length < 3) lines.push({ i:'✅', t:`지금까지 <strong>${done.length}개</strong> 완료했어요. 수고했어요!` });
-  if (!lines.length)   lines.push({ i:'🌿', t:'오늘 긴급하거나 기한이 지난 작업이 없어요. 좋은 하루 되세요!' });
+  const ei = src => `<img class="t-emoji" src="/emoji/${src}" alt="">`;
+  if (overdue.length)  lines.push({ i:ei('u26A0.svg'),  t:`<strong>기한 초과 ${overdue.length}개</strong> — ${overdue.slice(0,3).map(t=>t.title).join(', ')}${overdue.length>3?` 외 ${overdue.length-3}개`:''}` });
+  if (urgent.length)   lines.push({ i:ei('u1F534.svg'), t:`<strong>긴급 할 일 ${urgent.length}개</strong> — ${urgent.slice(0,3).map(t=>t.title).join(', ')}` });
+  if (todayDue.length) lines.push({ i:ei('u1F4C5.svg'), t:`<strong>오늘 마감 ${todayDue.length}개</strong> — ${todayDue.map(t=>t.title).join(', ')}` });
+  if (inprog.length)   lines.push({ i:ei('u26A1.svg'),  t:`<strong>진행중 ${inprog.length}개</strong> — ${inprog.slice(0,3).map(t=>t.title).join(', ')}` });
+  if (done.length && lines.length < 3) lines.push({ i:ei('u2705.svg'), t:`지금까지 <strong>${done.length}개</strong> 완료했어요. 수고했어요!` });
+  if (!lines.length)   lines.push({ i:ei('u1F33F.svg'), t:'오늘 긴급하거나 기한이 지난 할 일이 없어요. 좋은 하루 되세요!' });
   document.getElementById('briefing-lines').innerHTML =
-    lines.map(l => `<div class="briefing-line"><span>${l.i}</span><span>${l.t}</span></div>`).join('');
+    lines.map(l => `<div class="briefing-line">${l.i}<span>${l.t}</span></div>`).join('');
   document.getElementById('briefing-card').style.display = 'block';
 }
 
-function taskItemHTML(t, isToday) {
-  const priClass = t.priority === '긴급' ? 'badge-urgent' : t.priority === '낮음' ? 'badge-low' : 'badge-normal';
-  const odClass  = isOverdue(t.dueDate) && !t.done ? 'badge-overdue' : '';
+function taskItemHTML(t, isToday, showCheckbox = false) {
+  const priClass  = t.priority === '긴급' ? 'badge-urgent' : t.priority === '낮음' ? 'badge-low' : 'badge-normal';
+  const overdue   = isOverdue(t.dueDate) && !t.done;
+  const checkbox  = showCheckbox
+    ? `<div class="checkbox ${t.done ? 'checked' : ''}" onclick="toggleDone('${t.id}',${!t.done})">
+        <svg viewBox="0 0 12 10"><polyline points="1,5 4.5,9 11,1"/></svg>
+       </div>`
+    : '';
+  const urgentIcon  = t.priority === '긴급' && !t.done
+    ? `<img class="t-emoji task-flag" src="/emoji/u1F6A8.svg" alt="긴급" title="긴급">`
+    : '';
+  const overdueIcon = overdue
+    ? `<img class="t-emoji task-flag" src="/emoji/u23F0.svg" alt="기한 초과" title="기한 초과">`
+    : '';
   return `<div class="task-item" data-id="${t.id}" draggable="true">
     <div class="drag-handle"><svg viewBox="0 0 10 16" fill="currentColor"><circle cx="2" cy="2" r="1.5"/><circle cx="8" cy="2" r="1.5"/><circle cx="2" cy="8" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="2" cy="14" r="1.5"/><circle cx="8" cy="14" r="1.5"/></svg></div>
-    <div class="checkbox ${t.done ? 'checked' : ''}" onclick="toggleDone('${t.id}',${!t.done})">
-      <svg viewBox="0 0 12 10"><polyline points="1,5 4.5,9 11,1"/></svg>
-    </div>
+    ${checkbox}
     <div class="task-body">
       <div class="task-title-row">
+        ${urgentIcon}${overdueIcon}
         <span class="task-title ${t.done ? 'done' : ''}">${esc(t.title)}</span>
-        ${t.priority ? `<span class="badge ${priClass}">${t.priority}</span>` : ''}
+        ${t.priority === '긴급' ? `<span class="badge badge-urgent">긴급</span>` : ''}
         ${t.category ? `<span class="badge badge-cat">${esc(t.category)}</span>` : ''}
-        ${t.status   ? `<span class="badge badge-status">${t.status}</span>` : ''}
-        ${t.dueDate  ? `<span class="badge badge-date ${odClass}">📅 ${fmt(t.dueDate)}${isOverdue(t.dueDate)&&!t.done?' 초과':''}</span>` : ''}
+        ${t.dueDate  ? `<span class="badge badge-date${overdue?' badge-overdue':''}"><img class="t-emoji" src="/emoji/u1F4C5.svg" alt="📅"> ${fmt(t.dueDate)}${overdue?' 초과':''}</span>` : ''}
       </div>
       ${t.note ? `<div class="task-note">${esc(t.note)}</div>` : ''}
     </div>
@@ -1215,20 +1343,28 @@ function renderTasks() {
     if (currentFilter === 'done')       return t.done;
     if (currentFilter === 'todo')       return !t.done && t.status === '할 일';
     if (currentFilter === 'inprogress') return !t.done && t.status === '진행중';
-    if (currentFilter === 'urgent')     return t.priority === '긴급' && !t.done;
-    if (currentFilter === 'overdue')    return isOverdue(t.dueDate) && !t.done;
     return true;
+  }).sort((a, b) => {
+    const score = t => {
+      if (t.done) return 2;
+      const urgent  = t.priority === '긴급' ? 1 : 0;
+      const overdue = isOverdue(t.dueDate)  ? 1 : 0;
+      if (urgent && overdue) return -2;
+      if (urgent || overdue) return -1;
+      return 0;
+    };
+    return score(a) - score(b);
   });
 
   const todayList = document.getElementById('today-list');
   todayList.innerHTML = todayTasks.length
-    ? todayTasks.map(t => taskItemHTML(t, true)).join('')
+    ? todayTasks.map(t => taskItemHTML(t, true, true)).join('')
     : '<div class="empty-state">선택한 할 일이 없어요. 수정 버튼으로 추가해보세요</div>';
 
   const list = document.getElementById('task-list');
   list.innerHTML = otherTasks.length
-    ? otherTasks.map(t => taskItemHTML(t, todayIds.includes(t.id))).join('')
-    : '<div class="empty-state">해당하는 작업이 없습니다</div>';
+    ? otherTasks.map(t => taskItemHTML(t, todayIds.includes(t.id), false)).join('')
+    : '<div class="empty-state">해당하는 할 일이 없습니다</div>';
 
   attachDrag(todayList, (srcId, dstId) => {
     const si = todayIds.indexOf(srcId), di = todayIds.indexOf(dstId);
@@ -1263,7 +1399,7 @@ function openModal(taskId = null) {
   editingId = taskId;
   const task = taskId ? tasks.find(t => t.id === taskId) : null;
 
-  document.getElementById('modal-title').textContent = task ? '작업 수정' : '새 작업 추가';
+  document.getElementById('modal-title').textContent = task ? '할 일 수정' : '새 할 일 추가';
   document.getElementById('btn-save').textContent    = task ? '수정 완료' : '저장';
 
   document.getElementById('f-title').value    = task ? task.title    : '';
@@ -1271,21 +1407,38 @@ function openModal(taskId = null) {
   document.getElementById('f-category').value = task ? task.category : '';
   document.getElementById('f-note').value     = task ? task.note     : '';
 
-  const rawPriority = task ? task.priority : '보통';
+  const rawPriority = task ? task.priority : '일반';
   const rawStatus   = task ? (statusToRaw[task.status] || 'Not started') : 'Not started';
   resetSeg('f-priority', rawPriority);
   resetSeg('f-status',   rawStatus);
 
-  // 작업 유형 초기화 (편집 시에는 숨김)
-  const typeRow = document.getElementById('task-type-row');
-  typeRow.style.display = task ? 'none' : '';
-  if (!task) {
+  // 작업 유형: 편집/생성 모두 노출
+  document.getElementById('task-type-row').style.display = '';
+
+  if (task) {
+    const rt = recurringTasks.find(r => r.title === task.title);
+    editingRecurringId = rt ? rt.id : null;
+
+    if (rt) {
+      selectTaskType('repeat');
+      // 편집 모드에서는 상태/날짜 항상 표시
+      document.getElementById('f-status-row').style.display = '';
+      document.getElementById('f-date-row').style.display   = '';
+      document.querySelectorAll('#f-days .day-btn').forEach(b => {
+        b.classList.toggle('active', rt.days.includes(b.dataset.day));
+      });
+    } else {
+      editingRecurringId = null;
+      selectTaskType('once');
+      document.querySelectorAll('#f-days .day-btn').forEach(b => b.classList.remove('active'));
+    }
+
+    document.getElementById('btn-end-recurring').style.display = rt ? '' : 'none';
+  } else {
+    editingRecurringId = null;
     selectTaskType('once');
     document.querySelectorAll('#f-days .day-btn').forEach(b => b.classList.remove('active'));
-  } else {
-    document.getElementById('repeat-days-row').style.display = 'none';
-    document.getElementById('f-status-row').style.display = '';
-    document.getElementById('f-date-row').style.display = '';
+    document.getElementById('btn-end-recurring').style.display = 'none';
   }
 
   document.getElementById('modal-backdrop').classList.add('open');
@@ -1295,6 +1448,18 @@ function openModal(taskId = null) {
 function closeModal() {
   document.getElementById('modal-backdrop').classList.remove('open');
   editingId = null;
+  editingRecurringId = null;
+}
+
+function endRecurring() {
+  if (!editingRecurringId) return;
+  if (!confirm('반복 일정을 종료할까요? 이미 생성된 할 일은 유지됩니다.')) return;
+  recurringTasks = recurringTasks.filter(r => r.id !== editingRecurringId);
+  saveRecurring();
+  editingRecurringId = null;
+  document.getElementById('btn-end-recurring').style.display = 'none';
+  selectTaskType('once');
+  setStatus('ok', '반복 일정이 종료됐습니다');
 }
 
 function handleBackdropClick(e) {
@@ -1303,11 +1468,13 @@ function handleBackdropClick(e) {
 
 async function saveTask() {
   const title = document.getElementById('f-title').value.trim();
-  if (!title) { alert('작업명을 입력해주세요'); return; }
+  if (!title) { alert('할 일 이름을 입력해주세요'); return; }
 
-  // 반복 작업 처리
   const taskType = document.getElementById('f-task-type').dataset.value;
-  if (!editingId && taskType === 'repeat') {
+  const isRepeat = taskType === 'repeat';
+
+  // 신규 + 반복: 템플릿만 저장하고 Notion 페이지는 생성 안 함
+  if (!editingId && isRepeat) {
     const days = [...document.querySelectorAll('#f-days .day-btn.active')].map(b => b.dataset.day);
     if (days.length === 0) { alert('반복 요일을 선택해주세요'); return; }
     const priority = document.getElementById('f-priority').dataset.value;
@@ -1321,8 +1488,34 @@ async function saveTask() {
     saveRecurring();
     closeModal();
     await checkRecurringTasks();
-    setStatus('ok', `반복 작업 "${title}" 이(가) 저장됐습니다 (${days.join(', ')} 반복)`);
+    setStatus('ok', `반복 할 일 "${title}" 이(가) 저장됐습니다 (${days.join(', ')} 반복)`);
     return;
+  }
+
+  // 편집 시 반복 템플릿 동기화
+  if (editingId) {
+    const priority = document.getElementById('f-priority').dataset.value;
+    const category = document.getElementById('f-category').value.trim();
+    const note     = document.getElementById('f-note').value.trim();
+
+    if (isRepeat) {
+      const days = [...document.querySelectorAll('#f-days .day-btn.active')].map(b => b.dataset.day);
+      if (days.length === 0) { alert('반복 요일을 선택해주세요'); return; }
+      if (editingRecurringId) {
+        const rt = recurringTasks.find(r => r.id === editingRecurringId);
+        if (rt) { rt.title = title; rt.days = days; rt.priority = priority; rt.category = category; rt.note = note; }
+      } else {
+        const newRt = { id: Date.now().toString(36) + Math.random().toString(36).slice(2), title, days, priority, category, note };
+        recurringTasks.push(newRt);
+        editingRecurringId = newRt.id;
+      }
+      saveRecurring();
+    } else if (editingRecurringId) {
+      // 반복→1회성으로 변경: 템플릿 종료
+      recurringTasks = recurringTasks.filter(r => r.id !== editingRecurringId);
+      saveRecurring();
+      editingRecurringId = null;
+    }
   }
 
   const btn = document.getElementById('btn-save');
@@ -1337,7 +1530,7 @@ async function saveTask() {
 
   const props = {
     '이름':     { title:  [{ text: { content: title } }] },
-    '우선순위': { select: { name: priority } },
+    '우선순위': { select: { name: toNotionPriority(priority) } },
     '상태':     { status: { name: status } },
     '마감일':   dueDate  ? { date: { start: dueDate } } : { date: null },
     '카테고리': category ? { select: { name: category } } : { select: null },
@@ -1359,7 +1552,7 @@ async function saveTask() {
         t.note     = note;
         t.done     = status === 'Done';
       }
-      setStatus('ok', '작업이 수정됐습니다');
+      setStatus('ok', '할 일이 수정됐습니다');
     } else {
       const result = await notionFetch('pages', 'POST', {
         parent: { database_id: DB_ID },
@@ -1371,7 +1564,7 @@ async function saveTask() {
         priority, dueDate: dueDate || null, category, note,
         done: status === 'Done'
       });
-      setStatus('ok', '새 작업이 Notion에 저장됐습니다');
+      setStatus('ok', '새 할 일이 Notion에 저장됐습니다');
     }
     updateStats(); renderTasks(); renderBriefing();
     closeModal();
@@ -1406,7 +1599,7 @@ async function toggleDone(id, done) {
 }
 
 async function deleteTask(id) {
-  if (!confirm('이 작업을 Notion에서 삭제할까요?')) return;
+  if (!confirm('이 할 일을 Notion에서 삭제할까요?')) return;
   setStatus('loading', '삭제 중...');
   try {
     await notionFetch(`pages/${id}`, 'PATCH', { archived: true });
@@ -1537,7 +1730,7 @@ function openTaskDetail(taskId) {
   document.getElementById('detail-meta').innerHTML = [
     t.category ? `<span class="badge badge-cat">${esc(t.category)}</span>` : '',
     t.priority && t.priority !== '보통' ? `<span class="badge ${t.priority==='긴급'?'badge-urgent':'badge-low'}">${t.priority}</span>` : '',
-    t.dueDate  ? `<span class="badge badge-date">📅 ${fmt(t.dueDate)}</span>` : ''
+    t.dueDate  ? `<span class="badge badge-date"><img class="t-emoji" src="/emoji/u1F4C5.svg" alt="📅"> ${fmt(t.dueDate)}</span>` : ''
   ].filter(Boolean).join('');
   document.getElementById('detail-note').innerHTML = (t.note
     ? esc(t.note).replace(/\n/g, '<br>')
