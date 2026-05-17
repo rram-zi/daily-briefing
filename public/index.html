@@ -636,17 +636,22 @@
   .topbar-search-btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2.5; }
   .topbar-search-btn.active { border-color: var(--blue500); color: var(--blue500); background: var(--blue50); }
   .search-modal-wrap { padding: 16px 16px 0; }
+  .search-input-wrap { position: relative; }
   .search-modal-input {
-    width: 100%; height: 44px; padding: 0 14px 0 40px;
+    width: 100%; height: 44px; padding: 0 44px 0 14px;
     border: 1.5px solid var(--border); border-radius: 10px;
     background: var(--grey50); color: var(--text1);
     font-size: 15px; font-family: inherit; outline: none;
     transition: border-color 0.15s, background 0.15s;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238b95a1' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
-    background-repeat: no-repeat; background-position: 12px center;
+    -webkit-appearance: none; appearance: none;
   }
   .search-modal-input:focus { border-color: var(--blue500); background: var(--surface); }
   .search-modal-input::placeholder { color: var(--text3); }
+  .search-input-icon {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    width: 18px; height: 18px; stroke: var(--text3); fill: none; stroke-width: 2.5;
+    stroke-linecap: round; stroke-linejoin: round; pointer-events: none;
+  }
   .search-results { margin-top: 8px; max-height: 320px; overflow-y: auto; }
   .search-result-item {
     display: flex; align-items: center; justify-content: space-between;
@@ -721,7 +726,7 @@
     .cal-wrap { padding: 16px 0 0; border-radius: 0; box-shadow: none; margin: 0 -20px 0; }
     .cal-header { padding: 0 16px; margin-bottom: 14px; }
     .cal-weekdays { padding-bottom: 8px; }
-    .cal-grid { grid-auto-rows: 120px; }
+    .cal-grid { grid-auto-rows: 120px; padding: 0 1px; }
     .cal-day { padding: 5px 4px 4px; align-items: stretch; }
     .cal-day-num { align-self: center; }
     .cal-task-chip { font-size: 10.5px; padding: 2px 4px; }
@@ -734,6 +739,40 @@
     .add-btn { padding: 0; width: 30px; height: 30px; justify-content: center; }
     .edit-today-text { display: none; }
     .edit-today-btn { padding: 0; width: 30px; height: 30px; justify-content: center; }
+
+    /* 모바일: 바텀시트 모달 */
+    .modal-backdrop { align-items: flex-end; }
+    .modal {
+      max-width: 100%; margin: 0;
+      border-radius: 24px 24px 0 0;
+      max-height: 90vh;
+      display: flex; flex-direction: column;
+      transform: translateY(100%) !important;
+    }
+    .modal-backdrop.open .modal { transform: translateY(0) !important; }
+    .modal-header {
+      flex-shrink: 0;
+      padding: 20px 20px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .modal-body {
+      flex: 1; overflow-y: auto; padding: 20px 20px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .modal-footer {
+      flex-shrink: 0;
+      padding: 12px 20px 24px;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+    }
+    /* today modal 리스트 스크롤 */
+    .today-select-list {
+      flex: 1; overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      max-height: unset;
+    }
+    /* form-grid 단일 컬럼 */
+    .form-grid { grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -891,7 +930,7 @@
 <!-- Today Select Modal -->
 <div class="modal-backdrop" id="today-modal-backdrop" onclick="handleTodayModalBackdropClick(event)">
   <div class="modal" style="max-width:480px;padding:0;overflow:hidden">
-    <div class="modal-header" style="padding:16px 20px">
+    <div class="modal-header">
       <div class="modal-title">오늘의 할 일 리스트를 작성하세요</div>
       <button class="modal-close" onclick="closeTodayModal()">✕</button>
     </div>
@@ -908,8 +947,11 @@
 <div class="modal-backdrop" id="search-backdrop" onclick="handleSearchBackdropClick(event)">
   <div class="modal" style="max-width:480px;padding:0;overflow:hidden">
     <div class="search-modal-wrap">
-      <input class="search-modal-input" id="search-modal-input" type="search"
-        placeholder="완료한 할 일 검색..." oninput="onHistorySearch(this.value)" />
+      <div class="search-input-wrap">
+        <input class="search-modal-input" id="search-modal-input" type="text"
+          placeholder="완료한 할 일 검색..." oninput="onHistorySearch(this.value)" />
+        <svg class="search-input-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </div>
     </div>
     <div class="search-results" id="search-results"></div>
     <div class="search-modal-footer"></div>
@@ -1164,6 +1206,9 @@ async function checkRecurringTasks() {
       todayIds.push(taskId);
       todayConfirmed = true;
       saveTodayIds();
+      notionFetch(`pages/${taskId}`, 'PATCH', { properties: { '오늘날짜': { date: { start: dateStr } } } }).catch(() => {});
+      const t = tasks.find(t => t.id === taskId);
+      if (t) t.todayDate = dateStr;
     }
     lastRun[rt.id] = dateStr;
     changed = true;
@@ -1511,7 +1556,7 @@ function parsePage(page) {
     dueDate:  g.date('마감일') || g.date('Due') || g.date('날짜'),
     category: g.select('카테고리') || g.select('Category') || '',
     note:        g.text('메모') || g.text('Notes') || '',
-    done:        rawStatus === 'Done',
+    done:        rawStatus === 'Done' || rawStatus === '완료',
     order:       p['순서']?.number ?? null,
     completedAt: p['완료일']?.date?.start ?? null,
     todayDate:   g.date('오늘날짜') || null
