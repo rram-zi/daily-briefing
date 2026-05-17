@@ -352,7 +352,8 @@
   }
   .today-select-box svg { width: 10px; height: 10px; stroke: #fff; fill: none; stroke-width: 3; display: none; }
   .today-select-item.selected .today-select-box svg { display: block; }
-  .today-select-title { font-size: 14px; color: var(--text1); font-weight: 500; flex: 1; min-width: 0; }
+  .today-select-title { font-size: 14px; color: var(--text1); font-weight: 500; min-width: 0; }
+  .today-select-info { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
   .today-select-meta { font-size: 12px; color: var(--text3); flex-shrink: 0; }
   .act-btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.8; }
 
@@ -1113,7 +1114,10 @@ function openTodayModal() {
         <div class="today-select-box">
           <svg viewBox="0 0 12 10"><polyline points="1,5 4.5,9 11,1"/></svg>
         </div>
-        <span class="today-select-title">${esc(t.title)}</span>
+        <div class="today-select-info">
+          <span class="today-select-title">${esc(t.title)}</span>
+          ${t.category ? `<span class="badge badge-cat">${esc(t.category)}</span>` : ''}
+        </div>
       </div>`).join('')
     : '<div style="padding:24px;text-align:center;color:var(--text3);font-size:14px">할 일이 없어요</div>';
   updateTodaySelectCount();
