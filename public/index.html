@@ -1612,17 +1612,18 @@ function dismissBriefing() {
 
 function renderBriefing() {
   if (isBriefingDismissed()) return;
+  const todayStr = todayKey();
   const today    = new Date().toDateString();
   const todayDue = tasks.filter(t => t.dueDate && new Date(t.dueDate).toDateString() === today && !t.done);
   const overdue  = tasks.filter(t => isOverdue(t.dueDate) && !t.done);
   const urgent   = tasks.filter(t => t.priority === '긴급' && !t.done);
-  const done     = tasks.filter(t => t.done);
+  const done     = tasks.filter(t => t.done && t.completedAt === todayStr);
   const lines    = [];
   const ei = src => `<img class="t-emoji" src="/emoji/${src}" alt="">`;
   if (overdue.length)  lines.push({ i:ei('u26A0.svg'),  t:`<strong>기한 초과 ${overdue.length}개</strong> — ${overdue.slice(0,3).map(t=>tfEmoji(t.title)).join(', ')}${overdue.length>3?` 외 ${overdue.length-3}개`:''}` });
   if (urgent.length)   lines.push({ i:ei('u1F6A8.svg'), t:`<strong>긴급 할 일 ${urgent.length}개</strong> — ${urgent.slice(0,3).map(t=>tfEmoji(t.title)).join(', ')}` });
   if (todayDue.length) lines.push({ i:ei('u1F4C5.svg'), t:`<strong>오늘 마감 ${todayDue.length}개</strong> — ${todayDue.map(t=>tfEmoji(t.title)).join(', ')}` });
-  if (done.length && lines.length < 3) lines.push({ i:ei('u2705.svg'), t:`지금까지 <strong>${done.length}개</strong> 완료했어요. 수고했어요!` });
+  if (done.length && lines.length < 3) lines.push({ i:ei('u2705.svg'), t:`오늘 <strong>${done.length}개</strong> 완료했어요. 수고했어요!` });
   if (!lines.length)   lines.push({ i:ei('u1F33F.svg'), t:'오늘 긴급하거나 기한이 지난 할 일이 없어요. 좋은 하루 되세요!' });
   document.getElementById('briefing-lines').innerHTML =
     lines.map(l => `<div class="briefing-line">${l.i}<span>${l.t}</span></div>`).join('');
