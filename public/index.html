@@ -183,10 +183,6 @@
   .task-filter-chip:hover { background: var(--grey100); color: var(--text2); }
   .task-filter-chip.active { background: var(--grey200); color: var(--text1); }
   .task-filter-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-  .task-filter-count {
-    font-size: 11px; font-weight: 500; color: var(--text3); min-width: 16px; text-align: center;
-  }
-  .task-filter-chip.active .task-filter-count { color: var(--text2); }
 
   /* ── Main ── */
   .main { padding: 32px 32px 80px; min-width: 0; }
@@ -780,17 +776,14 @@
         </button>
       </div>
       <div class="task-filter-row">
-        <button class="task-filter-chip active" onclick="setFilter('todo',this)">
-          <span class="task-filter-dot" style="background:var(--grey400)"></span>할 일
-          <span class="task-filter-count" id="fc-todo">0</span>
+        <button class="task-filter-chip active" id="fc-todo-btn" onclick="setFilter('todo',this)">
+          <span class="task-filter-dot" style="background:var(--grey400)"></span><span id="fc-todo">할 일(0)</span>
         </button>
-        <button class="task-filter-chip" onclick="setFilter('done',this)">
-          <span class="task-filter-dot" style="background:var(--green500)"></span>완료
-          <span class="task-filter-count" id="fc-done">0</span>
+        <button class="task-filter-chip" id="fc-done-btn" onclick="setFilter('done',this)">
+          <span class="task-filter-dot" style="background:var(--green500)"></span><span id="fc-done">완료(0)</span>
         </button>
-        <button class="task-filter-chip" onclick="setFilter('all',this)">
-          전체
-          <span class="task-filter-count" id="fc-all">0</span>
+        <button class="task-filter-chip" id="fc-all-btn" onclick="setFilter('all',this)">
+          <span id="fc-all">전체(0)</span>
         </button>
       </div>
       <div class="task-list" id="task-list">
@@ -1395,9 +1388,9 @@ function updateStats() {
   const total = tasks.length;
   const done  = tasks.filter(t =>  t.done).length;
   const todo  = tasks.filter(t => !t.done).length;
-  document.getElementById('fc-all').textContent  = total;
-  document.getElementById('fc-todo').textContent = todo;
-  document.getElementById('fc-done').textContent = done;
+  document.getElementById('fc-all').textContent  = `전체(${total})`;
+  document.getElementById('fc-todo').textContent = `할 일(${todo})`;
+  document.getElementById('fc-done').textContent = `완료(${done})`;
 }
 
 async function checkWeeklyTask() {
