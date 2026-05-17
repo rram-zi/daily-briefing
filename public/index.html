@@ -8,6 +8,27 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/sunn-us/SUIT@1.0.4/packages/static/woff2/SUIT.css" />
 <style>
   .t-emoji { display: inline-block; width: 1.1em; height: 1.1em; vertical-align: -0.25em; flex-shrink: 0; }
+  @font-face {
+    font-family: 'TossFace';
+    src: url('/TossFaceFontMac.ttf') format('truetype');
+    unicode-range: U+00A9, U+00AE, U+203C, U+2049, U+2122, U+2139,
+      U+2194-2199, U+21A9-21AA, U+231A-231B, U+2328, U+23CF, U+23E9-23F3,
+      U+23F8-23FA, U+24C2, U+25AA-25AB, U+25B6, U+25C0, U+25FB-25FE,
+      U+2600-2604, U+260E, U+2611, U+2614-2615, U+2618, U+261D, U+2620,
+      U+2622-2623, U+2626, U+262A, U+262E-262F, U+2638-263A, U+2640, U+2642,
+      U+2648-2653, U+265F-2660, U+2663, U+2665-2666, U+2668, U+267B,
+      U+267E-267F, U+2692-2697, U+2699, U+269B-269C, U+26A0-26A1, U+26A7,
+      U+26AA-26AB, U+26B0-26B1, U+26BD-26BE, U+26C4-26C5, U+26CE-26CF,
+      U+26D1, U+26D3-26D4, U+26E9-26EA, U+26F0-26F5, U+26F7-26FA, U+26FD,
+      U+2702, U+2705, U+2708-270D, U+270F, U+2712, U+2714, U+2716, U+271D,
+      U+2721, U+2728, U+2733-2734, U+2744, U+2747, U+274C, U+274E,
+      U+2753-2755, U+2757, U+2763-2764, U+2795-2797, U+27A1, U+27B0, U+27BF,
+      U+2934-2935, U+2B05-2B07, U+2B1B-2B1C, U+2B50, U+2B55,
+      U+1F004, U+1F0CF, U+1F18E, U+1F191-1F19A, U+1F1E0-1F1FF,
+      U+1F201-1F202, U+1F21A, U+1F22F, U+1F232-1F23A, U+1F250-1F251,
+      U+1F300-1F6FF, U+1F700-1F77F, U+1F780-1F7FF, U+1F800-1F8FF,
+      U+1F900-1F9FF, U+1FA00-1FA6F, U+1FA70-1FAFF, U+FE00-FE0F;
+  }
 </style>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -428,6 +449,39 @@
   .form-group textarea:focus { border-color: var(--blue500); background: var(--surface); }
   .form-group textarea { resize: vertical; min-height: 72px; }
   .form-full { grid-column: 1 / -1; }
+  .emoji-input { font-family: 'TossFace', inherit; }
+  .input-emoji-wrap { position: relative; }
+  .input-emoji-wrap input,
+  .input-emoji-wrap textarea { padding-right: 40px; width: 100%; }
+  .emoji-trigger-btn {
+    position: absolute; right: 8px; top: 9px;
+    width: 28px; height: 28px; border-radius: 6px;
+    background: none; border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text3); transition: color 0.1s, background 0.1s;
+  }
+  .emoji-trigger-btn:hover { color: var(--text1); background: var(--grey100); }
+  .emoji-trigger-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.8; }
+  .input-emoji-wrap textarea ~ .emoji-trigger-btn { top: 9px; }
+  .emoji-picker {
+    position: fixed; z-index: 600;
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: 14px; box-shadow: 0 8px 32px rgba(0,0,0,0.14);
+    padding: 10px; width: 272px;
+    display: none;
+  }
+  .emoji-picker.open { display: block; }
+  .emoji-picker-grid {
+    display: grid; grid-template-columns: repeat(8, 1fr); gap: 2px;
+  }
+  .emoji-btn {
+    width: 30px; height: 30px; border-radius: 6px;
+    background: none; border: none; cursor: pointer;
+    font-family: 'TossFace', sans-serif; font-size: 18px; line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.1s;
+  }
+  .emoji-btn:hover { background: var(--grey100); }
 
   /* 카테고리 칩 선택기 */
   .cat-chips { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -881,7 +935,12 @@
         </div>
         <div class="form-group form-full">
           <label class="form-label">할 일 이름 *</label>
-          <input type="text" id="f-title" placeholder="할 일 이름을 입력하세요" />
+          <div class="input-emoji-wrap">
+            <input type="text" id="f-title" class="emoji-input" placeholder="할 일 이름을 입력하세요" />
+            <button type="button" class="emoji-trigger-btn" onclick="openEmojiPicker(event,'f-title')" tabindex="-1">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9" stroke-linecap="round" stroke-width="3"/><line x1="15" y1="9" x2="15.01" y2="9" stroke-linecap="round" stroke-width="3"/></svg>
+            </button>
+          </div>
         </div>
         <div class="form-group">
           <label class="form-label">분류</label>
@@ -911,7 +970,12 @@
         </div>
         <div class="form-group form-full">
           <label class="form-label">메모</label>
-          <textarea id="f-note" placeholder="추가 설명 (선택)"></textarea>
+          <div class="input-emoji-wrap">
+            <textarea id="f-note" class="emoji-input" placeholder="추가 설명 (선택)"></textarea>
+            <button type="button" class="emoji-trigger-btn" onclick="openEmojiPicker(event,'f-note')" tabindex="-1">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9" stroke-linecap="round" stroke-width="3"/><line x1="15" y1="9" x2="15.01" y2="9" stroke-linecap="round" stroke-width="3"/></svg>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -936,8 +1000,13 @@
     <div class="modal-body">
       <div class="form-group">
         <label class="form-label">카테고리 이름</label>
-        <input type="text" id="new-cat-input" placeholder="카테고리 이름 입력"
-          onkeydown="if(event.key==='Enter'){event.preventDefault();addCategoryFromModal();}" />
+        <div class="input-emoji-wrap">
+          <input type="text" id="new-cat-input" class="emoji-input" placeholder="카테고리 이름 입력"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();addCategoryFromModal();}" />
+          <button type="button" class="emoji-trigger-btn" onclick="openEmojiPicker(event,'new-cat-input')" tabindex="-1">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9" stroke-linecap="round" stroke-width="3"/><line x1="15" y1="9" x2="15.01" y2="9" stroke-linecap="round" stroke-width="3"/></svg>
+          </button>
+        </div>
       </div>
     </div>
     <div class="modal-footer">
@@ -1954,6 +2023,83 @@ function isOverdue(d) {
 }
 function fmt(d) { const dt = new Date(d); return `${dt.getMonth()+1}/${dt.getDate()}`; }
 function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* ── Emoji Picker ── */
+const EMOJI_LIST = [
+  '😊','😄','😅','😂','🤔','😮','😢','😡','🤩','🥹','😎','🫠',
+  '👍','👎','👏','🙏','💪','🤝','🫶','💬','✌️','🤞',
+  '✅','❌','⭐','🔥','💡','📌','🎯','✨','🚀','⚡',
+  '📝','📋','📊','📈','💼','🔑','📞','📧','📅','⏰','🔔','🔕',
+  '❤️','🧡','💛','💚','💙','💜','🖤','🤍','🩷','🩵',
+  '🌿','🌸','🌟','☀️','🌙','❄️','🍀','🌈','🌊','🏔️','🌺','🌻',
+  '🎵','🎉','🏆','🍕','☕','🎮','📷','🏠','🚗','✈️','🎁','💎',
+];
+
+let emojiTargetId = null;
+
+function openEmojiPicker(e, inputId) {
+  e.stopPropagation();
+  const picker = document.getElementById('emoji-picker');
+  const btn = e.currentTarget;
+  const rect = btn.getBoundingClientRect();
+
+  // 이미 같은 타겟으로 열려있으면 닫기
+  if (picker.classList.contains('open') && emojiTargetId === inputId) {
+    closeEmojiPicker(); return;
+  }
+  emojiTargetId = inputId;
+
+  // 위치 계산: 버튼 아래 or 위
+  const pickerH = 200;
+  const top = rect.bottom + 6 + pickerH > window.innerHeight
+    ? rect.top - pickerH - 6
+    : rect.bottom + 6;
+  const left = Math.min(rect.right - 272, window.innerWidth - 282);
+
+  picker.style.top  = top + 'px';
+  picker.style.left = Math.max(10, left) + 'px';
+  picker.classList.add('open');
+}
+
+function closeEmojiPicker() {
+  document.getElementById('emoji-picker').classList.remove('open');
+  emojiTargetId = null;
+}
+
+function insertEmoji(char) {
+  const el = document.getElementById(emojiTargetId);
+  if (!el) return;
+  const start = el.selectionStart ?? el.value.length;
+  const end   = el.selectionEnd   ?? el.value.length;
+  el.value = el.value.slice(0, start) + char + el.value.slice(end);
+  el.focus();
+  el.selectionStart = el.selectionEnd = start + char.length;
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('#emoji-picker') && !e.target.closest('.emoji-trigger-btn')) {
+    closeEmojiPicker();
+  }
+});
+</script>
+
+<div id="emoji-picker" class="emoji-picker">
+  <div class="emoji-picker-grid">
+    <!-- populated by JS -->
+  </div>
+</div>
+<script>
+(function() {
+  const grid = document.querySelector('#emoji-picker .emoji-picker-grid');
+  EMOJI_LIST.forEach(ch => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'emoji-btn';
+    btn.textContent = ch;
+    btn.onclick = () => insertEmoji(ch);
+    grid.appendChild(btn);
+  });
+})();
 </script>
 </body>
 </html>
