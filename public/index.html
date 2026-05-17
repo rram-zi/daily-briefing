@@ -1104,15 +1104,31 @@ async function checkRecurringTasks() {
 function todayKey() { return new Date().toISOString().slice(0, 10); }
 
 function loadTodayIds() {
-  try {
-    const stored = JSON.parse(localStorage.getItem('today_tasks') || '{}');
-    if (stored.date === todayKey() && Array.isArray(stored.ids)) {
-      todayIds = stored.ids;
-      todayConfirmed = !!stored.confirmed;
-    } else {
-      todayIds = []; todayConfirmed = false;
-    }
-  } catch { todayIds = []; todayConfirmed = false; }
+  const today = todayKey();
+  // Notion의 오늘날짜 속성 기준으로 todayIds 결정 (기기 간 동기화)
+  const notionIds = tasks.filter(t => t.todayDate === today).map(t => t.id);
+  if (notionIds.length > 0) {
+    // localStorage에 저장된 순서 우선 적용, Notion에 있는 항목만 유지
+    try {
+      const stored = JSON.parse(localStorage.getItem('today_tasks') || '{}');
+      if (stored.date === today && Array.isArray(stored.ids)) {
+        const ordered = stored.ids.filter(id => notionIds.includes(id));
+        const newOnes = notionIds.filter(id => !ordered.includes(id));
+        todayIds = [...ordered, ...newOnes];
+      } else {
+        todayIds = notionIds;
+      }
+    } catch { todayIds = notionIds; }
+    todayConfirmed = true;
+  } else {
+    // 오늘날짜 속성이 없거나 오늘 날짜가 아니면 localStorage 폴백
+    try {
+      const stored = JSON.parse(localStorage.getItem('today_tasks') || '{}');
+      if (stored.date === today && Array.isArray(stored.ids)) {
+        todayIds = stored.ids; todayConfirmed = !!stored.confirmed;
+      } else { todayIds = []; todayConfirmed = false; }
+    } catch { todayIds = []; todayConfirmed = false; }
+  }
 }
 function saveTodayIds() {
   localStorage.setItem('today_tasks', JSON.stringify({ date: todayKey(), ids: todayIds, confirmed: todayConfirmed }));
@@ -1123,12 +1139,14 @@ function addToToday(id) {
   todayConfirmed = true;
   saveTodayIds();
   renderTodaySection(); renderTasks();
+  notionFetch(`pages/${id}`, 'PATCH', { properties: { '오늘날짜': { date: { start: todayKey() } } } });
 }
 function removeFromToday(id) {
   todayIds = todayIds.filter(i => i !== id);
   if (todayIds.length === 0) todayConfirmed = false;
   saveTodayIds();
   renderTodaySection(); renderTasks();
+  notionFetch(`pages/${id}`, 'PATCH', { properties: { '오늘날짜': { date: null } } });
 }
 
 function renderTodaySection() {
@@ -1179,12 +1197,21 @@ function toggleTodaySelect(id, el) {
   }
   updateTodaySelectCount();
 }
-function confirmTodaySelection() {
+async function confirmTodaySelection() {
+  const prevSet = new Set(todayIds);
+  const nextSet = new Set(todaySelectTemp);
   todayIds = [...todaySelectTemp];
   todayConfirmed = todayIds.length > 0;
   saveTodayIds();
   closeTodayModal();
   renderTodaySection(); renderTasks();
+  const today = todayKey();
+  const toAdd    = todaySelectTemp.filter(id => !prevSet.has(id));
+  const toRemove = [...prevSet].filter(id => !nextSet.has(id));
+  await Promise.all([
+    ...toAdd.map(id    => notionFetch(`pages/${id}`, 'PATCH', { properties: { '오늘날짜': { date: { start: today } } } })),
+    ...toRemove.map(id => notionFetch(`pages/${id}`, 'PATCH', { properties: { '오늘날짜': { date: null } } }))
+  ]);
 }
 
 (async function init() {
@@ -1194,7 +1221,6 @@ function confirmTodaySelection() {
     '오늘은 ' + now.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' }) + ' (' + days[now.getDay()] + ')';
   document.getElementById('date-sub').textContent = '';
 
-  loadTodayIds();
   loadRecurring();
   renderTodaySection();
 
@@ -1335,6 +1361,7 @@ async function loadTasks() {
       ]
     });
     tasks = result.results.map(parsePage);
+    loadTodayIds();
     loadCategoryOptions();
     tasks.sort((a, b) => {
       if (a.order !== null && b.order !== null) return a.order - b.order;
@@ -1377,10 +1404,11 @@ function parsePage(page) {
     priority: ({ '긴급': '긴급' })[g.select('우선순위') || g.select('Priority')] || '일반',
     dueDate:  g.date('마감일') || g.date('Due') || g.date('날짜'),
     category: g.select('카테고리') || g.select('Category') || '',
-    note:     g.text('메모') || g.text('Notes') || '',
+    note:        g.text('메모') || g.text('Notes') || '',
     done:        rawStatus === 'Done',
     order:       p['순서']?.number ?? null,
-    completedAt: p['완료일']?.date?.start ?? null
+    completedAt: p['완료일']?.date?.start ?? null,
+    todayDate:   g.date('오늘날짜') || null
   };
 }
 
