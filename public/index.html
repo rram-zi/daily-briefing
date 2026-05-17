@@ -168,27 +168,25 @@
 
   /* Task filter chips */
   .task-filter-row {
-    display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; margin-bottom: 12px;
+    display: flex; gap: 2px; overflow-x: auto; padding-bottom: 2px; margin-bottom: 12px;
     scrollbar-width: none;
   }
   .task-filter-row::-webkit-scrollbar { display: none; }
   .task-filter-chip {
     display: inline-flex; align-items: center; gap: 6px;
-    padding: 6px 12px; border-radius: 100px; border: 1.5px solid var(--border);
-    background: var(--surface); color: var(--text2);
+    padding: 7px 12px; border-radius: 100px; border: none;
+    background: transparent; color: var(--text3);
     font-family: inherit; font-size: 13px; font-weight: 500;
     cursor: pointer; white-space: nowrap; flex-shrink: 0;
-    transition: border-color 0.1s, color 0.1s, background 0.1s;
+    transition: color 0.1s, background 0.1s;
   }
-  .task-filter-chip:hover { border-color: var(--grey400); color: var(--text1); }
-  .task-filter-chip.active { background: var(--blue50); border-color: var(--blue500); color: var(--blue500); }
+  .task-filter-chip:hover { background: var(--grey100); color: var(--text2); }
+  .task-filter-chip.active { background: var(--grey200); color: var(--text1); }
   .task-filter-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
   .task-filter-count {
-    font-size: 11px; font-weight: 500; color: var(--text3);
-    background: var(--grey100); padding: 1px 7px; border-radius: 100px; min-width: 20px; text-align: center;
+    font-size: 11px; font-weight: 500; color: var(--text3); min-width: 16px; text-align: center;
   }
-  .task-filter-chip.active .task-filter-count { background: var(--blue100); color: var(--blue600); }
-  .task-filter-divider { width: 1px; background: var(--border); flex-shrink: 0; align-self: stretch; margin: 2px 2px; }
+  .task-filter-chip.active .task-filter-count { color: var(--text2); }
 
   /* ── Main ── */
   .main { padding: 32px 32px 80px; min-width: 0; }
@@ -678,6 +676,10 @@
     /* 마감일 할 일 이름 아래 정렬 */
     .task-title-block { align-items: center; gap: 4px; }
     .badge-date { flex: 0 0 100%; order: 10; padding: 0; }
+
+    /* 모바일: 드래그 핸들 / 액션 버튼 항상 표시 */
+    .drag-handle { opacity: 1; touch-action: none; width: 28px; height: 28px; }
+    .task-actions { opacity: 1; }
   }
 </style>
 </head>
@@ -786,7 +788,6 @@
           <span class="task-filter-dot" style="background:var(--green500)"></span>완료
           <span class="task-filter-count" id="fc-done">0</span>
         </button>
-        <div class="task-filter-divider"></div>
         <button class="task-filter-chip" onclick="setFilter('all',this)">
           전체
           <span class="task-filter-count" id="fc-all">0</span>
@@ -1491,6 +1492,35 @@ function taskItemHTML(t, isToday, showCheckbox = false) {
   </div>`;
 }
 
+// 터치 드래그 전역 상태
+let _tdSrc = null, _tdCont = null, _tdOnDrop = null, _tdGhost = null, _tdOX = 0, _tdOY = 0;
+(function() {
+  document.addEventListener('touchmove', function(e) {
+    if (!_tdSrc || !_tdGhost) return;
+    e.preventDefault();
+    const t = e.touches[0];
+    _tdGhost.style.left = (t.clientX - _tdOX) + 'px';
+    _tdGhost.style.top  = (t.clientY - _tdOY) + 'px';
+    _tdGhost.style.visibility = 'hidden';
+    const el = document.elementFromPoint(t.clientX, t.clientY);
+    _tdGhost.style.visibility = '';
+    _tdCont.querySelectorAll('.task-item').forEach(i => i.classList.remove('drag-over'));
+    const ti = el && el.closest('.task-item');
+    if (ti && ti.dataset.id !== _tdSrc) ti.classList.add('drag-over');
+  }, { passive: false });
+  document.addEventListener('touchend', function(e) {
+    if (!_tdSrc) return;
+    const t = e.changedTouches[0];
+    if (_tdGhost) _tdGhost.style.visibility = 'hidden';
+    const el = document.elementFromPoint(t.clientX, t.clientY);
+    if (_tdGhost) { _tdGhost.remove(); _tdGhost = null; }
+    _tdCont.querySelectorAll('.task-item').forEach(i => i.classList.remove('dragging', 'drag-over'));
+    const ti = el && el.closest('.task-item');
+    if (ti && ti.dataset.id !== _tdSrc) _tdOnDrop(_tdSrc, ti.dataset.id);
+    _tdSrc = null; _tdCont = null; _tdOnDrop = null;
+  });
+})();
+
 function attachDrag(container, onDrop) {
   let dragSrc = null;
   container.querySelectorAll('.task-item').forEach(item => {
@@ -1515,6 +1545,31 @@ function attachDrag(container, onDrop) {
       if (!dragSrc || dragSrc === item.dataset.id) return;
       onDrop(dragSrc, item.dataset.id);
     });
+  });
+  // 터치 드래그 (모바일)
+  container.querySelectorAll('.drag-handle').forEach(handle => {
+    handle.addEventListener('touchstart', function(e) {
+      const item = handle.closest('.task-item');
+      if (!item) return;
+      const touch = e.touches[0];
+      const rect = item.getBoundingClientRect();
+      _tdSrc = item.dataset.id;
+      _tdCont = container;
+      _tdOnDrop = onDrop;
+      _tdOX = touch.clientX - rect.left;
+      _tdOY = touch.clientY - rect.top;
+      _tdGhost = item.cloneNode(true);
+      Object.assign(_tdGhost.style, {
+        position: 'fixed', zIndex: '9999', pointerEvents: 'none',
+        width: rect.width + 'px', opacity: '0.85',
+        left: rect.left + 'px', top: rect.top + 'px',
+        margin: '0', transition: 'none',
+        boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+      });
+      document.body.appendChild(_tdGhost);
+      item.classList.add('dragging');
+      e.preventDefault();
+    }, { passive: false });
   });
 }
 
