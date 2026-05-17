@@ -1570,7 +1570,6 @@ function openModal(taskId = null) {
   document.getElementById('f-title').value    = task ? task.title    : '';
   document.getElementById('f-date').value     = task ? (task.dueDate || '') : '';
   selectedCategory = task ? (task.category || '') : '';
-  document.getElementById('cat-input').value = '';
   renderCategoryChips();
   document.getElementById('f-note').value     = task ? task.note     : '';
 
