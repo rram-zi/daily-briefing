@@ -484,12 +484,19 @@
   .seg-btn.active { font-weight: 600; border-color: var(--blue500); background: var(--blue50); color: var(--blue500); }
   .seg-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
 
+  .modal-footer-left { display: flex; gap: 8px; margin-right: auto; }
   .btn-end-recurring {
     padding: 11px 16px; font-size: 13px; font-family: inherit; font-weight: 500;
     background: var(--red50); border: none; color: var(--red500);
-    border-radius: 10px; cursor: pointer; transition: background 0.12s; margin-right: auto;
+    border-radius: 10px; cursor: pointer; transition: background 0.12s;
   }
   .btn-end-recurring:hover { background: #ffd6d9; }
+  .btn-delete {
+    padding: 11px 16px; font-size: 13px; font-family: inherit; font-weight: 500;
+    background: var(--red50); border: none; color: var(--red500);
+    border-radius: 10px; cursor: pointer; transition: background 0.12s;
+  }
+  .btn-delete:hover { background: #ffd6d9; }
 
   .modal-footer {
     display: flex; justify-content: flex-end; gap: 8px;
@@ -909,6 +916,13 @@
             추가하기
           </button>
         </div>
+        <div class="form-group form-full" id="f-today-row" style="display:none">
+          <label class="form-label">오늘의 할 일</label>
+          <div class="seg-group" id="f-today">
+            <button type="button" class="seg-btn" data-val="no" onclick="setTodayInModal(false)">포함 안 함</button>
+            <button type="button" class="seg-btn" data-val="yes" onclick="setTodayInModal(true)">오늘 포함</button>
+          </div>
+        </div>
         <div class="form-group form-full">
           <label class="form-label">메모</label>
           <textarea id="f-note" placeholder="추가 설명 (선택)"></textarea>
@@ -916,7 +930,10 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn-end-recurring" id="btn-end-recurring" style="display:none" onclick="endRecurring()">반복 종료</button>
+      <div class="modal-footer-left">
+        <button class="btn-end-recurring" id="btn-end-recurring" style="display:none" onclick="endRecurring()">반복 종료</button>
+        <button class="btn-delete" id="btn-delete" style="display:none" onclick="deleteTask(editingId)">삭제</button>
+      </div>
       <button class="btn-cancel" onclick="closeModal()">취소</button>
       <button class="btn-save" id="btn-save" onclick="saveTask()">저장</button>
     </div>
@@ -1458,15 +1475,8 @@ function taskItemHTML(t, isToday, showCheckbox = false) {
       ${t.note ? `<div class="task-note">${esc(t.note)}</div>` : ''}
     </div>
     <div class="task-actions">
-      ${isToday
-        ? `<button class="act-btn act-today-remove" onclick="removeFromToday('${t.id}')" title="오늘 목록에서 제거"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>`
-        : `<button class="act-btn act-today-add" onclick="addToToday('${t.id}')" title="오늘 할 일에 추가"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg></button>`
-      }
       <button class="act-btn act-edit" onclick="openModal('${t.id}')" title="수정">
         <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-      </button>
-      <button class="act-btn act-del" onclick="deleteTask('${t.id}')" title="삭제">
-        <svg viewBox="0 0 24 24"><polyline points="3,6 5,6 21,6"/><path d="M19,6v14a2,2,0,0,1-2,2H7a2,2,0,0,1-2-2V6m3,0V4a2,2,0,0,1,2-2h4a2,2,0,0,1,2,2v2"/></svg>
       </button>
     </div>
   </div>`;
@@ -1600,6 +1610,18 @@ function openModal(taskId = null) {
     selectTaskType('once');
     document.querySelectorAll('#f-days .day-btn').forEach(b => b.classList.remove('active'));
     document.getElementById('btn-end-recurring').style.display = 'none';
+  }
+
+  // 편집 전용 컨트롤 표시
+  const isEdit = taskId !== null;
+  document.getElementById('btn-delete').style.display   = isEdit ? '' : 'none';
+  document.getElementById('f-today-row').style.display  = isEdit ? '' : 'none';
+  if (isEdit) {
+    const inToday = todayIds.includes(taskId);
+    const todayGrp = document.getElementById('f-today');
+    todayGrp.querySelectorAll('.seg-btn').forEach(b =>
+      b.classList.toggle('active', b.dataset.val === (inToday ? 'yes' : 'no'))
+    );
   }
 
   document.getElementById('modal-backdrop').classList.add('open');
@@ -1759,8 +1781,23 @@ async function toggleDone(id, done) {
   } catch(e) { setStatus('err', '업데이트 실패: ' + e.message); }
 }
 
+function setTodayInModal(include) {
+  if (!editingId) return;
+  if (include) {
+    if (!todayIds.includes(editingId)) { todayIds.push(editingId); saveTodayIds(); }
+  } else {
+    todayIds = todayIds.filter(id => id !== editingId); saveTodayIds();
+  }
+  const todayGrp = document.getElementById('f-today');
+  todayGrp.querySelectorAll('.seg-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.val === (include ? 'yes' : 'no'))
+  );
+  renderTasks();
+}
+
 async function deleteTask(id) {
   if (!confirm('이 할 일을 Notion에서 삭제할까요?')) return;
+  closeModal();
   setStatus('loading', '삭제 중...');
   try {
     await notionFetch(`pages/${id}`, 'PATCH', { archived: true });
