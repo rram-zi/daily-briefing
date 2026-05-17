@@ -722,7 +722,7 @@
     .cal-header { padding: 0 16px; margin-bottom: 14px; }
     .cal-weekdays { padding-bottom: 8px; }
     .cal-grid { grid-auto-rows: 120px; }
-    .cal-day { padding: 5px 4px 4px; }
+    .cal-day { padding: 5px 4px 4px; align-items: stretch; }
     .cal-day-num { align-self: center; }
     .cal-task-chip { font-size: 10.5px; padding: 2px 4px; }
 
@@ -1174,26 +1174,40 @@ async function checkRecurringTasks() {
 }
 
 function todayKey() { return new Date().toISOString().slice(0, 10); }
+function yesterdayKey() { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10); }
 
 function loadTodayIds() {
   const today = todayKey();
-  // Notion의 오늘날짜 속성 기준으로 todayIds 결정 (기기 간 동기화)
-  const notionIds = tasks.filter(t => t.todayDate === today).map(t => t.id);
-  if (notionIds.length > 0) {
-    // localStorage에 저장된 순서 우선 적용, Notion에 있는 항목만 유지
+  const yesterday = yesterdayKey();
+
+  // 오늘 날짜로 설정된 Notion 할 일
+  const notionTodayIds = tasks.filter(t => t.todayDate === today).map(t => t.id);
+
+  // 어제 날짜 + 미완료 → 오늘로 이월
+  const carryOver = tasks.filter(t => t.todayDate === yesterday && !t.done);
+  if (carryOver.length > 0) {
+    carryOver.forEach(t => {
+      t.todayDate = today;
+      notionFetch(`pages/${t.id}`, 'PATCH', { properties: { '오늘날짜': { date: { start: today } } } }).catch(() => {});
+    });
+  }
+  const carryOverIds = carryOver.map(t => t.id);
+
+  const allNotionIds = [...new Set([...carryOverIds, ...notionTodayIds])];
+
+  if (allNotionIds.length > 0) {
     try {
       const stored = JSON.parse(localStorage.getItem('today_tasks') || '{}');
       if (stored.date === today && Array.isArray(stored.ids)) {
-        const ordered = stored.ids.filter(id => notionIds.includes(id));
-        const newOnes = notionIds.filter(id => !ordered.includes(id));
+        const ordered = stored.ids.filter(id => allNotionIds.includes(id));
+        const newOnes = allNotionIds.filter(id => !ordered.includes(id));
         todayIds = [...ordered, ...newOnes];
       } else {
-        todayIds = notionIds;
+        todayIds = allNotionIds;
       }
-    } catch { todayIds = notionIds; }
+    } catch { todayIds = allNotionIds; }
     todayConfirmed = true;
   } else {
-    // 오늘날짜 속성이 없거나 오늘 날짜가 아니면 localStorage 폴백
     try {
       const stored = JSON.parse(localStorage.getItem('today_tasks') || '{}');
       if (stored.date === today && Array.isArray(stored.ids)) {
@@ -1316,6 +1330,16 @@ async function confirmTodaySelection() {
     return;
   }
   loadTasks();
+
+  // 자정 감지: 날짜 바뀌면 오늘 섹션 재계산 (미완료 이월 포함)
+  let _lastDateKey = todayKey();
+  setInterval(() => {
+    const cur = todayKey();
+    if (cur !== _lastDateKey) {
+      _lastDateKey = cur;
+      loadTasks();
+    }
+  }, 60000);
 })();
 
 const NOTION_COLORS = {
