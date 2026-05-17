@@ -442,11 +442,6 @@
     border-color: var(--blue500); color: var(--blue500);
     background: var(--blue50); font-weight: 500;
   }
-  .cat-chip-del {
-    font-size: 11px; opacity: 0.4; cursor: pointer;
-    transition: opacity 0.1s;
-  }
-  .cat-chip-del:hover { opacity: 1; }
   .cat-add-trigger {
     display: inline-flex; align-items: center; gap: 6px;
     padding: 10px 12px; border-radius: 10px;
@@ -1217,13 +1212,6 @@ function renderCategoryChips() {
 
     btn.appendChild(document.createTextNode(opt.name));
 
-    const del = document.createElement('span');
-    del.className = 'cat-chip-del';
-    del.title = '삭제';
-    del.textContent = ' ✕';
-    del.onclick = e => { e.stopPropagation(); deleteCategory(opt.name); };
-    btn.appendChild(del);
-
     container.appendChild(btn);
   });
 }
@@ -1271,18 +1259,6 @@ async function addCategoryFromModal() {
   }
 }
 
-async function deleteCategory(name) {
-  if (!confirm(`'${name}' 카테고리를 삭제할까요?`)) return;
-  try {
-    const remaining = categoryOptions.filter(o => o.name !== name).map(o => ({ id: o.id, name: o.name, color: o.color }));
-    await notionFetch(`databases/${DB_ID}`, 'PATCH', {
-      properties: { '카테고리': { select: { options: remaining } } }
-    });
-    categoryOptions = categoryOptions.filter(o => o.name !== name);
-    if (selectedCategory === name) selectedCategory = '';
-    renderCategoryChips();
-  } catch(e) { alert('카테고리 삭제 실패: ' + e.message); }
-}
 
 async function initAuth() {
   try {
@@ -1426,7 +1402,7 @@ function renderBriefing() {
   const todayDue = tasks.filter(t => t.dueDate && new Date(t.dueDate).toDateString() === today && !t.done);
   const overdue  = tasks.filter(t => isOverdue(t.dueDate) && !t.done);
   const urgent   = tasks.filter(t => t.priority === '긴급' && !t.done);
-  const inprog   = tasks.filter(t => t.status === '진행중' && !t.done);
+  const inprog   = tasks.filter(t => t.status === '진행중' && !t.done && todayIds.includes(t.id));
   const done     = tasks.filter(t => t.done);
   const lines    = [];
   const ei = src => `<img class="t-emoji" src="/emoji/${src}" alt="">`;
