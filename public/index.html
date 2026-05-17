@@ -1966,6 +1966,7 @@ function setView(mode, el) {
   viewMode = mode;
   document.getElementById('task-view').style.display    = mode === 'tasks'   ? 'block' : 'none';
   document.getElementById('history-view').style.display = mode === 'history' ? 'block' : 'none';
+  document.querySelector('.main').style.background = mode === 'history' ? 'var(--surface)' : '';
   document.getElementById('topbar-date').style.display  = mode === 'history' ? 'none' : '';
   document.getElementById('topbar-search-btn').style.display = mode === 'history' ? '' : 'none';
   document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
