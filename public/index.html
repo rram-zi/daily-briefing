@@ -426,6 +426,36 @@
   .form-group textarea { resize: vertical; min-height: 72px; }
   .form-full { grid-column: 1 / -1; }
 
+  /* 카테고리 칩 선택기 */
+  .cat-chips { display: flex; flex-wrap: wrap; gap: 6px; min-height: 28px; }
+  .cat-chip {
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 4px 10px; border-radius: 20px;
+    border: 1.5px solid var(--border); background: var(--surface); color: var(--text2);
+    font-size: 13px; font-family: inherit; cursor: pointer;
+    transition: border-color 0.1s, color 0.1s, background 0.1s;
+  }
+  .cat-chip:hover { border-color: var(--grey400); color: var(--text1); }
+  .cat-chip.active {
+    border-color: var(--chip-color, var(--blue500));
+    color: var(--chip-color, var(--blue500));
+    background: var(--grey50); font-weight: 500;
+  }
+  .cat-chip-del {
+    font-size: 10px; opacity: 0.4; cursor: pointer; padding: 0 1px;
+    transition: opacity 0.1s;
+  }
+  .cat-chip-del:hover { opacity: 1; }
+  .cat-add-row { display: flex; gap: 6px; margin-top: 8px; }
+  .cat-add-row input { flex: 1; }
+  .cat-add-btn {
+    padding: 0 14px; border-radius: 10px; border: 1.5px solid var(--border);
+    background: var(--grey50); color: var(--text2); cursor: pointer;
+    font-size: 13px; font-family: inherit; white-space: nowrap;
+    transition: border-color 0.1s, color 0.1s;
+  }
+  .cat-add-btn:hover { border-color: var(--blue500); color: var(--blue500); }
+
   /* Day picker */
   .day-picker { display: flex; gap: 6px; flex-wrap: wrap; }
   .day-btn {
@@ -869,9 +899,13 @@
           <label class="form-label">마감일</label>
           <input type="date" id="f-date" />
         </div>
-        <div class="form-group">
+        <div class="form-group form-full">
           <label class="form-label">카테고리</label>
-          <input type="text" id="f-category" placeholder="예: 개발, 미팅, 기획" />
+          <div class="cat-chips" id="cat-chips"></div>
+          <div class="cat-add-row">
+            <input type="text" id="cat-input" placeholder="새 카테고리 입력 후 추가" onkeydown="if(event.key==='Enter'){event.preventDefault();addCategoryFromInput();}" />
+            <button type="button" class="cat-add-btn" onclick="addCategoryFromInput()">추가</button>
+          </div>
         </div>
         <div class="form-group form-full">
           <label class="form-label">메모</label>
@@ -905,6 +939,8 @@
 const PROXY = '/api/notion';
 let AUTH  = localStorage.getItem('app_auth') || '';
 let DB_ID = '';
+let categoryOptions = [];
+let selectedCategory = '';
 let tasks = [];
 let currentFilter = 'all';
 let editingId = null;
@@ -1116,6 +1152,93 @@ function confirmTodaySelection() {
   loadTasks();
 })();
 
+const NOTION_COLORS = {
+  default:'#9B9B9B', gray:'#787774', brown:'#9F8062',
+  orange:'#D9730D', yellow:'#CB912F', green:'#448361',
+  blue:'#337EA9', purple:'#9065B0', pink:'#C14C8A', red:'#D44C47'
+};
+function catColor(c) { return NOTION_COLORS[c] || NOTION_COLORS.default; }
+
+async function loadCategoryOptions() {
+  try {
+    const db = await notionFetch(`databases/${DB_ID}`, 'GET');
+    const prop = db.properties?.['카테고리'] || db.properties?.['Category'];
+    categoryOptions = prop?.select?.options || [];
+  } catch {}
+}
+
+function renderCategoryChips() {
+  const container = document.getElementById('cat-chips');
+  if (!container) return;
+  container.innerHTML = '';
+  const display = [...categoryOptions];
+  if (selectedCategory && !display.some(o => o.name === selectedCategory)) {
+    display.unshift({ name: selectedCategory, color: 'default' });
+  }
+  if (display.length === 0) {
+    container.innerHTML = '<span style="font-size:12px;color:var(--text3)">아래에서 카테고리를 추가하세요</span>';
+    return;
+  }
+  display.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'cat-chip' + (selectedCategory === opt.name ? ' active' : '');
+    btn.style.setProperty('--chip-color', catColor(opt.color));
+    btn.onclick = () => toggleCategory(opt.name);
+
+    btn.appendChild(document.createTextNode(opt.name));
+
+    const del = document.createElement('span');
+    del.className = 'cat-chip-del';
+    del.title = '삭제';
+    del.textContent = ' ✕';
+    del.onclick = e => { e.stopPropagation(); deleteCategory(opt.name); };
+    btn.appendChild(del);
+
+    container.appendChild(btn);
+  });
+}
+
+function toggleCategory(name) {
+  selectedCategory = selectedCategory === name ? '' : name;
+  renderCategoryChips();
+}
+
+async function addCategoryFromInput() {
+  const input = document.getElementById('cat-input');
+  const name = input.value.trim();
+  if (!name) return;
+  if (categoryOptions.some(o => o.name === name)) {
+    selectedCategory = name;
+    renderCategoryChips();
+    input.value = '';
+    return;
+  }
+  try {
+    const existing = categoryOptions.map(o => ({ id: o.id, name: o.name, color: o.color }));
+    await notionFetch(`databases/${DB_ID}`, 'PATCH', {
+      properties: { '카테고리': { select: { options: [...existing, { name }] } } }
+    });
+    categoryOptions.push({ name, color: 'default' });
+    selectedCategory = name;
+    renderCategoryChips();
+    input.value = '';
+  } catch(e) { alert('카테고리 추가 실패: ' + e.message); }
+}
+
+async function deleteCategory(name) {
+  if (!confirm(`'${name}' 카테고리를 삭제할까요?`)) return;
+  try {
+    const remaining = categoryOptions.filter(o => o.name !== name).map(o => ({ id: o.id, name: o.name, color: o.color }));
+    await notionFetch(`databases/${DB_ID}`, 'PATCH', {
+      properties: { '카테고리': { select: { options: remaining } } }
+    });
+    categoryOptions = categoryOptions.filter(o => o.name !== name);
+    if (selectedCategory === name) selectedCategory = '';
+    renderCategoryChips();
+  } catch(e) { alert('카테고리 삭제 실패: ' + e.message); }
+}
+
 async function initAuth() {
   try {
     const res = await fetch(`${PROXY}?path=__auth__`, {
@@ -1156,6 +1279,7 @@ async function loadTasks() {
       ]
     });
     tasks = result.results.map(parsePage);
+    loadCategoryOptions();
     tasks.sort((a, b) => {
       if (a.order !== null && b.order !== null) return a.order - b.order;
       if (a.order !== null) return -1;
@@ -1408,7 +1532,9 @@ function openModal(taskId = null) {
 
   document.getElementById('f-title').value    = task ? task.title    : '';
   document.getElementById('f-date').value     = task ? (task.dueDate || '') : '';
-  document.getElementById('f-category').value = task ? task.category : '';
+  selectedCategory = task ? (task.category || '') : '';
+  document.getElementById('cat-input').value = '';
+  renderCategoryChips();
   document.getElementById('f-note').value     = task ? task.note     : '';
 
   const rawPriority = task ? task.priority : '일반';
@@ -1482,7 +1608,7 @@ async function saveTask() {
     const days = [...document.querySelectorAll('#f-days .day-btn.active')].map(b => b.dataset.day);
     if (days.length === 0) { alert('반복 요일을 선택해주세요'); return; }
     const priority = document.getElementById('f-priority').dataset.value;
-    const category = document.getElementById('f-category').value.trim();
+    const category = selectedCategory;
     const note     = document.getElementById('f-note').value.trim();
     const rt = {
       id: Date.now().toString(36) + Math.random().toString(36).slice(2),
@@ -1499,7 +1625,7 @@ async function saveTask() {
   // 편집 시 반복 템플릿 동기화
   if (editingId) {
     const priority = document.getElementById('f-priority').dataset.value;
-    const category = document.getElementById('f-category').value.trim();
+    const category = selectedCategory;
     const note     = document.getElementById('f-note').value.trim();
 
     if (isRepeat) {
@@ -1528,7 +1654,7 @@ async function saveTask() {
 
   const dueDate  = document.getElementById('f-date').value;
   const priority = document.getElementById('f-priority').dataset.value;
-  const category = document.getElementById('f-category').value.trim();
+  const category = selectedCategory;
   const status   = document.getElementById('f-status').dataset.value;
   const note     = document.getElementById('f-note').value.trim();
 
