@@ -299,7 +299,8 @@
   .checkbox.checked svg { display: block; }
 
   .task-body { flex: 1; min-width: 0; }
-  .task-title-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .task-title-row { display: flex; align-items: center; gap: 8px; }
+  .task-title-block { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .task-title { font-size: 15px; font-weight: 500; color: var(--text1); }
   .task-title.done { text-decoration: line-through; color: var(--text3); font-weight: 400; }
 
@@ -646,7 +647,8 @@
     .sidebar-overlay { display: block; }
     .sidebar-collapse-btn { display: none !important; }
     .sidebar-expand-btn { display: none !important; }
-    .hamburger-btn { display: flex; border: none !important; background: none !important; box-shadow: none !important; }
+    .hamburger-btn { display: flex; border: none !important; background: none !important; box-shadow: none !important; width: 24px; height: 24px; padding: 0; }
+    .hamburger-btn svg { width: 14px; height: 14px; }
     .cfg-row { grid-template-columns: 1fr; }
     .main { padding: 20px 16px 80px; }
     .form-grid { grid-template-columns: 1fr; }
@@ -657,8 +659,13 @@
     .date-big { font-size: 16px; white-space: nowrap; }
     .date-sub { display: none; }
     .btn-text { display: none; }
-    .sync-btn { border: none !important; background: none !important; box-shadow: none !important; color: var(--text2); padding: 8px; }
+    .sync-btn { border: none !important; background: none !important; box-shadow: none !important; color: var(--text2); padding: 0; width: 24px; height: 24px; justify-content: center; }
+    .sync-btn svg { width: 14px; height: 14px; }
     .topbar-search-btn { border: none !important; background: none !important; color: var(--text2); padding: 8px; }
+
+    /* 마감일 할 일 이름 아래 정렬 */
+    .task-title-block { align-items: flex-start; }
+    .badge-date { flex: 0 0 100%; order: 10; }
   }
 </style>
 </head>
@@ -1456,9 +1463,11 @@ function taskItemHTML(t, isToday, showCheckbox = false) {
     <div class="task-body">
       <div class="task-title-row">
         ${urgentIcon}${overdueIcon}
-        <span class="task-title ${t.done ? 'done' : ''}">${tfEmoji(t.title)}</span>
-        ${t.category ? `<span class="badge badge-cat">${tfEmoji(t.category)}</span>` : ''}
-        ${t.dueDate  ? `<span class="badge badge-date${overdue?' badge-overdue':''}"><img class="t-emoji" src="/emoji/u1F4C5.svg" alt="📅"> ${fmt(t.dueDate)}${overdue?' 초과':''}</span>` : ''}
+        <div class="task-title-block">
+          <span class="task-title ${t.done ? 'done' : ''}">${tfEmoji(t.title)}</span>
+          ${t.category ? `<span class="badge badge-cat">${tfEmoji(t.category)}</span>` : ''}
+          ${t.dueDate  ? `<span class="badge badge-date${overdue?' badge-overdue':''}"><img class="t-emoji" src="/emoji/u1F4C5.svg" alt="📅"> ${fmt(t.dueDate)}${overdue?' 초과':''}</span>` : ''}
+        </div>
       </div>
       ${t.note ? `<div class="task-note">${tfEmoji(t.note)}</div>` : ''}
     </div>
