@@ -194,9 +194,9 @@
   .cat-filter-dropdown.open { display: block; }
   .cat-filter-reset {
     display: block; width: 100%; padding: 9px 14px; border: none;
-    background: transparent; text-align: left; font-size: 12px; font-weight: 600;
+    background: transparent; text-align: center; font-size: 12px; font-weight: 600;
     color: var(--text3); cursor: pointer; font-family: inherit;
-    border-bottom: 1px solid var(--border); transition: color 0.1s;
+    border-top: 1px solid var(--border); transition: color 0.1s;
   }
   .cat-filter-reset:hover { color: var(--text1); }
   .cat-filter-option {
@@ -615,14 +615,14 @@
   .cal-day-num { font-size: 12px; font-weight: 500; color: var(--text2); margin-bottom: 4px; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; border-radius: 50%; flex-shrink: 0; }
   .cal-day.is-today .cal-day-num { background: var(--blue500); color: #fff; font-weight: 700; }
   .cal-task-chip {
-    display: block; width: 100%; padding: 2px 5px; border-radius: 4px;
-    background: var(--grey100); color: var(--grey700); border: none;
-    font-size: 11px; font-weight: 500; line-height: 1.6; font-family: inherit;
+    display: block; width: 100%; padding: 2px 6px; border-radius: 4px;
+    border: none; font-size: 11px; font-weight: 500; line-height: 1.7;
+    font-family: inherit; color: #fff;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     cursor: pointer; margin-bottom: 2px; text-align: left;
-    transition: background 0.1s, color 0.1s;
+    transition: opacity 0.1s;
   }
-  .cal-task-chip:hover { background: var(--grey300); color: var(--grey900); }
+  .cal-task-chip:hover { opacity: 0.82; }
 
   /* History search */
   .topbar-search-btn {
@@ -711,11 +711,18 @@
     .cal-nav-btn svg { width: 20px; height: 20px; }
     .settings-btn svg { width: 20px; height: 20px; }
     .today-plan-btn svg { width: 20px; height: 20px; }
-    .topbar-search-btn { border: none !important; background: none !important; color: var(--text2); padding: 8px; }
+    .topbar-search-btn { border: none !important; background: none !important; color: var(--text2); }
 
     /* 마감일 할 일 이름 아래 정렬 */
     .task-title-block { align-items: center; gap: 4px; }
     .badge-date { flex: 0 0 100%; order: 10; padding: 0; }
+
+    /* 모바일: 캘린더 풀블리드 */
+    .cal-wrap { padding: 16px 0 0; border-radius: 0; box-shadow: none; margin: 0 -20px 0; }
+    .cal-header { padding: 0 16px; margin-bottom: 14px; }
+    .cal-weekdays { padding-bottom: 8px; }
+    .cal-day { min-height: 110px; padding: 5px 3px 3px; }
+    .cal-task-chip { font-size: 10.5px; padding: 2px 4px; }
 
     /* 모바일: 드래그 핸들 / 액션 버튼 항상 표시 */
     .drag-handle { opacity: 1; touch-action: none; width: 28px; height: 28px; }
@@ -1060,7 +1067,7 @@ let categoryOptions = [];
 let selectedCategory = '';
 let tasks = [];
 let currentFilter = 'todo';
-let currentCategories = new Set();
+let currentCategories = null; // null = 전체 선택(기본), Set = 일부 선택
 let editingId = null;
 let editingRecurringId = null;
 let viewMode = 'tasks';
@@ -1666,7 +1673,7 @@ function renderTasks() {
   const otherTasks = tasks.filter(t => {
     if (currentFilter === 'done' && !t.done) return false;
     if (currentFilter === 'todo' && t.done) return false;
-    if (currentCategories.size > 0 && !currentCategories.has(t.category)) return false;
+    if (currentCategories !== null && t.category && !currentCategories.has(t.category)) return false;
     return true;
   }).sort((a, b) => {
     const score = t => {
@@ -2037,9 +2044,13 @@ function renderHistory() {
     const dateStr  = `${y}-${String(m+1).padStart(2,'0')}-${String(c.day).padStart(2,'0')}`;
     const q = historySearch.toLowerCase();
     const dayTasks = (doneMap[dateStr] || []).filter(t => !q || t.title.toLowerCase().includes(q));
-    const chips = dayTasks.map(t =>
-      `<button class="cal-task-chip" onclick="openTaskDetail('${t.id}')">${tfEmoji(t.title)}</button>`
-    ).join('');
+    const chips = dayTasks.map(t => {
+      const opt = categoryOptions.find(o => o.name === t.category);
+      const cn  = opt?.color || 'default';
+      const BG  = { default:'#8B95A1', gray:'#6B7684', brown:'#9F8062', orange:'#D9730D', yellow:'#CB912F', green:'#448361', blue:'#337EA9', purple:'#9065B0', pink:'#C14C8A', red:'#D44C47' };
+      const bg  = BG[cn] || BG.default;
+      return `<button class="cal-task-chip" style="background:${bg}" onclick="openTaskDetail('${t.id}')">${tfEmoji(t.title)}</button>`;
+    }).join('');
     return `<div class="cal-day ${dateStr === today ? 'is-today' : ''}">
       <span class="cal-day-num">${c.day}</span>
       ${chips}
@@ -2094,25 +2105,35 @@ function toggleCatFilter() {
 function renderCatFilterDropdown() {
   const dd = document.getElementById('cat-filter-dropdown');
   const cats = [...new Set(tasks.map(t => t.category).filter(Boolean))];
-  const resetBtn = document.createElement('button');
-  resetBtn.className = 'cat-filter-reset';
-  resetBtn.textContent = '초기화';
-  resetBtn.onclick = () => { currentCategories.clear(); updateCatFilterUI(); renderTasks(); };
   dd.innerHTML = '';
-  dd.appendChild(resetBtn);
   cats.forEach(cat => {
+    const isChecked = currentCategories === null || currentCategories.has(cat);
     const el = document.createElement('div');
-    el.className = 'cat-filter-option' + (currentCategories.has(cat) ? ' checked' : '');
+    el.className = 'cat-filter-option' + (isChecked ? ' checked' : '');
     el.innerHTML = `<span class="cat-filter-check"><svg viewBox="0 0 12 10"><polyline points="1,5 4.5,9 11,1"/></svg></span>${tfEmoji(cat)}`;
     el.addEventListener('click', () => {
-      if (currentCategories.has(cat)) currentCategories.delete(cat);
-      else currentCategories.add(cat);
-      el.classList.toggle('checked', currentCategories.has(cat));
+      if (currentCategories === null) {
+        // 전체 선택 상태 → 이 항목만 해제
+        currentCategories = new Set(cats.filter(c => c !== cat));
+      } else {
+        if (currentCategories.has(cat)) {
+          currentCategories.delete(cat);
+        } else {
+          currentCategories.add(cat);
+          if (currentCategories.size === cats.length) currentCategories = null;
+        }
+      }
+      el.classList.toggle('checked', currentCategories === null || currentCategories.has(cat));
       updateCatFilterUI();
       renderTasks();
     });
     dd.appendChild(el);
   });
+  const resetBtn = document.createElement('button');
+  resetBtn.className = 'cat-filter-reset';
+  resetBtn.textContent = '초기화';
+  resetBtn.onclick = () => { currentCategories = null; renderCatFilterDropdown(); updateCatFilterUI(); renderTasks(); };
+  dd.appendChild(resetBtn);
 }
 function closeCatFilter() {
   document.getElementById('cat-filter-dropdown').classList.remove('open');
@@ -2122,7 +2143,7 @@ function onCatFilterOutside(e) {
   if (!e.target.closest('.cat-filter-wrap')) closeCatFilter();
 }
 function updateCatFilterUI() {
-  document.getElementById('cat-filter-btn').classList.toggle('active', currentCategories.size > 0);
+  document.getElementById('cat-filter-btn').classList.toggle('active', currentCategories !== null);
 }
 
 function openConfig() {
