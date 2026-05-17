@@ -1370,6 +1370,7 @@ async function loadTasks() {
     });
     tasks = result.results.map(parsePage);
     loadTodayIds();
+    renderTodaySection();
     loadCategoryOptions();
     tasks.sort((a, b) => {
       if (a.order !== null && b.order !== null) return a.order - b.order;
