@@ -916,13 +916,6 @@
             추가하기
           </button>
         </div>
-        <div class="form-group form-full" id="f-today-row" style="display:none">
-          <label class="form-label">오늘의 할 일</label>
-          <div class="seg-group" id="f-today">
-            <button type="button" class="seg-btn" data-val="no" onclick="setTodayInModal(false)">포함 안 함</button>
-            <button type="button" class="seg-btn" data-val="yes" onclick="setTodayInModal(true)">오늘 포함</button>
-          </div>
-        </div>
         <div class="form-group form-full">
           <label class="form-label">메모</label>
           <textarea id="f-note" placeholder="추가 설명 (선택)"></textarea>
@@ -1614,15 +1607,7 @@ function openModal(taskId = null) {
 
   // 편집 전용 컨트롤 표시
   const isEdit = taskId !== null;
-  document.getElementById('btn-delete').style.display   = isEdit ? '' : 'none';
-  document.getElementById('f-today-row').style.display  = isEdit ? '' : 'none';
-  if (isEdit) {
-    const inToday = todayIds.includes(taskId);
-    const todayGrp = document.getElementById('f-today');
-    todayGrp.querySelectorAll('.seg-btn').forEach(b =>
-      b.classList.toggle('active', b.dataset.val === (inToday ? 'yes' : 'no'))
-    );
-  }
+  document.getElementById('btn-delete').style.display = isEdit ? '' : 'none';
 
   document.getElementById('modal-backdrop').classList.add('open');
   setTimeout(() => document.getElementById('f-title').focus(), 120);
@@ -1781,19 +1766,6 @@ async function toggleDone(id, done) {
   } catch(e) { setStatus('err', '업데이트 실패: ' + e.message); }
 }
 
-function setTodayInModal(include) {
-  if (!editingId) return;
-  if (include) {
-    if (!todayIds.includes(editingId)) { todayIds.push(editingId); saveTodayIds(); }
-  } else {
-    todayIds = todayIds.filter(id => id !== editingId); saveTodayIds();
-  }
-  const todayGrp = document.getElementById('f-today');
-  todayGrp.querySelectorAll('.seg-btn').forEach(b =>
-    b.classList.toggle('active', b.dataset.val === (include ? 'yes' : 'no'))
-  );
-  renderTasks();
-}
 
 async function deleteTask(id) {
   if (!confirm('이 할 일을 Notion에서 삭제할까요?')) return;
