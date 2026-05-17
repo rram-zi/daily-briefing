@@ -722,15 +722,18 @@
     .cal-header { padding: 0 16px; margin-bottom: 14px; }
     .cal-weekdays { padding-bottom: 8px; }
     .cal-grid { grid-auto-rows: 120px; }
-    .cal-day { padding: 5px 4px 4px; align-items: center; }
+    .cal-day { padding: 5px 4px 4px; }
+    .cal-day-num { align-self: center; }
     .cal-task-chip { font-size: 10.5px; padding: 2px 4px; }
 
     /* 모바일: 드래그 핸들 / 액션 버튼 항상 표시 */
     .drag-handle { opacity: 1; touch-action: none; width: 28px; height: 28px; }
     .task-actions { opacity: 1; }
-    /* 모바일: 새 할 일 버튼 아이콘만 표시 */
+    /* 모바일: 새 할 일 / 편집 버튼 아이콘만 표시 */
     .add-btn-text { display: none; }
     .add-btn { padding: 0; width: 30px; height: 30px; justify-content: center; }
+    .edit-today-text { display: none; }
+    .edit-today-btn { padding: 0; width: 30px; height: 30px; justify-content: center; }
   }
 </style>
 </head>
@@ -813,7 +816,10 @@
         <div id="today-filled-state" style="display:none">
           <div class="section-header">
             <div class="section-title">오늘의 할 일 <span id="today-count" style="font-weight:500;color:var(--text3)"></span></div>
-            <button class="add-btn" onclick="openTodayModal()">수정</button>
+            <button class="add-btn edit-today-btn" onclick="openTodayModal()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              <span class="edit-today-text">편집</span>
+            </button>
           </div>
           <div class="task-list" id="today-list"></div>
         </div>
