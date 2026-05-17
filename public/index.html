@@ -416,10 +416,11 @@
   .form-label { font-size: 12px; color: var(--text3); font-weight: 600; }
   .form-group input,
   .form-group textarea {
-    padding: 10px 12px; font-size: 14px; font-family: inherit;
+    padding: 10px 12px; font-size: 14px; font-family: inherit; line-height: 1.4;
     background: var(--grey50); border: 1.5px solid var(--border);
     border-radius: 10px; color: var(--text1); outline: none;
     transition: border-color 0.12s, background 0.12s;
+    -webkit-appearance: none; appearance: none;
   }
   .form-group input:focus,
   .form-group textarea:focus { border-color: var(--blue500); background: var(--surface); }
@@ -437,24 +438,15 @@
   }
   .cat-chip:hover { border-color: var(--grey400); color: var(--text1); }
   .cat-chip.active {
-    border-color: var(--chip-color, var(--blue500));
-    color: var(--chip-color, var(--blue500));
-    background: var(--grey50); font-weight: 500;
+    border-color: var(--blue500); color: var(--blue500);
+    background: var(--blue50); font-weight: 500;
   }
   .cat-chip-del {
     font-size: 10px; opacity: 0.4; cursor: pointer; padding: 0 1px;
     transition: opacity 0.1s;
   }
   .cat-chip-del:hover { opacity: 1; }
-  .cat-add-row { display: flex; gap: 6px; margin-top: 8px; }
-  .cat-add-row input { flex: 1; }
-  .cat-add-btn {
-    padding: 0 14px; border-radius: 10px; border: 1.5px solid var(--border);
-    background: var(--grey50); color: var(--text2); cursor: pointer;
-    font-size: 13px; font-family: inherit; white-space: nowrap;
-    transition: border-color 0.1s, color 0.1s;
-  }
-  .cat-add-btn:hover { border-color: var(--blue500); color: var(--blue500); }
+  .cat-add-row { margin-top: 8px; }
 
   /* Day picker */
   .day-picker { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -903,8 +895,7 @@
           <label class="form-label">카테고리</label>
           <div class="cat-chips" id="cat-chips"></div>
           <div class="cat-add-row">
-            <input type="text" id="cat-input" placeholder="새 카테고리 입력 후 추가" onkeydown="if(event.key==='Enter'){event.preventDefault();addCategoryFromInput();}" />
-            <button type="button" class="cat-add-btn" onclick="addCategoryFromInput()">추가</button>
+            <input type="text" id="cat-input" placeholder="카테고리 입력 후 Enter" onkeydown="if(event.key==='Enter'){event.preventDefault();addCategoryFromInput();}" />
           </div>
         </div>
         <div class="form-group form-full">
@@ -1183,7 +1174,6 @@ function renderCategoryChips() {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'cat-chip' + (selectedCategory === opt.name ? ' active' : '');
-    btn.style.setProperty('--chip-color', catColor(opt.color));
     btn.onclick = () => toggleCategory(opt.name);
 
     btn.appendChild(document.createTextNode(opt.name));
