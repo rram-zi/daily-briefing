@@ -300,10 +300,10 @@
 
   .task-body { flex: 1; min-width: 0; }
   .task-title-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-  .task-title { font-size: 15px; font-weight: 500; color: var(--text1); }
+  .task-title { font-size: 15px; font-weight: 500; color: var(--text1); font-family: 'TossFace', inherit; }
   .task-title.done { text-decoration: line-through; color: var(--text3); font-weight: 400; }
 
-  .badge { font-size: 12px; padding: 3px 9px; border-radius: 100px; font-weight: 500; }
+  .badge { font-size: 12px; padding: 3px 9px; border-radius: 100px; font-weight: 500; font-family: 'TossFace', inherit; }
   .badge-urgent { background: var(--red50);   color: var(--red500); }
   .badge-normal { background: var(--blue50);  color: var(--blue600); }
   .badge-low    { background: var(--grey100); color: var(--grey600); }
@@ -374,7 +374,7 @@
   }
   .today-select-box svg { width: 10px; height: 10px; stroke: #fff; fill: none; stroke-width: 3; display: none; }
   .today-select-item.selected .today-select-box svg { display: block; }
-  .today-select-title { font-size: 14px; color: var(--text1); font-weight: 500; min-width: 0; }
+  .today-select-title { font-size: 14px; color: var(--text1); font-weight: 500; min-width: 0; font-family: 'TossFace', inherit; }
   .today-select-info { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
   .today-select-meta { font-size: 12px; color: var(--text3); flex-shrink: 0; }
   .act-btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.8; }
@@ -390,7 +390,7 @@
   .task-item.dragging { opacity: 0.35; box-shadow: none; }
   .task-item.drag-over { outline: 2px solid var(--blue500); outline-offset: -2px; background: var(--blue50); }
 
-  .task-note { font-size: 13px; color: var(--text3); margin-top: 6px; line-height: 1.5; }
+  .task-note { font-size: 13px; color: var(--text3); margin-top: 6px; line-height: 1.5; font-family: 'TossFace', inherit; }
 
   .task-flag { display: inline-flex; align-items: center; flex-shrink: 0; font-size: 14px; line-height: 1; }
 
@@ -449,39 +449,6 @@
   .form-group textarea:focus { border-color: var(--blue500); background: var(--surface); }
   .form-group textarea { resize: vertical; min-height: 72px; }
   .form-full { grid-column: 1 / -1; }
-  .emoji-input { font-family: 'TossFace', inherit; }
-  .input-emoji-wrap { position: relative; }
-  .input-emoji-wrap input,
-  .input-emoji-wrap textarea { padding-right: 40px; width: 100%; }
-  .emoji-trigger-btn {
-    position: absolute; right: 8px; top: 9px;
-    width: 28px; height: 28px; border-radius: 6px;
-    background: none; border: none; cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    color: var(--text3); transition: color 0.1s, background 0.1s;
-  }
-  .emoji-trigger-btn:hover { color: var(--text1); background: var(--grey100); }
-  .emoji-trigger-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.8; }
-  .input-emoji-wrap textarea ~ .emoji-trigger-btn { top: 9px; }
-  .emoji-picker {
-    position: fixed; z-index: 600;
-    background: var(--surface); border: 1.5px solid var(--border);
-    border-radius: 14px; box-shadow: 0 8px 32px rgba(0,0,0,0.14);
-    padding: 10px; width: 272px;
-    display: none;
-  }
-  .emoji-picker.open { display: block; }
-  .emoji-picker-grid {
-    display: grid; grid-template-columns: repeat(8, 1fr); gap: 2px;
-  }
-  .emoji-btn {
-    width: 30px; height: 30px; border-radius: 6px;
-    background: none; border: none; cursor: pointer;
-    font-family: 'TossFace', sans-serif; font-size: 18px; line-height: 1;
-    display: flex; align-items: center; justify-content: center;
-    transition: background 0.1s;
-  }
-  .emoji-btn:hover { background: var(--grey100); }
 
   /* 카테고리 칩 선택기 */
   .cat-chips { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -490,7 +457,7 @@
     display: inline-flex; align-items: center; gap: 6px;
     padding: 5px 12px; border-radius: 20px;
     border: 1.5px solid var(--border); background: var(--grey50); color: var(--text2);
-    font-size: 13px; font-family: inherit; cursor: pointer;
+    font-size: 13px; font-family: 'TossFace', inherit; cursor: pointer;
     transition: border-color 0.1s, color 0.1s, background 0.1s;
   }
   .cat-chip:hover { border-color: var(--grey400); color: var(--text1); }
@@ -935,12 +902,7 @@
         </div>
         <div class="form-group form-full">
           <label class="form-label">할 일 이름 *</label>
-          <div class="input-emoji-wrap">
-            <input type="text" id="f-title" class="emoji-input" placeholder="할 일 이름을 입력하세요" />
-            <button type="button" class="emoji-trigger-btn" onclick="openEmojiPicker(event,'f-title')" tabindex="-1">
-              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9" stroke-linecap="round" stroke-width="3"/><line x1="15" y1="9" x2="15.01" y2="9" stroke-linecap="round" stroke-width="3"/></svg>
-            </button>
-          </div>
+          <input type="text" id="f-title" style="font-family:'TossFace',inherit" placeholder="할 일 이름을 입력하세요" />
         </div>
         <div class="form-group">
           <label class="form-label">분류</label>
@@ -970,12 +932,7 @@
         </div>
         <div class="form-group form-full">
           <label class="form-label">메모</label>
-          <div class="input-emoji-wrap">
-            <textarea id="f-note" class="emoji-input" placeholder="추가 설명 (선택)"></textarea>
-            <button type="button" class="emoji-trigger-btn" onclick="openEmojiPicker(event,'f-note')" tabindex="-1">
-              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9" stroke-linecap="round" stroke-width="3"/><line x1="15" y1="9" x2="15.01" y2="9" stroke-linecap="round" stroke-width="3"/></svg>
-            </button>
-          </div>
+          <textarea id="f-note" style="font-family:'TossFace',inherit" placeholder="추가 설명 (선택)"></textarea>
         </div>
       </div>
     </div>
@@ -1000,13 +957,8 @@
     <div class="modal-body">
       <div class="form-group">
         <label class="form-label">카테고리 이름</label>
-        <div class="input-emoji-wrap">
-          <input type="text" id="new-cat-input" class="emoji-input" placeholder="카테고리 이름 입력"
-            onkeydown="if(event.key==='Enter'){event.preventDefault();addCategoryFromModal();}" />
-          <button type="button" class="emoji-trigger-btn" onclick="openEmojiPicker(event,'new-cat-input')" tabindex="-1">
-            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9" stroke-linecap="round" stroke-width="3"/><line x1="15" y1="9" x2="15.01" y2="9" stroke-linecap="round" stroke-width="3"/></svg>
-          </button>
-        </div>
+        <input type="text" id="new-cat-input" style="font-family:'TossFace',inherit" placeholder="카테고리 이름 입력"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();addCategoryFromModal();}" />
       </div>
     </div>
     <div class="modal-footer">
@@ -2024,82 +1976,6 @@ function isOverdue(d) {
 function fmt(d) { const dt = new Date(d); return `${dt.getMonth()+1}/${dt.getDate()}`; }
 function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
-/* ── Emoji Picker ── */
-const EMOJI_LIST = [
-  '😊','😄','😅','😂','🤔','😮','😢','😡','🤩','🥹','😎','🫠',
-  '👍','👎','👏','🙏','💪','🤝','🫶','💬','✌️','🤞',
-  '✅','❌','⭐','🔥','💡','📌','🎯','✨','🚀','⚡',
-  '📝','📋','📊','📈','💼','🔑','📞','📧','📅','⏰','🔔','🔕',
-  '❤️','🧡','💛','💚','💙','💜','🖤','🤍','🩷','🩵',
-  '🌿','🌸','🌟','☀️','🌙','❄️','🍀','🌈','🌊','🏔️','🌺','🌻',
-  '🎵','🎉','🏆','🍕','☕','🎮','📷','🏠','🚗','✈️','🎁','💎',
-];
-
-let emojiTargetId = null;
-
-function openEmojiPicker(e, inputId) {
-  e.stopPropagation();
-  const picker = document.getElementById('emoji-picker');
-  const btn = e.currentTarget;
-  const rect = btn.getBoundingClientRect();
-
-  // 이미 같은 타겟으로 열려있으면 닫기
-  if (picker.classList.contains('open') && emojiTargetId === inputId) {
-    closeEmojiPicker(); return;
-  }
-  emojiTargetId = inputId;
-
-  // 위치 계산: 버튼 아래 or 위
-  const pickerH = 200;
-  const top = rect.bottom + 6 + pickerH > window.innerHeight
-    ? rect.top - pickerH - 6
-    : rect.bottom + 6;
-  const left = Math.min(rect.right - 272, window.innerWidth - 282);
-
-  picker.style.top  = top + 'px';
-  picker.style.left = Math.max(10, left) + 'px';
-  picker.classList.add('open');
-}
-
-function closeEmojiPicker() {
-  document.getElementById('emoji-picker').classList.remove('open');
-  emojiTargetId = null;
-}
-
-function insertEmoji(char) {
-  const el = document.getElementById(emojiTargetId);
-  if (!el) return;
-  const start = el.selectionStart ?? el.value.length;
-  const end   = el.selectionEnd   ?? el.value.length;
-  el.value = el.value.slice(0, start) + char + el.value.slice(end);
-  el.focus();
-  el.selectionStart = el.selectionEnd = start + char.length;
-}
-
-document.addEventListener('click', e => {
-  if (!e.target.closest('#emoji-picker') && !e.target.closest('.emoji-trigger-btn')) {
-    closeEmojiPicker();
-  }
-});
-</script>
-
-<div id="emoji-picker" class="emoji-picker">
-  <div class="emoji-picker-grid">
-    <!-- populated by JS -->
-  </div>
-</div>
-<script>
-(function() {
-  const grid = document.querySelector('#emoji-picker .emoji-picker-grid');
-  EMOJI_LIST.forEach(ch => {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'emoji-btn';
-    btn.textContent = ch;
-    btn.onclick = () => insertEmoji(ch);
-    grid.appendChild(btn);
-  });
-})();
 </script>
 </body>
 </html>
