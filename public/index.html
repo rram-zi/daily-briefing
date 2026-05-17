@@ -603,7 +603,7 @@
   }
   .cal-nav-btn:hover { border-color: var(--blue500); color: var(--blue500); }
   .cal-nav-btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2.5; }
-  .cal-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); margin-bottom: 4px; border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+  .cal-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); border-bottom: 1px solid var(--border); padding-bottom: 6px; }
   .cal-weekday { text-align: center; font-size: 11px; font-weight: 600; color: var(--text3); padding: 2px 0; }
   .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); grid-auto-rows: 96px; gap: 1px; background: var(--border); border-radius: 10px; overflow: hidden; }
   .cal-day {
@@ -726,7 +726,7 @@
     /* 모바일: 캘린더 풀블리드 */
     .cal-wrap { padding: 16px 0 0; border-radius: 0; box-shadow: none; margin: 0 -20px 0; }
     .cal-header { padding: 0 16px; margin-bottom: 14px; }
-    .cal-weekdays { padding-bottom: 8px; }
+    .cal-weekdays { padding-bottom: 0; }
     .cal-grid { grid-auto-rows: 120px; padding: 0 1px; }
     .cal-day { padding: 5px 4px 4px; align-items: stretch; }
     .cal-day-num { align-self: center; }
