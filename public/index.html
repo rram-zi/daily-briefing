@@ -428,12 +428,13 @@
   .form-full { grid-column: 1 / -1; }
 
   /* 카테고리 칩 선택기 */
-  .cat-chips { display: flex; flex-wrap: wrap; gap: 6px; min-height: 28px; }
+  .cat-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .cat-chips:empty { display: none; }
   .cat-chip {
-    display: inline-flex; align-items: center; gap: 3px;
-    padding: 4px 10px; border-radius: 20px;
-    border: 1.5px solid var(--border); background: var(--surface); color: var(--text2);
-    font-size: 13px; font-family: inherit; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 10px 12px; border-radius: 10px;
+    border: 1.5px solid var(--border); background: var(--grey50); color: var(--text2);
+    font-size: 14px; font-family: inherit; cursor: pointer;
     transition: border-color 0.1s, color 0.1s, background 0.1s;
   }
   .cat-chip:hover { border-color: var(--grey400); color: var(--text1); }
@@ -442,19 +443,19 @@
     background: var(--blue50); font-weight: 500;
   }
   .cat-chip-del {
-    font-size: 10px; opacity: 0.4; cursor: pointer; padding: 0 1px;
+    font-size: 11px; opacity: 0.4; cursor: pointer;
     transition: opacity 0.1s;
   }
   .cat-chip-del:hover { opacity: 1; }
   .cat-add-trigger {
-    display: inline-flex; align-items: center; gap: 4px;
-    padding: 4px 10px; border-radius: 20px; margin-top: 8px;
-    border: 1.5px dashed var(--border); background: transparent; color: var(--text3);
-    font-size: 13px; font-family: inherit; cursor: pointer;
-    transition: border-color 0.1s, color 0.1s;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 10px 12px; border-radius: 10px;
+    border: none; background: transparent; color: var(--text3);
+    font-size: 14px; font-family: inherit; cursor: pointer;
+    transition: color 0.1s;
   }
-  .cat-add-trigger:hover { border-color: var(--blue500); color: var(--blue500); }
-  .cat-add-trigger svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2.5; flex-shrink: 0; }
+  .cat-add-trigger:hover { color: var(--blue500); }
+  .cat-add-trigger svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2.5; flex-shrink: 0; }
   .cat-modal-backdrop { z-index: 400; }
 
   /* Day picker */
@@ -1198,7 +1199,7 @@ function renderCategoryChips() {
     display.unshift({ name: selectedCategory, color: 'default' });
   }
   if (display.length === 0) {
-    container.innerHTML = '<span style="font-size:12px;color:var(--text3)">아래에서 카테고리를 추가하세요</span>';
+    container.innerHTML = '';
     return;
   }
   display.forEach(opt => {
