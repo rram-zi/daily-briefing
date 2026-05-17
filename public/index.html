@@ -167,6 +167,7 @@
     background: var(--grey100); padding: 1px 7px; border-radius: 100px; min-width: 20px; text-align: center;
   }
   .task-filter-chip.active .task-filter-count { background: var(--blue100); color: var(--blue600); }
+  .task-filter-divider { width: 1px; background: var(--border); flex-shrink: 0; align-self: stretch; margin: 2px 2px; }
 
   /* ── Main ── */
   .main { padding: 32px 32px 80px; min-width: 0; }
@@ -737,17 +738,18 @@
         </button>
       </div>
       <div class="task-filter-row">
-        <button class="task-filter-chip active" onclick="setFilter('all',this)">
-          전체
-          <span class="task-filter-count" id="fc-all">0</span>
-        </button>
-        <button class="task-filter-chip" onclick="setFilter('todo',this)">
+        <button class="task-filter-chip active" onclick="setFilter('todo',this)">
           <span class="task-filter-dot" style="background:var(--grey400)"></span>할 일
           <span class="task-filter-count" id="fc-todo">0</span>
         </button>
         <button class="task-filter-chip" onclick="setFilter('done',this)">
           <span class="task-filter-dot" style="background:var(--green500)"></span>완료
           <span class="task-filter-count" id="fc-done">0</span>
+        </button>
+        <div class="task-filter-divider"></div>
+        <button class="task-filter-chip" onclick="setFilter('all',this)">
+          전체
+          <span class="task-filter-count" id="fc-all">0</span>
         </button>
       </div>
       <div class="task-list" id="task-list">
@@ -966,7 +968,7 @@ let DB_ID = '';
 let categoryOptions = [];
 let selectedCategory = '';
 let tasks = [];
-let currentFilter = 'all';
+let currentFilter = 'todo';
 let editingId = null;
 let editingRecurringId = null;
 let viewMode = 'tasks';
