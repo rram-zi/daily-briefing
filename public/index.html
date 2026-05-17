@@ -446,7 +446,16 @@
     transition: opacity 0.1s;
   }
   .cat-chip-del:hover { opacity: 1; }
-  .cat-add-row { margin-top: 8px; }
+  .cat-add-trigger {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 10px; border-radius: 20px; margin-top: 8px;
+    border: 1.5px dashed var(--border); background: transparent; color: var(--text3);
+    font-size: 13px; font-family: inherit; cursor: pointer;
+    transition: border-color 0.1s, color 0.1s;
+  }
+  .cat-add-trigger:hover { border-color: var(--blue500); color: var(--blue500); }
+  .cat-add-trigger svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2.5; flex-shrink: 0; }
+  .cat-modal-backdrop { z-index: 400; }
 
   /* Day picker */
   .day-picker { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -894,9 +903,10 @@
         <div class="form-group form-full">
           <label class="form-label">카테고리</label>
           <div class="cat-chips" id="cat-chips"></div>
-          <div class="cat-add-row">
-            <input type="text" id="cat-input" placeholder="카테고리 입력 후 Enter" onkeydown="if(event.key==='Enter'){event.preventDefault();addCategoryFromInput();}" />
-          </div>
+          <button type="button" class="cat-add-trigger" onclick="openCategoryModal()">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            추가하기
+          </button>
         </div>
         <div class="form-group form-full">
           <label class="form-label">메모</label>
@@ -908,6 +918,27 @@
       <button class="btn-end-recurring" id="btn-end-recurring" style="display:none" onclick="endRecurring()">반복 종료</button>
       <button class="btn-cancel" onclick="closeModal()">취소</button>
       <button class="btn-save" id="btn-save" onclick="saveTask()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 카테고리 추가 서브 모달 -->
+<div class="modal-backdrop cat-modal-backdrop" id="cat-modal-backdrop">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header">
+      <div class="modal-title">카테고리 추가</div>
+      <button class="modal-close" onclick="closeCategoryModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">카테고리 이름</label>
+        <input type="text" id="new-cat-input" placeholder="카테고리 이름 입력"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();addCategoryFromModal();}" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeCategoryModal()">취소</button>
+      <button class="btn-save" id="cat-modal-save-btn" onclick="addCategoryFromModal()">추가하기</button>
     </div>
   </div>
 </div>
@@ -1129,7 +1160,7 @@ function confirmTodaySelection() {
   loadRecurring();
   renderTodaySection();
 
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeConfig(); closeTaskDetail(); closeSearchModal(); closeTodayModal(); closeMobileSidebar(); } });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeConfig(); closeTaskDetail(); closeSearchModal(); closeTodayModal(); closeMobileSidebar(); closeCategoryModal(); } });
 
   if (!AUTH) { openConfig(); return; }
 
@@ -1194,16 +1225,28 @@ function toggleCategory(name) {
   renderCategoryChips();
 }
 
-async function addCategoryFromInput() {
-  const input = document.getElementById('cat-input');
+function openCategoryModal() {
+  document.getElementById('new-cat-input').value = '';
+  document.getElementById('cat-modal-backdrop').classList.add('open');
+  setTimeout(() => document.getElementById('new-cat-input').focus(), 120);
+}
+
+function closeCategoryModal() {
+  document.getElementById('cat-modal-backdrop').classList.remove('open');
+}
+
+async function addCategoryFromModal() {
+  const input = document.getElementById('new-cat-input');
   const name = input.value.trim();
   if (!name) return;
   if (categoryOptions.some(o => o.name === name)) {
     selectedCategory = name;
     renderCategoryChips();
-    input.value = '';
+    closeCategoryModal();
     return;
   }
+  const btn = document.getElementById('cat-modal-save-btn');
+  btn.disabled = true; btn.textContent = '추가 중...';
   try {
     const existing = categoryOptions.map(o => ({ id: o.id, name: o.name, color: o.color }));
     await notionFetch(`databases/${DB_ID}`, 'PATCH', {
@@ -1212,8 +1255,12 @@ async function addCategoryFromInput() {
     categoryOptions.push({ name, color: 'default' });
     selectedCategory = name;
     renderCategoryChips();
-    input.value = '';
-  } catch(e) { alert('카테고리 추가 실패: ' + e.message); }
+    closeCategoryModal();
+  } catch(e) {
+    alert('카테고리 추가 실패: ' + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = '추가하기';
+  }
 }
 
 async function deleteCategory(name) {
