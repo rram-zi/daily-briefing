@@ -1173,8 +1173,9 @@ async function checkRecurringTasks() {
   if (changed) { updateStats(); renderTasks(); renderTodaySection(); }
 }
 
-function todayKey() { return new Date().toISOString().slice(0, 10); }
-function yesterdayKey() { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10); }
+function localDateStr(d) { d = d || new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function todayKey() { return localDateStr(); }
+function yesterdayKey() { const d = new Date(); d.setDate(d.getDate() - 1); return localDateStr(d); }
 
 function loadTodayIds() {
   const today = todayKey();
@@ -1530,7 +1531,7 @@ async function checkWeeklyTask() {
   const now = new Date();
   if (now.getDay() !== 0) return;           // 일요일만
   if (now.getHours() < 10) return;          // 오전 10시 이후만
-  const sunday = now.toISOString().slice(0, 10);
+  const sunday = localDateStr(now);
   if (localStorage.getItem('weekly_task_sunday') === sunday) return; // 이미 생성함
   const TITLE = '주간 회고 작성';
   if (tasks.some(t => !t.done && t.title === TITLE)) {             // 이미 존재하면 스킵
@@ -1556,10 +1557,10 @@ async function checkWeeklyTask() {
 
 
 function isBriefingDismissed() {
-  return localStorage.getItem('briefing_dismissed') === new Date().toISOString().slice(0, 10);
+  return localStorage.getItem('briefing_dismissed') === todayKey();
 }
 function dismissBriefing() {
-  localStorage.setItem('briefing_dismissed', new Date().toISOString().slice(0, 10));
+  localStorage.setItem('briefing_dismissed', todayKey());
   document.getElementById('briefing-card').style.display = 'none';
 }
 
@@ -1942,7 +1943,7 @@ async function saveTask() {
 }
 
 async function toggleDone(id, done) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayKey();
   setStatus('loading', '상태 업데이트 중...');
   try {
     await notionFetch(`pages/${id}`, 'PATCH', {
@@ -2060,7 +2061,7 @@ function renderHistory() {
     doneMap[t.completedAt].push(t);
   });
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayKey();
   const firstDay   = new Date(y, m, 1).getDay();
   const daysInMonth = new Date(y, m + 1, 0).getDate();
   const daysInPrev  = new Date(y, m, 0).getDate();
