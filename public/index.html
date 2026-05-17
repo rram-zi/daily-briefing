@@ -254,7 +254,6 @@
   .briefing-line {
     font-size: 14px; color: rgba(255,255,255,0.88); line-height: 1.6;
     display: flex; align-items: center; gap: 10px;
-    font-family: 'TossFace', inherit;
   }
   .briefing-line strong { color: #ffffff; font-weight: 600; }
 
@@ -301,10 +300,10 @@
 
   .task-body { flex: 1; min-width: 0; }
   .task-title-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-  .task-title { font-size: 15px; font-weight: 500; color: var(--text1); font-family: 'TossFace', inherit; }
+  .task-title { font-size: 15px; font-weight: 500; color: var(--text1); }
   .task-title.done { text-decoration: line-through; color: var(--text3); font-weight: 400; }
 
-  .badge { font-size: 12px; padding: 3px 9px; border-radius: 100px; font-weight: 500; font-family: 'TossFace', inherit; }
+  .badge { font-size: 12px; padding: 3px 9px; border-radius: 100px; font-weight: 500; }
   .badge-urgent { background: var(--red50);   color: var(--red500); }
   .badge-normal { background: var(--blue50);  color: var(--blue600); }
   .badge-low    { background: var(--grey100); color: var(--grey600); }
@@ -375,7 +374,7 @@
   }
   .today-select-box svg { width: 10px; height: 10px; stroke: #fff; fill: none; stroke-width: 3; display: none; }
   .today-select-item.selected .today-select-box svg { display: block; }
-  .today-select-title { font-size: 14px; color: var(--text1); font-weight: 500; min-width: 0; font-family: 'TossFace', inherit; }
+  .today-select-title { font-size: 14px; color: var(--text1); font-weight: 500; min-width: 0; }
   .today-select-info { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
   .today-select-meta { font-size: 12px; color: var(--text3); flex-shrink: 0; }
   .act-btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.8; }
@@ -391,7 +390,7 @@
   .task-item.dragging { opacity: 0.35; box-shadow: none; }
   .task-item.drag-over { outline: 2px solid var(--blue500); outline-offset: -2px; background: var(--blue50); }
 
-  .task-note { font-size: 13px; color: var(--text3); margin-top: 6px; line-height: 1.5; font-family: 'TossFace', inherit; }
+  .task-note { font-size: 13px; color: var(--text3); margin-top: 6px; line-height: 1.5; }
 
   .task-flag { display: inline-flex; align-items: center; flex-shrink: 0; font-size: 14px; line-height: 1; }
 
@@ -458,7 +457,7 @@
     display: inline-flex; align-items: center; gap: 6px;
     padding: 5px 12px; border-radius: 20px;
     border: 1.5px solid var(--border); background: var(--grey50); color: var(--text2);
-    font-size: 13px; font-family: 'TossFace', inherit; cursor: pointer;
+    font-size: 13px; font-family: inherit; cursor: pointer;
     transition: border-color 0.1s, color 0.1s, background 0.1s;
   }
   .cat-chip:hover { border-color: var(--grey400); color: var(--text1); }
@@ -1139,8 +1138,8 @@ function openTodayModal() {
           <svg viewBox="0 0 12 10"><polyline points="1,5 4.5,9 11,1"/></svg>
         </div>
         <div class="today-select-info">
-          <span class="today-select-title">${esc(t.title)}</span>
-          ${t.category ? `<span class="badge badge-cat">${esc(t.category)}</span>` : ''}
+          <span class="today-select-title">${tfEmoji(t.title)}</span>
+          ${t.category ? `<span class="badge badge-cat">${tfEmoji(t.category)}</span>` : ''}
         </div>
       </div>`).join('')
     : '<div style="padding:24px;text-align:center;color:var(--text3);font-size:14px">할 일이 없어요</div>';
@@ -1233,7 +1232,7 @@ function renderCategoryChips() {
     btn.className = 'cat-chip' + (selectedCategory === opt.name ? ' active' : '');
     btn.onclick = () => toggleCategory(opt.name);
 
-    btn.appendChild(document.createTextNode(opt.name));
+    btn.innerHTML = tfEmoji(opt.name);
 
     container.appendChild(btn);
   });
@@ -1427,9 +1426,9 @@ function renderBriefing() {
   const done     = tasks.filter(t => t.done);
   const lines    = [];
   const ei = src => `<img class="t-emoji" src="/emoji/${src}" alt="">`;
-  if (overdue.length)  lines.push({ i:ei('u26A0.svg'),  t:`<strong>기한 초과 ${overdue.length}개</strong> — ${overdue.slice(0,3).map(t=>t.title).join(', ')}${overdue.length>3?` 외 ${overdue.length-3}개`:''}` });
-  if (urgent.length)   lines.push({ i:ei('u1F6A8.svg'), t:`<strong>긴급 할 일 ${urgent.length}개</strong> — ${urgent.slice(0,3).map(t=>t.title).join(', ')}` });
-  if (todayDue.length) lines.push({ i:ei('u1F4C5.svg'), t:`<strong>오늘 마감 ${todayDue.length}개</strong> — ${todayDue.map(t=>t.title).join(', ')}` });
+  if (overdue.length)  lines.push({ i:ei('u26A0.svg'),  t:`<strong>기한 초과 ${overdue.length}개</strong> — ${overdue.slice(0,3).map(t=>tfEmoji(t.title)).join(', ')}${overdue.length>3?` 외 ${overdue.length-3}개`:''}` });
+  if (urgent.length)   lines.push({ i:ei('u1F6A8.svg'), t:`<strong>긴급 할 일 ${urgent.length}개</strong> — ${urgent.slice(0,3).map(t=>tfEmoji(t.title)).join(', ')}` });
+  if (todayDue.length) lines.push({ i:ei('u1F4C5.svg'), t:`<strong>오늘 마감 ${todayDue.length}개</strong> — ${todayDue.map(t=>tfEmoji(t.title)).join(', ')}` });
   if (done.length && lines.length < 3) lines.push({ i:ei('u2705.svg'), t:`지금까지 <strong>${done.length}개</strong> 완료했어요. 수고했어요!` });
   if (!lines.length)   lines.push({ i:ei('u1F33F.svg'), t:'오늘 긴급하거나 기한이 지난 할 일이 없어요. 좋은 하루 되세요!' });
   document.getElementById('briefing-lines').innerHTML =
@@ -1457,11 +1456,11 @@ function taskItemHTML(t, isToday, showCheckbox = false) {
     <div class="task-body">
       <div class="task-title-row">
         ${urgentIcon}${overdueIcon}
-        <span class="task-title ${t.done ? 'done' : ''}">${esc(t.title)}</span>
-        ${t.category ? `<span class="badge badge-cat">${esc(t.category)}</span>` : ''}
+        <span class="task-title ${t.done ? 'done' : ''}">${tfEmoji(t.title)}</span>
+        ${t.category ? `<span class="badge badge-cat">${tfEmoji(t.category)}</span>` : ''}
         ${t.dueDate  ? `<span class="badge badge-date${overdue?' badge-overdue':''}"><img class="t-emoji" src="/emoji/u1F4C5.svg" alt="📅"> ${fmt(t.dueDate)}${overdue?' 초과':''}</span>` : ''}
       </div>
-      ${t.note ? `<div class="task-note">${esc(t.note)}</div>` : ''}
+      ${t.note ? `<div class="task-note">${tfEmoji(t.note)}</div>` : ''}
     </div>
     <div class="task-actions">
       <button class="act-btn act-edit" onclick="openModal('${t.id}')" title="수정">
@@ -1976,6 +1975,27 @@ function isOverdue(d) {
 }
 function fmt(d) { const dt = new Date(d); return `${dt.getMonth()+1}/${dt.getDate()}`; }
 function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+const _TF_CDN = 'https://cdn.jsdelivr.net/gh/toss/tossface/dist/svg/';
+const _TF_SEG = typeof Intl !== 'undefined' && Intl.Segmenter
+  ? new Intl.Segmenter('und', { granularity: 'grapheme' }) : null;
+const _TF_RE  = /^\p{Emoji_Presentation}|^\p{Extended_Pictographic}/u;
+
+function tfEmoji(raw) {
+  if (!raw) return '';
+  const segs = _TF_SEG ? [..._TF_SEG.segment(raw)].map(s => s.segment) : [...raw];
+  return segs.map(seg => {
+    if (!_TF_RE.test(seg) && !seg.includes('⃣')) {
+      return seg.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+    const name = [...seg]
+      .map(ch => ch.codePointAt(0))
+      .filter(cp => cp !== 0xFE0F)
+      .map(cp => 'u' + cp.toString(16).toUpperCase())
+      .join('_');
+    return `<img class="t-emoji" src="${_TF_CDN}${name}.svg" alt="${seg}">`;
+  }).join('');
+}
 
 </script>
 </body>
