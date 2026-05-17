@@ -1012,11 +1012,8 @@ function selectTaskType(type) {
   grp.querySelectorAll('.seg-btn').forEach(b => b.classList.toggle('active', b.dataset.val === type));
   const isRepeat = type === 'repeat';
   document.getElementById('repeat-days-row').style.display = isRepeat ? '' : 'none';
-  // 편집 모드에서는 상태/날짜 항상 노출
-  if (!editingId) {
-    document.getElementById('f-status-row').style.display = 'none';
-    document.getElementById('f-date-row').style.display   = isRepeat ? 'none' : '';
-  }
+  document.getElementById('f-status-row').style.display = 'none';
+  document.getElementById('f-date-row').style.display   = isRepeat ? 'none' : '';
 }
 
 async function checkRecurringTasks() {
