@@ -675,7 +675,7 @@
     .topbar-search-btn { border: none !important; background: none !important; color: var(--text2); padding: 8px; }
 
     /* 마감일 할 일 이름 아래 정렬 */
-    .task-title-block { align-items: flex-start; gap: 4px; }
+    .task-title-block { align-items: center; gap: 4px; }
     .badge-date { flex: 0 0 100%; order: 10; padding: 0; }
   }
 </style>
@@ -1473,8 +1473,8 @@ function taskItemHTML(t, isToday, showCheckbox = false) {
     ${checkbox}
     <div class="task-body">
       <div class="task-title-row">
-        ${urgentIcon}${overdueIcon}
         <div class="task-title-block">
+          ${urgentIcon}${overdueIcon}
           <span class="task-title ${t.done ? 'done' : ''}">${tfEmoji(t.title)}</span>
           ${t.category ? `<span class="badge badge-cat">${tfEmoji(t.category)}</span>` : ''}
           ${t.dueDate  ? `<span class="badge badge-date${overdue?' badge-overdue':''}"><img class="t-emoji" src="/emoji/u1F4C5.svg" alt="📅"> ${fmt(t.dueDate)}${overdue?' 초과':''}</span>` : ''}
