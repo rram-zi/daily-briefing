@@ -1310,6 +1310,7 @@ async function loadTasks() {
     updateStats(); renderTasks(); renderBriefing();
     await checkWeeklyTask();
     await checkRecurringTasks();
+    await resetInprogressOutsideToday();
     if (!todayConfirmed || todayIds.length === 0) openTodayModal();
     const t = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
     setStatus('ok', `${tasks.length}개 할 일 동기화 완료 · ${t}`);
@@ -1386,6 +1387,19 @@ async function checkWeeklyTask() {
     updateStats(); renderTasks();
     setStatus('ok', '주간 회고 작성 할 일이 추가됐습니다');
   } catch(e) { /* 실패해도 무시 */ }
+}
+
+async function resetInprogressOutsideToday() {
+  const toReset = tasks.filter(t => t.status === '진행중' && !todayIds.includes(t.id));
+  await Promise.all(toReset.map(async t => {
+    try {
+      await notionFetch(`pages/${t.id}`, 'PATCH', {
+        properties: { '상태': { status: { name: 'Not started' } } }
+      });
+      t.status = '할 일';
+    } catch(e) { /* 개별 실패 무시 */ }
+  }));
+  if (toReset.length) { updateStats(); renderTasks(); renderBriefing(); }
 }
 
 function isBriefingDismissed() {
@@ -1553,6 +1567,15 @@ function openModal(taskId = null) {
   const rawStatus   = task ? (statusToRaw[task.status] || 'Not started') : 'Not started';
   resetSeg('f-priority', rawPriority);
   resetSeg('f-status',   rawStatus);
+
+  // 오늘의 할 일에 없으면 '진행중' 선택 불가
+  const isInToday = taskId ? todayIds.includes(taskId) : false;
+  const inprogressBtn = document.querySelector('#f-status .seg-btn[data-val="In progress"]');
+  if (inprogressBtn) {
+    inprogressBtn.disabled = !isInToday;
+    inprogressBtn.style.opacity = isInToday ? '' : '0.35';
+    inprogressBtn.title = isInToday ? '' : '오늘의 할 일에 추가된 경우에만 진행중으로 변경할 수 있어요';
+  }
 
   // 작업 유형: 편집/생성 모두 노출
   document.getElementById('task-type-row').style.display = '';
