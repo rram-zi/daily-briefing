@@ -1198,20 +1198,28 @@ function toggleTodaySelect(id, el) {
   updateTodaySelectCount();
 }
 async function confirmTodaySelection() {
-  const prevSet = new Set(todayIds);
-  const nextSet = new Set(todaySelectTemp);
+  const today = todayKey();
+  // Notion에 실제 저장된 상태 기준으로 diff (localStorage 기준 아님)
+  const notionSet = new Set(tasks.filter(t => t.todayDate === today).map(t => t.id));
+  const nextSet   = new Set(todaySelectTemp);
   todayIds = [...todaySelectTemp];
   todayConfirmed = todayIds.length > 0;
   saveTodayIds();
   closeTodayModal();
   renderTodaySection(); renderTasks();
-  const today = todayKey();
-  const toAdd    = todaySelectTemp.filter(id => !prevSet.has(id));
-  const toRemove = [...prevSet].filter(id => !nextSet.has(id));
-  await Promise.all([
-    ...toAdd.map(id    => notionFetch(`pages/${id}`, 'PATCH', { properties: { '오늘날짜': { date: { start: today } } } })),
-    ...toRemove.map(id => notionFetch(`pages/${id}`, 'PATCH', { properties: { '오늘날짜': { date: null } } }))
-  ]);
+  const toAdd    = todaySelectTemp.filter(id => !notionSet.has(id));
+  const toRemove = [...notionSet].filter(id => !nextSet.has(id));
+  try {
+    await Promise.all([
+      ...toAdd.map(id    => notionFetch(`pages/${id}`, 'PATCH', { properties: { '오늘날짜': { date: { start: today } } } })),
+      ...toRemove.map(id => notionFetch(`pages/${id}`, 'PATCH', { properties: { '오늘날짜': { date: null } } }))
+    ]);
+    // 저장 후 tasks의 todayDate 업데이트 (재로드 없이 sync 유지)
+    tasks.forEach(t => {
+      if (nextSet.has(t.id)) t.todayDate = today;
+      else if (notionSet.has(t.id)) t.todayDate = null;
+    });
+  } catch(e) { setStatus('err', '오늘날짜 저장 실패: ' + e.message); }
 }
 
 (async function init() {
