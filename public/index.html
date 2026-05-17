@@ -167,11 +167,40 @@
   .nav-item.active { background: var(--blue50); color: var(--blue500); font-weight: 600; }
 
   /* Task filter chips */
+  .task-filter-bar {
+    display: flex; align-items: center; gap: 6px; margin-bottom: 12px;
+  }
   .task-filter-row {
-    display: flex; gap: 2px; overflow-x: auto; padding-bottom: 2px; margin-bottom: 12px;
+    flex: 1; display: flex; gap: 2px; overflow-x: auto; padding-bottom: 2px;
     scrollbar-width: none;
   }
   .task-filter-row::-webkit-scrollbar { display: none; }
+  .cat-filter-wrap { position: relative; flex-shrink: 0; }
+  .cat-filter-btn {
+    width: 30px; height: 30px; border: none; background: transparent;
+    cursor: pointer; border-radius: 8px; color: var(--text3);
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.1s, color 0.1s;
+  }
+  .cat-filter-btn svg { width: 15px; height: 15px; }
+  .cat-filter-btn:hover { background: var(--grey100); color: var(--text2); }
+  .cat-filter-btn.active { background: var(--grey200); color: var(--text1); }
+  .cat-filter-dropdown {
+    display: none; position: absolute; right: 0; top: calc(100% + 6px);
+    background: var(--surface); border: 1.5px solid var(--border);
+    border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    min-width: 160px; z-index: 200; overflow: hidden;
+  }
+  .cat-filter-dropdown.open { display: block; }
+  .cat-filter-option {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 14px; cursor: pointer; font-size: 13px; color: var(--text2);
+    transition: background 0.1s; white-space: nowrap;
+  }
+  .cat-filter-option:hover { background: var(--grey50); }
+  .cat-filter-option.selected { color: var(--text1); font-weight: 600; }
+  .cat-filter-option.selected::after { content: '✓'; margin-left: auto; color: var(--blue500); font-size: 12px; }
+  .cat-filter-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
   .task-filter-chip {
     display: inline-flex; align-items: center; gap: 6px;
     padding: 7px 12px; border-radius: 100px; border: none;
@@ -768,23 +797,33 @@
 
       <div class="section-header">
         <div class="section-title">할 일 목록</div>
+      </div>
+      <div class="task-filter-bar">
+        <div class="task-filter-row">
+          <button class="task-filter-chip active" id="fc-todo-btn" onclick="setFilter('todo',this)">
+            <span class="task-filter-dot" style="background:var(--grey400)"></span><span id="fc-todo">할 일(0)</span>
+          </button>
+          <button class="task-filter-chip" id="fc-done-btn" onclick="setFilter('done',this)">
+            <span class="task-filter-dot" style="background:var(--green500)"></span><span id="fc-done">완료(0)</span>
+          </button>
+          <button class="task-filter-chip" id="fc-all-btn" onclick="setFilter('all',this)">
+            <span id="fc-all">전체(0)</span>
+          </button>
+        </div>
         <button class="add-btn" onclick="openModal()">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <path d="M12 5v14M5 12h14"/>
           </svg>
           새 할 일
         </button>
-      </div>
-      <div class="task-filter-row">
-        <button class="task-filter-chip active" id="fc-todo-btn" onclick="setFilter('todo',this)">
-          <span class="task-filter-dot" style="background:var(--grey400)"></span><span id="fc-todo">할 일(0)</span>
-        </button>
-        <button class="task-filter-chip" id="fc-done-btn" onclick="setFilter('done',this)">
-          <span class="task-filter-dot" style="background:var(--green500)"></span><span id="fc-done">완료(0)</span>
-        </button>
-        <button class="task-filter-chip" id="fc-all-btn" onclick="setFilter('all',this)">
-          <span id="fc-all">전체(0)</span>
-        </button>
+        <div class="cat-filter-wrap">
+          <button class="cat-filter-btn" id="cat-filter-btn" onclick="toggleCatFilter()" title="카테고리 필터">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+            </svg>
+          </button>
+          <div class="cat-filter-dropdown" id="cat-filter-dropdown"></div>
+        </div>
       </div>
       <div class="task-list" id="task-list">
         <div class="empty-state">불러오는 중...</div>
@@ -1003,6 +1042,7 @@ let categoryOptions = [];
 let selectedCategory = '';
 let tasks = [];
 let currentFilter = 'todo';
+let currentCategory = '';
 let editingId = null;
 let editingRecurringId = null;
 let viewMode = 'tasks';
@@ -1606,8 +1646,9 @@ function attachDrag(container, onDrop) {
 function renderTasks() {
   const todayTasks = todayIds.map(id => tasks.find(t => t.id === id)).filter(Boolean);
   const otherTasks = tasks.filter(t => {
-    if (currentFilter === 'done') return t.done;
-    if (currentFilter === 'todo') return !t.done;
+    if (currentFilter === 'done' && !t.done) return false;
+    if (currentFilter === 'todo' && t.done) return false;
+    if (currentCategory && t.category !== currentCategory) return false;
     return true;
   }).sort((a, b) => {
     const score = t => {
@@ -2022,6 +2063,38 @@ function setFilter(f, el) {
   currentFilter = f;
   document.querySelectorAll('.task-filter-chip').forEach(b => b.classList.remove('active'));
   el.classList.add('active');
+  renderTasks();
+}
+
+function toggleCatFilter() {
+  const dd = document.getElementById('cat-filter-dropdown');
+  if (dd.classList.contains('open')) { closeCatFilter(); return; }
+  // 현재 tasks 기준 카테고리 목록 렌더
+  const cats = [...new Set(tasks.map(t => t.category).filter(Boolean))];
+  dd.innerHTML = `
+    <div class="cat-filter-option${currentCategory === '' ? ' selected' : ''}" onclick="setCatFilter('')">전체 카테고리</div>
+    ${cats.map(cat => {
+      const opt = categoryOptions.find(o => o.name === cat);
+      const color = opt ? catColor(opt.color) : catColor('default');
+      return `<div class="cat-filter-option${currentCategory === cat ? ' selected' : ''}" onclick="setCatFilter('${cat.replace(/'/g,"\\'")}')">
+        <span class="cat-filter-dot" style="background:${color}"></span>${tfEmoji(cat)}
+      </div>`;
+    }).join('')}
+  `;
+  dd.classList.add('open');
+  requestAnimationFrame(() => document.addEventListener('click', onCatFilterOutside));
+}
+function closeCatFilter() {
+  document.getElementById('cat-filter-dropdown').classList.remove('open');
+  document.removeEventListener('click', onCatFilterOutside);
+}
+function onCatFilterOutside(e) {
+  if (!e.target.closest('.cat-filter-wrap')) closeCatFilter();
+}
+function setCatFilter(cat) {
+  currentCategory = cat;
+  document.getElementById('cat-filter-btn').classList.toggle('active', cat !== '');
+  closeCatFilter();
   renderTasks();
 }
 
