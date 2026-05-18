@@ -1125,8 +1125,8 @@
 
 <script>
 const PROXY = '/api/notion';
-let AUTH  = localStorage.getItem('app_auth') || '';
-let DB_ID = '';
+let AUTH  = localStorage.getItem('app_auth')  || '';
+let DB_ID = localStorage.getItem('app_db_id') || '';
 let categoryOptions = [];
 let selectedCategory = '';
 let tasks = [];
@@ -1383,12 +1383,15 @@ async function confirmTodaySelection() {
 
   if (!AUTH) { openConfig(); return; }
 
-  const ok = await initAuth();
-  if (!ok) {
-    AUTH = '';
-    localStorage.removeItem('app_auth');
-    openConfig();
-    return;
+  // DB_ID가 이미 저장돼 있으면 재검증 없이 바로 로드 (세션 유지)
+  if (!DB_ID) {
+    const ok = await initAuth();
+    if (!ok) {
+      AUTH = '';
+      localStorage.removeItem('app_auth');
+      openConfig();
+      return;
+    }
   }
   loadTasks();
 
@@ -1495,6 +1498,7 @@ async function initAuth() {
     if (!res.ok) return false;
     const data = await res.json();
     DB_ID = data.dbId || '';
+    if (DB_ID) localStorage.setItem('app_db_id', DB_ID);
     return !!DB_ID;
   } catch { return false; }
 }
@@ -2281,6 +2285,7 @@ function logout() {
   AUTH = '';
   DB_ID = '';
   localStorage.removeItem('app_auth');
+  localStorage.removeItem('app_db_id');
   closeConfig();
   openConfig();
 }
