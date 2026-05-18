@@ -2103,6 +2103,7 @@ function setView(mode, el) {
     closeSearchModal();
   }
   if (mode === 'history') renderHistory();
+  if (document.querySelector('.sidebar').classList.contains('mobile-open')) closeMobileSidebar();
 }
 
 function openSearchModal() {
