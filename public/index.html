@@ -1477,7 +1477,7 @@ async function confirmTodaySelection() {
     }
   }
   loadTasks();
-  setTimeout(showPushBanner, 800);
+  setTimeout(() => showPushBanner(), 800);
 
   // 자정 감지: 날짜 바뀌면 오늘 섹션 재계산 (미완료 이월 포함)
   let _lastDateKey = todayKey();
@@ -2376,7 +2376,7 @@ async function saveConfig() {
   localStorage.setItem('app_auth', AUTH);
   closeConfig();
   loadTasks();
-  setTimeout(showPushBanner, 800);
+  setTimeout(() => showPushBanner(), 800);
 }
 
 function logout() {
