@@ -249,6 +249,37 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
   .task-filter-chip.active { background: var(--grey200); color: var(--text1); }
   .task-filter-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
 
+  .task-search-btn {
+    width: 30px; height: 30px; border: none; background: transparent;
+    cursor: pointer; border-radius: 8px; color: var(--text3);
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.1s, color 0.1s; flex-shrink: 0;
+  }
+  .task-search-btn svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; }
+  .task-search-btn:hover { background: var(--grey100); color: var(--text2); }
+  .task-search-btn.active { background: var(--grey200); color: var(--text1); }
+
+  .task-search-bar {
+    display: none; align-items: center; gap: 8px; padding: 0 0 10px;
+  }
+  .task-search-bar.open { display: flex; }
+  .task-search-input {
+    flex: 1; padding: 8px 12px; border: 1.5px solid var(--border);
+    border-radius: 10px; font-size: 14px; font-family: inherit;
+    color: var(--text1); background: var(--surface); outline: none;
+    transition: border-color 0.15s;
+  }
+  .task-search-input:focus { border-color: var(--blue500); }
+  .task-search-input::placeholder { color: var(--text3); }
+
+  .task-search-reset {
+    padding: 7px 12px; border: none; background: var(--grey100);
+    border-radius: 8px; font-size: 13px; font-weight: 500; font-family: inherit;
+    color: var(--text2); cursor: pointer; transition: background 0.1s, color 0.1s;
+    white-space: nowrap; flex-shrink: 0;
+  }
+  .task-search-reset:hover { background: var(--grey200); color: var(--text1); }
+
   /* ── Main ── */
   .main { padding: 32px 32px 80px; min-width: 0; }
 
@@ -949,7 +980,8 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
       <div class="section-divider"></div>
 
       <div class="section-header">
-        <div class="section-title">할 일 목록</div>
+        <div class="section-title" id="task-section-title">할 일 목록</div>
+        <button class="task-search-reset" id="task-search-reset" onclick="clearTaskSearch()" style="display:none">초기화</button>
       </div>
       <div class="task-filter-bar">
         <div class="task-filter-row">
@@ -971,12 +1003,18 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
           </button>
           <div class="cat-filter-dropdown" id="cat-filter-dropdown"></div>
         </div>
+        <button class="task-search-btn" id="task-search-btn" onclick="toggleTaskSearch()" title="검색">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </button>
         <button class="add-btn" onclick="openModal()">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <path d="M12 5v14M5 12h14"/>
           </svg>
           <span class="add-btn-text">새 할 일</span>
         </button>
+      </div>
+      <div class="task-search-bar" id="task-search-bar">
+        <input class="task-search-input" id="task-search-input" type="text" placeholder="할 일 검색..." oninput="onTaskSearch(this.value)">
       </div>
       <div class="task-list" id="task-list">
         <div class="empty-state">불러오는 중...</div>
@@ -1245,6 +1283,7 @@ let editingRecurringId = null;
 let viewMode = 'tasks';
 let historyMonth = new Date();
 let historySearch = '';
+let taskSearchQuery = '';
 let todayIds = [];
 let todayConfirmed = false;
 let recurringTasks = [];
@@ -1539,7 +1578,7 @@ async function confirmTodaySelection() {
   loadRecurring();
   renderTodaySection();
 
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeConfig(); closeTaskDetail(); closeSearchModal(); closeTodayModal(); closeMobileSidebar(); closeCategoryModal(); dismissPushModal(); closeNotifModal(); closeSettingsDropdown(); } });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeConfig(); closeTaskDetail(); closeSearchModal(); closeTodayModal(); closeMobileSidebar(); closeCategoryModal(); dismissPushModal(); closeNotifModal(); closeSettingsDropdown(); clearTaskSearch(); } });
   document.addEventListener('click', e => { const wrap = document.getElementById('settings-wrap'); if (wrap && !wrap.contains(e.target)) closeSettingsDropdown(); });
 
   if (!AUTH) { openConfig(); return; }
@@ -1935,6 +1974,7 @@ function renderTasks() {
     if (currentFilter === 'done' && !t.done) return false;
     if (currentFilter === 'todo' && t.done) return false;
     if (currentCategories !== null && t.category && !currentCategories.has(t.category)) return false;
+    if (taskSearchQuery && !t.title.toLowerCase().includes(taskSearchQuery.toLowerCase())) return false;
     return true;
   }).sort((a, b) => {
     const score = t => {
@@ -1957,6 +1997,16 @@ function renderTasks() {
   list.innerHTML = otherTasks.length
     ? otherTasks.map(t => taskItemHTML(t, todayIds.includes(t.id), false)).join('')
     : '<div class="empty-state">해당하는 할 일이 없습니다</div>';
+
+  const titleEl = document.getElementById('task-section-title');
+  const resetEl = document.getElementById('task-search-reset');
+  if (taskSearchQuery) {
+    titleEl.textContent = `검색 결과(${otherTasks.length})`;
+    resetEl.style.display = '';
+  } else {
+    titleEl.textContent = '할 일 목록';
+    resetEl.style.display = 'none';
+  }
 
   attachDrag(todayList, (srcId, dstId) => {
     const si = todayIds.indexOf(srcId), di = todayIds.indexOf(dstId);
@@ -2356,6 +2406,29 @@ function closeTaskDetail() {
 
 function handleDetailBackdropClick(e) {
   if (e.target === document.getElementById('detail-backdrop')) closeTaskDetail();
+}
+
+function toggleTaskSearch() {
+  const bar = document.getElementById('task-search-bar');
+  if (bar.classList.contains('open')) { clearTaskSearch(); return; }
+  bar.classList.add('open');
+  document.getElementById('task-search-btn').classList.add('active');
+  setTimeout(() => document.getElementById('task-search-input').focus(), 60);
+}
+
+function clearTaskSearch() {
+  const bar = document.getElementById('task-search-bar');
+  if (!bar.classList.contains('open') && !taskSearchQuery) return;
+  taskSearchQuery = '';
+  document.getElementById('task-search-input').value = '';
+  bar.classList.remove('open');
+  document.getElementById('task-search-btn').classList.remove('active');
+  renderTasks();
+}
+
+function onTaskSearch(val) {
+  taskSearchQuery = val.trim();
+  renderTasks();
 }
 
 function setFilter(f, el) {
