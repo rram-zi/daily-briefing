@@ -748,6 +748,8 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
     .cal-weekdays { padding-bottom: 0; }
     .cal-grid { grid-auto-rows: 120px; padding: 0 1px; }
     .cal-day { padding: 5px 4px 4px; align-items: stretch; }
+    .cal-grid .cal-day:nth-child(7n+1) { padding-left: 8px; }
+    .cal-grid .cal-day:nth-child(7n) { padding-right: 8px; }
     .cal-day-num { align-self: center; }
     .cal-task-chip { font-size: 10.5px; padding: 2px 4px; box-sizing: border-box; }
 
