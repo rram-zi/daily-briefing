@@ -1,5 +1,6 @@
 self.addEventListener('push', event => {
-  const data = event.data?.json() || {};
+  let data = {};
+  try { data = event.data?.json() || {}; } catch { data = {}; }
   event.waitUntil(
     self.registration.showNotification(data.title || 'SUN TO DO', {
       body: data.body || '알림이 도착했어요.',
