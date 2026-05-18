@@ -1453,6 +1453,7 @@ async function confirmTodaySelection() {
     }
   }
   loadTasks();
+  registerPush().catch(() => {});
 
   // 자정 감지: 날짜 바뀌면 오늘 섹션 재계산 (미완료 이월 포함)
   let _lastDateKey = todayKey();
@@ -2351,6 +2352,7 @@ async function saveConfig() {
   localStorage.setItem('app_auth', AUTH);
   closeConfig();
   loadTasks();
+  registerPush().catch(() => {});
 }
 
 function logout() {
@@ -2402,6 +2404,37 @@ function tfEmoji(raw) {
 
 </script>
 <script>
+const VAPID_PUBLIC_KEY = 'BD_VlMvuuKaxdxIMucKirVrjuVqAC77wkFi5KaiRc_ISa1HDX9O8aGLQ7qsEnxfCZJDi4Ho9KnGk4CqAfe-smv0';
+
+function _urlB64ToUint8(b64) {
+  const pad = '='.repeat((4 - b64.length % 4) % 4);
+  const raw = atob((b64 + pad).replace(/-/g, '+').replace(/_/g, '/'));
+  return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+}
+
+async function registerPush() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      const perm = await Notification.requestPermission();
+      if (perm !== 'granted') return;
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: _urlB64ToUint8(VAPID_PUBLIC_KEY),
+      });
+    }
+    await fetch('/api/push-subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Basic ${AUTH}` },
+      body: JSON.stringify(sub.toJSON()),
+    });
+  } catch (e) {
+    console.warn('Push 등록 실패:', e);
+  }
+}
+
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(() => {});
 }

@@ -1,5 +1,8 @@
 {
   "rewrites": [
     { "source": "/api/notion/:path+", "destination": "/api/notion?path=:path+" }
+  ],
+  "crons": [
+    { "path": "/api/cron-notify", "schedule": "59 14 * * *" }
   ]
 }
