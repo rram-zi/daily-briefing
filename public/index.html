@@ -44,15 +44,18 @@
       U+1F900-1F9FF, U+1FA00-1FA6F, U+1FA70-1FAFF, U+FE00-FE0F;
   }
 </style>
+<script>
+  (function(){
+    var m = localStorage.getItem('theme') || 'system';
+    var dark = m === 'dark' || (m === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+  })();
+</script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
 
   /* ── Push 알림 모달 ── */
-  .push-modal-icon { text-align: center; margin-bottom: 14px; }
-  .push-modal-icon img { width: 48px; height: 48px; }
-  .push-modal-title { font-size: 20px; font-weight: 700; color: var(--text1); text-align: center; margin-bottom: 8px; }
-  .push-modal-desc { font-size: 13px; color: var(--text2); text-align: center; line-height: 1.65; }
   :root {
     --grey50:  #f9fafb;
     --grey100: #f2f4f6;
@@ -63,6 +66,7 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
     --grey600: #6b7684;
     --grey700: #4e5968;
     --grey800: #333d4b;
+    --grey850: #262e3a;
     --grey900: #191f28;
 
     --blue50:  #e8f3ff;
@@ -84,6 +88,30 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
 
     --text1: #191f28;
     --text2: #4e5968;
+    --text3: #8b95a1;
+  }
+
+  [data-theme="dark"] {
+    --grey50:  #191f28;
+    --grey100: #333d4b;
+    --grey200: #4e5968;
+    --grey300: #6b7684;
+    --grey400: #8b95a1;
+    --grey500: #b0b8c1;
+    --grey600: #d1d6db;
+    --grey700: #e5e8eb;
+    --grey800: #f2f4f6;
+    --grey900: #f9fafb;
+
+    --blue50:  #162038;
+    --blue100: #1a2d52;
+
+    --surface: #262e3a;
+    --bg:      #191f28;
+    --border:  #333d4b;
+
+    --text1: #f9fafb;
+    --text2: #d1d6db;
     --text3: #8b95a1;
   }
 
@@ -324,13 +352,32 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
   .settings-dropdown-item:hover { background: var(--grey50); color: var(--text1); }
   .settings-dropdown-item svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 1.8; flex-shrink: 0; }
 
+  .settings-theme-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 10px 12px; border-top: 1px solid var(--border);
+  }
+  .settings-theme-label { font-size: 13px; font-weight: 500; color: var(--text2); }
+  .settings-theme-seg {
+    display: flex; background: var(--grey100); border-radius: 8px; padding: 3px; gap: 2px;
+  }
+  .settings-theme-opt {
+    padding: 4px 9px; border: none; border-radius: 6px;
+    font-family: inherit; font-size: 12px; font-weight: 500;
+    cursor: pointer; background: transparent; color: var(--text3);
+    transition: background 0.12s, color 0.12s;
+  }
+  .settings-theme-opt.active {
+    background: var(--surface); color: var(--text1);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+
   .notif-row {
     display: flex; align-items: center; justify-content: space-between; gap: 16px;
     padding: 14px 0; border-bottom: 1px solid var(--border);
   }
   .notif-row:last-child { border-bottom: none; padding-bottom: 0; }
   .notif-row-info { flex: 1; min-width: 0; }
-  .notif-row-title { font-size: 14px; font-weight: 600; color: var(--text1); margin-bottom: 3px; }
+  .notif-row-title { font-size: 16px; font-weight: 600; color: var(--text1); margin-bottom: 3px; }
   .notif-row-desc { font-size: 12px; color: var(--text2); line-height: 1.5; }
   .toggle-switch { position: relative; width: 40px; height: 22px; flex-shrink: 0; }
   .toggle-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
@@ -400,6 +447,13 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
   }
   .briefing-line strong { color: #ffffff; font-weight: 600; }
 
+  [data-theme="dark"] .briefing-card { background: #ffffff; box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.06); }
+  [data-theme="dark"] .briefing-label { color: rgba(0,0,0,0.35); }
+  [data-theme="dark"] .briefing-close { color: rgba(0,0,0,0.3); }
+  [data-theme="dark"] .briefing-close:hover { background: rgba(0,0,0,0.05); color: rgba(0,0,0,0.6); }
+  [data-theme="dark"] .briefing-line { color: rgba(0,0,0,0.75); }
+  [data-theme="dark"] .briefing-line strong { color: #000000; }
+
   /* Section header */
   .section-header {
     display: flex; align-items: center;
@@ -428,6 +482,28 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
     transition: box-shadow 0.12s; animation: fadeIn 0.18s ease;
   }
   .task-item:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08), 0 0 0 1px var(--grey300); }
+
+  /* Today single card */
+  .today-card {
+    background: var(--surface);
+    border-radius: 14px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 0 0 1px var(--border);
+    padding: 8px;
+    display: flex; flex-direction: column; gap: 4px;
+    margin-bottom: 2rem;
+  }
+  .today-card .task-item {
+    border-radius: 10px;
+    box-shadow: none;
+    padding: 12px 14px;
+    border-bottom: none;
+    background: transparent;
+    transition: background 0.1s;
+    animation: none;
+  }
+  .today-card .task-item:hover { box-shadow: none; background: var(--grey50); }
+  .today-card .task-item.drag-over { outline: none; box-shadow: none; background: var(--blue50); }
+  .today-card .empty-state { padding: 12px 6px; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 
   .checkbox {
@@ -521,6 +597,12 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
   .today-select-title { font-size: 14px; color: var(--text1); font-weight: 500; min-width: 0; }
   .today-select-info { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
   .today-select-meta { font-size: 12px; color: var(--text3); flex-shrink: 0; }
+  .today-select-section-label {
+    padding: 10px 20px 4px;
+    font-size: 11px; font-weight: 600; color: var(--text3);
+    text-transform: uppercase; letter-spacing: 0.07em;
+  }
+  .today-select-section-divider { height: 1px; background: var(--border); margin: 6px 0; }
   .act-btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.8; }
 
   .drag-handle {
@@ -711,9 +793,9 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
   .cal-nav-btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2.5; }
   .cal-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); border-bottom: 1px solid var(--border); padding-bottom: 8px; }
   .cal-weekday { text-align: center; font-size: 11px; font-weight: 600; color: var(--text3); padding: 2px 0; }
-  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); grid-auto-rows: 96px; gap: 1px; background: var(--border); border-radius: 10px; overflow: hidden; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); grid-auto-rows: minmax(96px, auto); gap: 1px; background: var(--border); border-radius: 10px; overflow: hidden; }
   .cal-day {
-    display: flex; flex-direction: column; overflow: hidden;
+    display: flex; flex-direction: column; min-height: 0; min-width: 0;
     align-items: flex-start; padding: 7px 6px 5px;
     background: var(--surface); transition: background 0.1s;
   }
@@ -726,8 +808,9 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
   .cal-day.is-holiday.is-today .cal-day-num { background: var(--bg); color: var(--blue500); }
   .cal-day.is-holiday .cal-task-chip { background: var(--blue500) !important; color: var(--surface); }
   .cal-task-chip {
-    display: block; width: 100%; padding: 2px 6px; border-radius: 4px;
-    border: none; font-size: 11px; font-weight: 500; line-height: 1.7;
+    display: block; width: 100%; min-width: 0; padding: 0 6px; border-radius: 4px;
+    border: none; font-size: 11px; font-weight: 500;
+    height: 20px; line-height: 20px; flex-shrink: 0;
     font-family: inherit; color: #fff;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     cursor: pointer; margin-bottom: 2px; text-align: left;
@@ -805,7 +888,7 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
     .hamburger-btn { display: flex; border: none !important; background: none !important; box-shadow: none !important; width: 28px; height: 28px; padding: 0; }
     .hamburger-btn svg { width: 20px; height: 20px; }
     .cfg-row { grid-template-columns: 1fr; }
-    .main { padding: 20px 16px 80px; }
+    .main { padding: 20px 16px 80px; background: var(--surface); }
     .form-grid { grid-template-columns: 1fr; }
 
     /* 모바일 탑바: 햄버거 | 날짜(중앙) | 동기화 */
@@ -836,12 +919,12 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
     .cal-wrap { padding: 16px 0 0; border-radius: 0; box-shadow: none; margin: 0 -20px 0; }
     .cal-header { padding: 0 16px; margin-bottom: 14px; }
     .cal-weekdays { padding-bottom: 0; }
-    .cal-grid { grid-auto-rows: 120px; padding: 0 1px; }
-    .cal-day { padding: 5px 4px 4px; align-items: stretch; }
+    .cal-grid { grid-auto-rows: 80px; padding: 0 1px; }
+    .cal-day { padding: 5px 4px 4px; align-items: stretch; overflow: hidden; min-height: 0; }
     .cal-grid .cal-day:nth-child(7n+1) { padding-left: 8px; }
     .cal-grid .cal-day:nth-child(7n) { padding-right: 8px; }
     .cal-day-num { align-self: center; }
-    .cal-task-chip { font-size: 10.5px; padding: 2px 4px; box-sizing: border-box; }
+    .cal-task-chip { font-size: 10.5px; height: 18px; line-height: 18px; padding: 0 4px; margin-bottom: 2px; flex-shrink: 0; }
 
     /* 모바일: 드래그 핸들 / 액션 버튼 항상 표시 */
     .drag-handle { opacity: 1; touch-action: none; width: 28px; height: 28px; }
@@ -918,6 +1001,14 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
           <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
           계정
         </button>
+        <div class="settings-theme-row">
+          <span class="settings-theme-label">테마</span>
+          <div class="settings-theme-seg" id="settings-theme-seg">
+            <button class="settings-theme-opt" data-theme="system" onclick="setTheme('system')">시스템</button>
+            <button class="settings-theme-opt" data-theme="light" onclick="setTheme('light')">라이트</button>
+            <button class="settings-theme-opt" data-theme="dark" onclick="setTheme('dark')">다크</button>
+          </div>
+        </div>
       </div>
       <button class="settings-btn" onclick="toggleSettingsDropdown()" title="설정">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -984,7 +1075,7 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
               <span class="edit-today-text">편집</span>
             </button>
           </div>
-          <div class="task-list" id="today-list"></div>
+          <div class="today-card" id="today-list"></div>
         </div>
       </div>
 
@@ -1065,23 +1156,6 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
 </div>
 
 <!-- Push 알림 모달 -->
-<div class="modal-backdrop" id="push-modal-backdrop">
-  <div class="modal">
-    <div class="modal-header">
-      <span class="modal-title">알림 설정</span>
-      <button class="modal-close" onclick="dismissPushModal()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-    </div>
-    <div class="modal-body">
-      <div class="push-modal-icon"><img src="/emoji/u1F514.svg" alt="🔔"></div>
-      <div class="push-modal-title">마감 알림 받기</div>
-      <div class="push-modal-desc">오늘 마감인 할 일을 완료하지 않았을 때<br>밤 11시 59분에 알림을 드려요.</div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn-cancel" onclick="dismissPushModal()">나중에</button>
-      <button class="btn-save" onclick="requestPushAndDismiss()">허용하기</button>
-    </div>
-  </div>
-</div>
 
 <!-- Today Select Modal -->
 <div class="modal-backdrop" id="today-modal-backdrop" onclick="handleTodayModalBackdropClick(event)">
@@ -1138,8 +1212,18 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
     <div class="modal-body">
       <div class="notif-row">
         <div class="notif-row-info">
+          <div class="notif-row-title">모닝 알림</div>
+          <div class="notif-row-desc">매일 아침 9시에 할 일 작성을 알려드려요.</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="notif-morning-toggle" onchange="onMorningToggleChange(this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="notif-row">
+        <div class="notif-row-info">
           <div class="notif-row-title">마감 알림</div>
-          <div class="notif-row-desc">오늘 마감인 할 일이 있으면<br>밤 11시 59분에 알림을 드려요.</div>
+          <div class="notif-row-desc">오늘 할 일 중 완료하지 않은 할 일이 있으면 밤 11시 50분에 알림을 드려요.</div>
         </div>
         <label class="toggle-switch">
           <input type="checkbox" id="notif-deadline-toggle" onchange="onDeadlineToggleChange(this.checked)">
@@ -1545,19 +1629,38 @@ let todaySelectTemp = [];
 function openTodayModal() {
   todaySelectTemp = [...todayIds];
   const incomplete = tasks.filter(t => !t.done);
-  document.getElementById('today-select-list').innerHTML = incomplete.length
-    ? incomplete.map(t => `
-      <div class="today-select-item${todaySelectTemp.includes(t.id) ? ' selected' : ''}"
-           onclick="toggleTodaySelect('${t.id}',this)">
-        <div class="today-select-box">
-          <svg viewBox="0 0 12 10"><polyline points="1,5 4.5,9 11,1"/></svg>
-        </div>
-        <div class="today-select-info">
-          <span class="today-select-title">${tfEmoji(t.title)}</span>
-          ${t.category ? `<span class="badge badge-cat">${tfEmoji(t.category)}</span>` : ''}
-        </div>
-      </div>`).join('')
-    : '<div style="padding:24px;text-align:center;color:var(--text3);font-size:14px">할 일이 없어요</div>';
+  const todayStr = todayKey();
+  const recommended = incomplete.filter(t => t.dueDate === todayStr || carryOverIds.has(t.id) || t.priority === '긴급');
+  const others      = incomplete.filter(t => t.dueDate !== todayStr && !carryOverIds.has(t.id) && t.priority !== '긴급');
+
+  function itemHTML(t) {
+    return `<div class="today-select-item${todaySelectTemp.includes(t.id) ? ' selected' : ''}"
+         onclick="toggleTodaySelect('${t.id}',this)">
+      <div class="today-select-box">
+        <svg viewBox="0 0 12 10"><polyline points="1,5 4.5,9 11,1"/></svg>
+      </div>
+      <div class="today-select-info">
+        <span class="today-select-title">${tfEmoji(t.title)}</span>
+        ${t.category ? `<span class="badge badge-cat">${tfEmoji(t.category)}</span>` : ''}
+      </div>
+    </div>`;
+  }
+
+  let html = '';
+  if (!incomplete.length) {
+    html = '<div style="padding:24px;text-align:center;color:var(--text3);font-size:14px">할 일이 없어요</div>';
+  } else if (recommended.length) {
+    html += `<div class="today-select-section-label">할 일 추천</div>`;
+    html += recommended.map(itemHTML).join('');
+    if (others.length) {
+      html += `<div class="today-select-section-divider"></div>`;
+      html += others.map(itemHTML).join('');
+    }
+  } else {
+    html = incomplete.map(itemHTML).join('');
+  }
+
+  document.getElementById('today-select-list').innerHTML = html;
   updateTodaySelectCount();
   document.getElementById('today-modal-backdrop').classList.add('open');
   lockScroll();
@@ -1618,7 +1721,7 @@ async function confirmTodaySelection() {
   loadRecurring();
   renderTodaySection();
 
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeConfig(); closeTaskDetail(); closeSearchModal(); closeTodayModal(); closeMobileSidebar(); closeCategoryModal(); dismissPushModal(); closeNotifModal(); closeSettingsDropdown(); clearTaskSearch(); } });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeConfig(); closeTaskDetail(); closeSearchModal(); closeTodayModal(); closeMobileSidebar(); closeCategoryModal(); closeNotifModal(); closeSettingsDropdown(); clearTaskSearch(); } });
   document.addEventListener('click', e => { const wrap = document.getElementById('settings-wrap'); if (wrap && !wrap.contains(e.target)) closeSettingsDropdown(); });
 
   if (!AUTH) { openConfig(); return; }
@@ -1634,7 +1737,6 @@ async function confirmTodaySelection() {
     }
   }
   loadTasks();
-  setTimeout(() => showPushBanner(), 800);
 
   // 자정 감지: 날짜 바뀌면 오늘 섹션 재계산 (미완료 이월 포함)
   let _lastDateKey = todayKey();
@@ -1881,6 +1983,8 @@ function renderBriefing() {
   const done     = tasks.filter(t => t.done && t.completedAt === todayStr);
   const lines    = [];
   const ei = src => `<img class="t-emoji" src="/emoji/${src}" alt="">`;
+  const carryOver = tasks.filter(t => carryOverIds.has(t.id) && !t.done);
+  if (carryOver.length) lines.push({ i:ei('u1F4AB.svg'), t:`<strong>완료하지 못한 할일 ${carryOver.length}개</strong> — ${carryOver.slice(0,3).map(t=>tfEmoji(t.title)).join(', ')}${carryOver.length>3?` 외 ${carryOver.length-3}개`:''}` });
   if (overdue.length)  lines.push({ i:ei('u26A0.svg'),  t:`<strong>기한 초과 ${overdue.length}개</strong> — ${overdue.slice(0,3).map(t=>tfEmoji(t.title)).join(', ')}${overdue.length>3?` 외 ${overdue.length-3}개`:''}` });
   if (urgent.length)   lines.push({ i:ei('u1F6A8.svg'), t:`<strong>긴급 할 일 ${urgent.length}개</strong> — ${urgent.slice(0,3).map(t=>tfEmoji(t.title)).join(', ')}` });
   if (todayDue.length) lines.push({ i:ei('u1F4C5.svg'), t:`<strong>오늘 마감 ${todayDue.length}개</strong> — ${todayDue.map(t=>tfEmoji(t.title)).join(', ')}` });
@@ -1905,7 +2009,7 @@ function taskItemHTML(t, isToday, showCheckbox = false) {
   const overdueIcon = overdue
     ? `<img class="t-emoji task-flag" src="/emoji/u23F0.svg" alt="기한 초과" title="기한 초과">`
     : '';
-  return `<div class="task-item" data-id="${t.id}" draggable="true">
+  return `<div class="task-item${t.done ? ' task-done-row' : ''}" data-id="${t.id}" draggable="true">
     <div class="drag-handle"><svg viewBox="0 0 10 16" fill="currentColor"><circle cx="2" cy="2" r="1.5"/><circle cx="8" cy="2" r="1.5"/><circle cx="2" cy="8" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="2" cy="14" r="1.5"/><circle cx="8" cy="14" r="1.5"/></svg></div>
     ${checkbox}
     <div class="task-body">
@@ -2319,7 +2423,7 @@ function setView(mode, el) {
   viewMode = mode;
   document.getElementById('task-view').style.display    = mode === 'tasks'   ? 'block' : 'none';
   document.getElementById('history-view').style.display = mode === 'history' ? 'block' : 'none';
-  document.querySelector('.main').style.background = mode === 'history' ? 'var(--surface)' : '';
+  document.querySelector('.main').style.background = '';
   document.getElementById('topbar-date').style.display  = mode === 'history' ? 'none' : '';
   document.getElementById('topbar-search-btn').style.display = mode === 'history' ? '' : 'none';
   document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
@@ -2416,6 +2520,18 @@ function renderHistory() {
       ${chips}
     </div>`;
   }).join('');
+
+  // 항상 인라인 스타일 초기화 (모바일에서 데스크톱 잔여 inline style 제거)
+  const grid = document.getElementById('cal-grid');
+  grid.style.gridAutoRows = '';
+
+  // 데스크톱: 가장 높은 셀을 기준으로 모든 행 높이 통일
+  if (window.innerWidth > 680) {
+    const days = grid.querySelectorAll('.cal-day');
+    let maxH = 96;
+    days.forEach(d => { if (d.offsetHeight > maxH) maxH = d.offsetHeight; });
+    grid.style.gridAutoRows = maxH + 'px';
+  }
 }
 
 function changeMonth(delta) {
@@ -2531,8 +2647,34 @@ function updateCatFilterUI() {
   document.getElementById('cat-filter-btn').classList.toggle('active', currentCategories !== null);
 }
 
+function applyTheme(mode) {
+  var dark = mode === 'dark' || (mode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+}
+
+function updateThemeButtons(mode) {
+  document.querySelectorAll('.settings-theme-opt').forEach(function(btn) {
+    btn.classList.toggle('active', btn.dataset.theme === mode);
+  });
+}
+
+function setTheme(mode) {
+  localStorage.setItem('theme', mode);
+  applyTheme(mode);
+  updateThemeButtons(mode);
+}
+
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function() {
+  var saved = localStorage.getItem('theme') || 'system';
+  if (saved === 'system') applyTheme('system');
+});
+
 function toggleSettingsDropdown() {
-  document.getElementById('settings-dropdown').classList.toggle('open');
+  const dd = document.getElementById('settings-dropdown');
+  dd.classList.toggle('open');
+  if (dd.classList.contains('open')) {
+    updateThemeButtons(localStorage.getItem('theme') || 'system');
+  }
 }
 
 function closeSettingsDropdown() {
@@ -2550,13 +2692,18 @@ function settingsOpenAccount() {
 }
 
 async function openNotifModal() {
-  const toggle = document.getElementById('notif-deadline-toggle');
-  toggle.checked = false;
+  const deadlineToggle = document.getElementById('notif-deadline-toggle');
+  const morningToggle  = document.getElementById('notif-morning-toggle');
+  deadlineToggle.checked = false;
+  morningToggle.checked  = false;
   if ('serviceWorker' in navigator && Notification.permission === 'granted') {
     try {
       const reg = await navigator.serviceWorker.ready;
       const sub = await reg.pushManager.getSubscription();
-      toggle.checked = !!sub;
+      if (sub) {
+        deadlineToggle.checked = localStorage.getItem('push_deadline') === 'on';
+        morningToggle.checked  = localStorage.getItem('push_morning')  === 'on';
+      }
     } catch {}
   }
   document.getElementById('notif-modal-backdrop').classList.add('open');
@@ -2572,38 +2719,56 @@ function handleNotifBackdropClick(e) {
   if (e.target === document.getElementById('notif-modal-backdrop')) closeNotifModal();
 }
 
+async function _requestPermission(toggleEl) {
+  if (Notification.permission === 'denied') {
+    alert('브라우저 알림 권한이 차단되어 있습니다. 브라우저 설정에서 알림을 허용해주세요.');
+    toggleEl.checked = false;
+    return false;
+  }
+  if (Notification.permission === 'default') {
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') { toggleEl.checked = false; return false; }
+  }
+  return true;
+}
+
 async function onDeadlineToggleChange(checked) {
+  const el = document.getElementById('notif-deadline-toggle');
   if (checked) {
-    if (Notification.permission === 'denied') {
-      alert('브라우저 알림 권한이 차단되어 있습니다. 브라우저 설정에서 알림을 허용해주세요.');
-      document.getElementById('notif-deadline-toggle').checked = false;
-      return;
-    }
-    if (Notification.permission === 'default') {
-      const perm = await Notification.requestPermission();
-      if (perm !== 'granted') {
-        document.getElementById('notif-deadline-toggle').checked = false;
-        return;
-      }
-    }
-    await _subscribePush();
+    if (!await _requestPermission(el)) return;
+    await _subscribePush('deadline');
+    localStorage.setItem('push_deadline', 'on');
   } else {
-    await _unsubscribePush();
+    await _unsubscribePush('deadline');
+    localStorage.setItem('push_deadline', 'off');
   }
 }
 
-async function _unsubscribePush() {
+async function onMorningToggleChange(checked) {
+  const el = document.getElementById('notif-morning-toggle');
+  if (checked) {
+    if (!await _requestPermission(el)) return;
+    await _subscribePush('morning');
+    localStorage.setItem('push_morning', 'on');
+  } else {
+    await _unsubscribePush('morning');
+    localStorage.setItem('push_morning', 'off');
+  }
+}
+
+async function _unsubscribePush(type) {
   try {
     const reg = await navigator.serviceWorker.ready;
     const sub = await reg.pushManager.getSubscription();
     if (!sub) return;
-    const endpoint = sub.endpoint;
-    await sub.unsubscribe();
-    await fetch('/api/push-subscribe', {
+    await fetch(`/api/push-subscribe?type=${type}`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Basic ${AUTH}` },
-      body: JSON.stringify({ endpoint }),
+      body: JSON.stringify({ endpoint: sub.endpoint }),
     });
+    // 두 타입 모두 off일 때만 브라우저 구독 해제
+    const otherKey = type === 'morning' ? 'push_deadline' : 'push_morning';
+    if (localStorage.getItem(otherKey) !== 'on') await sub.unsubscribe();
   } catch (e) {
     console.warn('Push 구독 해제 실패:', e);
   }
@@ -2646,7 +2811,6 @@ async function saveConfig() {
   localStorage.setItem('app_auth', AUTH);
   closeConfig();
   loadTasks();
-  setTimeout(() => showPushBanner(), 800);
 }
 
 function logout() {
@@ -2706,32 +2870,7 @@ function _urlB64ToUint8(b64) {
   return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
 }
 
-// 이미 허용된 경우엔 모달 없이 조용히 재구독, 아니면 모달 표시
-function showPushBanner() {
-  if (!('PushManager' in window) || !('Notification' in window)) return;
-  if (Notification.permission === 'granted') {
-    _subscribePush().catch(() => {});
-    return;
-  }
-  if (Notification.permission === 'default') {
-    document.getElementById('push-modal-backdrop').classList.add('open');
-    lockScroll();
-  }
-}
-
-function dismissPushModal() {
-  document.getElementById('push-modal-backdrop').classList.remove('open');
-  unlockScroll();
-}
-
-async function requestPushAndDismiss() {
-  dismissPushModal();
-  const perm = await Notification.requestPermission();
-  if (perm !== 'granted') return;
-  await _subscribePush();
-}
-
-async function _subscribePush() {
+async function _subscribePush(type) {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
   try {
     const reg = await navigator.serviceWorker.ready;
@@ -2742,7 +2881,7 @@ async function _subscribePush() {
         applicationServerKey: _urlB64ToUint8(VAPID_PUBLIC_KEY),
       });
     }
-    await fetch('/api/push-subscribe', {
+    await fetch(`/api/push-subscribe?type=${type}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Basic ${AUTH}` },
       body: JSON.stringify(sub.toJSON()),

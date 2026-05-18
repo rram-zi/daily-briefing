@@ -1,10 +1,13 @@
 import { put, list } from '@vercel/blob';
 
-const BLOB_KEY = 'push-subscriptions.json';
+function blobKey(type) {
+  return type === 'morning' ? 'push-subscriptions-morning.json' : 'push-subscriptions.json';
+}
 
-async function readSubscriptions() {
+async function readSubscriptions(type) {
   try {
-    const { blobs } = await list({ prefix: 'push-subscriptions' });
+    const prefix = type === 'morning' ? 'push-subscriptions-morning' : 'push-subscriptions.json';
+    const { blobs } = await list({ prefix });
     if (!blobs.length) return [];
     const res = await fetch(blobs[0].downloadUrl);
     return await res.json();
@@ -13,8 +16,8 @@ async function readSubscriptions() {
   }
 }
 
-async function writeSubscriptions(subs) {
-  await put(BLOB_KEY, JSON.stringify(subs), {
+async function writeSubscriptions(subs, type) {
+  await put(blobKey(type), JSON.stringify(subs), {
     access: 'public',
     addRandomSuffix: false,
     allowOverwrite: true,
@@ -37,12 +40,15 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (!isAuthed(req)) return res.status(401).json({ error: 'Unauthorized' });
+
+  const type = req.query.type === 'morning' ? 'morning' : 'deadline';
+
   if (req.method === 'DELETE') {
     const { endpoint } = req.body || {};
     if (!endpoint) return res.status(400).json({ error: 'Missing endpoint' });
-    const subs = await readSubscriptions();
+    const subs = await readSubscriptions(type);
     const filtered = subs.filter(s => s.endpoint !== endpoint);
-    if (filtered.length !== subs.length) await writeSubscriptions(filtered);
+    if (filtered.length !== subs.length) await writeSubscriptions(filtered, type);
     return res.status(200).json({ ok: true });
   }
 
@@ -51,10 +57,10 @@ export default async function handler(req, res) {
   const sub = req.body;
   if (!sub?.endpoint) return res.status(400).json({ error: 'Invalid subscription' });
 
-  const subs = await readSubscriptions();
+  const subs = await readSubscriptions(type);
   const idx = subs.findIndex(s => s.endpoint === sub.endpoint);
   if (idx >= 0) subs[idx] = sub; else subs.push(sub);
-  await writeSubscriptions(subs);
+  await writeSubscriptions(subs, type);
 
   return res.status(200).json({ ok: true });
 }

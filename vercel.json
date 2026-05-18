@@ -3,6 +3,7 @@
     { "source": "/api/notion/:path+", "destination": "/api/notion?path=:path+" }
   ],
   "crons": [
-    { "path": "/api/cron-notify", "schedule": "59 14 * * *" }
+    { "path": "/api/cron-notify",  "schedule": "50 14 * * *" },
+    { "path": "/api/cron-morning", "schedule": "0 0 * * *"  }
   ]
 }
