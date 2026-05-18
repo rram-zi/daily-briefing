@@ -48,27 +48,10 @@
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
 
-  /* ── Push 알림 배너 ── */
-  .push-banner {
-    position: fixed; bottom: 0; left: 0; right: 0; z-index: 500;
-    background: var(--surface); border-top: 1px solid var(--border);
-    padding: 14px 20px 20px; display: flex; align-items: center; gap: 10px;
-    box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
-  }
-  .push-banner-icon { font-size: 20px; flex-shrink: 0; }
-  .push-banner-text { flex: 1; font-size: 13px; font-weight: 500; color: var(--text1); }
-  .push-banner-allow {
-    padding: 8px 16px; border-radius: 10px; border: none; cursor: pointer;
-    background: var(--blue500); color: #fff; font-size: 13px; font-weight: 600;
-    font-family: inherit; flex-shrink: 0; transition: background 0.12s;
-  }
-  .push-banner-allow:hover { background: var(--blue600); }
-  .push-banner-later {
-    padding: 8px 12px; border-radius: 10px; border: 1.5px solid var(--border);
-    cursor: pointer; background: var(--surface); color: var(--text2);
-    font-size: 13px; font-family: inherit; flex-shrink: 0; transition: border-color 0.12s, color 0.12s;
-  }
-  .push-banner-later:hover { border-color: var(--grey400); color: var(--text1); }
+  /* ── Push 알림 모달 ── */
+  .push-modal-icon { font-size: 44px; text-align: center; margin-bottom: 14px; }
+  .push-modal-title { font-size: 17px; font-weight: 700; color: var(--text1); text-align: center; margin-bottom: 8px; }
+  .push-modal-desc { font-size: 13px; color: var(--text2); text-align: center; line-height: 1.65; }
   :root {
     --grey50:  #f9fafb;
     --grey100: #f2f4f6;
@@ -971,12 +954,23 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
   </main>
 </div>
 
-<!-- Push 알림 배너 -->
-<div id="push-banner" class="push-banner" style="display:none;">
-  <span class="push-banner-icon">🔔</span>
-  <span class="push-banner-text">마감 알림을 받으시겠어요?</span>
-  <button class="push-banner-allow" onclick="requestPushAndDismiss()">허용</button>
-  <button class="push-banner-later" onclick="dismissPushBanner()">나중에</button>
+<!-- Push 알림 모달 -->
+<div class="modal-backdrop" id="push-modal-backdrop">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">알림 설정</span>
+      <button class="modal-close" onclick="dismissPushModal()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="push-modal-icon">🔔</div>
+      <div class="push-modal-title">마감 알림 받기</div>
+      <div class="push-modal-desc">오늘 마감인 할 일을 완료하지 않았을 때<br>밤 11시 59분에 알림을 드려요.</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="dismissPushModal()">나중에</button>
+      <button class="btn-save" onclick="requestPushAndDismiss()">허용하기</button>
+    </div>
+  </div>
 </div>
 
 <!-- Today Select Modal -->
@@ -1468,7 +1462,7 @@ async function confirmTodaySelection() {
   loadRecurring();
   renderTodaySection();
 
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeConfig(); closeTaskDetail(); closeSearchModal(); closeTodayModal(); closeMobileSidebar(); closeCategoryModal(); } });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeConfig(); closeTaskDetail(); closeSearchModal(); closeTodayModal(); closeMobileSidebar(); closeCategoryModal(); dismissPushModal(); } });
 
   if (!AUTH) { openConfig(); return; }
 
@@ -2442,7 +2436,7 @@ function _urlB64ToUint8(b64) {
   return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
 }
 
-// 이미 허용된 경우엔 배너 없이 조용히 재구독, 아니면 배너 표시
+// 이미 허용된 경우엔 모달 없이 조용히 재구독, 아니면 모달 표시
 function showPushBanner() {
   if (!('PushManager' in window) || !('Notification' in window)) return;
   if (Notification.permission === 'granted') {
@@ -2450,16 +2444,18 @@ function showPushBanner() {
     return;
   }
   if (Notification.permission === 'default') {
-    document.getElementById('push-banner').style.display = 'flex';
+    document.getElementById('push-modal-backdrop').classList.add('open');
+    lockScroll();
   }
 }
 
-function dismissPushBanner() {
-  document.getElementById('push-banner').style.display = 'none';
+function dismissPushModal() {
+  document.getElementById('push-modal-backdrop').classList.remove('open');
+  unlockScroll();
 }
 
 async function requestPushAndDismiss() {
-  dismissPushBanner();
+  dismissPushModal();
   const perm = await Notification.requestPermission();
   if (perm !== 'granted') return;
   await _subscribePush();
