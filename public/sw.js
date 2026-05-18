@@ -4,6 +4,7 @@ self.addEventListener('push', event => {
   event.waitUntil(
     self.registration.showNotification(data.title || 'SUN TO DO', {
       body: data.body || '알림이 도착했어요.',
+      icon: '/icon-192.png',
     })
   );
 });
