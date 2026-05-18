@@ -260,16 +260,18 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
   .task-search-btn.active { background: var(--grey200); color: var(--text1); }
 
   .task-search-bar {
-    display: none; align-items: center; gap: 8px; padding: 0 0 10px;
+    display: none; flex-direction: column; align-items: flex-start; gap: 8px; padding: 0 0 10px;
   }
   .task-search-bar.open { display: flex; }
   .task-search-input {
-    flex: 1; padding: 8px 12px; border: 1.5px solid var(--border);
+    width: 100%; max-width: 400px; min-height: 43px;
+    padding: 10px 12px; border: 1.5px solid var(--border);
     border-radius: 10px; font-size: 14px; font-family: inherit;
-    color: var(--text1); background: var(--surface); outline: none;
-    transition: border-color 0.15s;
+    color: var(--text1); background: var(--grey50); outline: none;
+    transition: border-color 0.12s, background 0.12s; box-sizing: border-box;
+    -webkit-appearance: none; appearance: none;
   }
-  .task-search-input:focus { border-color: var(--blue500); }
+  .task-search-input:focus { border-color: var(--blue500); background: var(--surface); }
   .task-search-input::placeholder { color: var(--text3); }
 
   .task-search-reset {
@@ -981,7 +983,6 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
 
       <div class="section-header">
         <div class="section-title" id="task-section-title">할 일 목록</div>
-        <button class="task-search-reset" id="task-search-reset" onclick="clearTaskSearch()" style="display:none">초기화</button>
       </div>
       <div class="task-filter-bar">
         <div class="task-filter-row">
@@ -1015,6 +1016,7 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
       </div>
       <div class="task-search-bar" id="task-search-bar">
         <input class="task-search-input" id="task-search-input" type="text" placeholder="할 일 검색..." oninput="onTaskSearch(this.value)">
+        <button class="task-search-reset" id="task-search-reset" onclick="clearTaskSearch()">초기화</button>
       </div>
       <div class="task-list" id="task-list">
         <div class="empty-state">불러오는 중...</div>
@@ -1999,14 +2001,7 @@ function renderTasks() {
     : '<div class="empty-state">해당하는 할 일이 없습니다</div>';
 
   const titleEl = document.getElementById('task-section-title');
-  const resetEl = document.getElementById('task-search-reset');
-  if (taskSearchQuery) {
-    titleEl.textContent = `검색 결과(${otherTasks.length})`;
-    resetEl.style.display = '';
-  } else {
-    titleEl.textContent = '할 일 목록';
-    resetEl.style.display = 'none';
-  }
+  titleEl.textContent = taskSearchQuery ? `검색 결과(${otherTasks.length})` : '할 일 목록';
 
   attachDrag(todayList, (srcId, dstId) => {
     const si = todayIds.indexOf(srcId), di = todayIds.indexOf(dstId);
