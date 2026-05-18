@@ -296,13 +296,13 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
     text-transform: uppercase; letter-spacing: 0.08em;
   }
   .briefing-close {
-    width: 24px; height: 24px; border: none; background: transparent;
+    width: 28px; height: 28px; border: none; background: transparent;
     color: rgba(255,255,255,0.45); cursor: pointer; border-radius: 6px;
     display: flex; align-items: center; justify-content: center;
     transition: background 0.1s, color 0.1s; flex-shrink: 0;
   }
   .briefing-close:hover { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.7); }
-  .briefing-close svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2.5; }
+  .briefing-close svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; }
   .briefing-lines { display: flex; flex-direction: column; gap: 8px; }
   .briefing-line {
     font-size: 14px; color: rgba(255,255,255,0.88); line-height: 1.6;
@@ -480,12 +480,13 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
   }
   .modal-title { font-size: 17px; font-weight: 700; color: var(--text1); letter-spacing: -0.2px; }
   .modal-close {
-    width: 32px; height: 32px; border: none; background: var(--grey100);
+    width: 28px; height: 28px; border: none; background: var(--grey100);
     border-radius: 50%; cursor: pointer; color: var(--text3);
-    font-size: 18px; line-height: 1; display: flex; align-items: center; justify-content: center;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
     transition: background 0.12s, color 0.12s;
   }
   .modal-close:hover { background: var(--grey200); color: var(--text1); }
+  .modal-close svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; }
 
   .modal-body { padding: 20px 24px; }
 
@@ -722,8 +723,7 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
     .sync-btn { border: none !important; background: none !important; box-shadow: none !important; color: var(--text2); padding: 0; width: 28px; height: 28px; justify-content: center; }
     .sync-btn svg { width: 20px; height: 20px; }
     .briefing-close { width: 28px; height: 28px; }
-    .briefing-close svg { width: 20px; height: 20px; }
-    .modal-close { width: 28px; height: 28px; font-size: 16px; }
+    .modal-close { width: 28px; height: 28px; }
     .act-btn { width: 28px; height: 28px; }
     .act-btn svg { width: 20px; height: 20px; }
     .topbar-search-btn { width: 28px; height: 28px; padding: 0; }
@@ -948,7 +948,7 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
   <div class="modal" style="max-width:480px;padding:0;overflow:hidden">
     <div class="modal-header">
       <div class="modal-title">오늘의 할 일 리스트를 작성하세요</div>
-      <button class="modal-close" onclick="closeTodayModal()">✕</button>
+      <button class="modal-close" onclick="closeTodayModal()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div class="today-select-list" id="today-select-list"></div>
     <div class="modal-footer">
@@ -979,7 +979,7 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
   <div class="modal" style="max-width:440px">
     <div class="modal-header">
       <div class="modal-title" id="detail-title"></div>
-      <button class="modal-close" onclick="closeTaskDetail()">✕</button>
+      <button class="modal-close" onclick="closeTaskDetail()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div class="modal-body">
       <div class="detail-meta" id="detail-meta"></div>
@@ -993,7 +993,7 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
   <div class="modal" id="cfg-modal">
     <div class="modal-header">
       <div class="modal-title">로그인</div>
-      <button class="modal-close" onclick="closeConfig()">✕</button>
+      <button class="modal-close" onclick="closeConfig()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div class="modal-body">
       <div class="form-grid">
@@ -1019,7 +1019,7 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
   <div class="modal" id="modal">
     <div class="modal-header">
       <div class="modal-title" id="modal-title">새 할 일 추가</div>
-      <button class="modal-close" onclick="closeModal()">✕</button>
+      <button class="modal-close" onclick="closeModal()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div class="modal-body">
       <div class="form-grid">
@@ -1094,7 +1094,7 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
   <div class="modal" style="max-width:380px">
     <div class="modal-header">
       <div class="modal-title">카테고리 추가</div>
-      <button class="modal-close" onclick="closeCategoryModal()">✕</button>
+      <button class="modal-close" onclick="closeCategoryModal()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div class="modal-body">
       <div class="form-group">
