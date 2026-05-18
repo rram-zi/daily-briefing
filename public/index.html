@@ -274,12 +274,21 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
   .task-search-input:focus { border-color: var(--blue500); background: var(--surface); }
   .task-search-input::placeholder { color: var(--text3); }
 
+  .task-search-meta {
+    display: none; align-items: center; gap: 10px;
+  }
+  .task-search-meta.visible { display: flex; }
+  .task-search-result-label {
+    font-size: 13px; font-weight: 500; color: var(--text2);
+  }
   .task-search-reset {
-    padding: 7px 12px; border: none; background: var(--grey100);
+    display: flex; align-items: center; gap: 4px;
+    padding: 5px 10px; border: none; background: var(--grey100);
     border-radius: 8px; font-size: 13px; font-weight: 500; font-family: inherit;
     color: var(--text2); cursor: pointer; transition: background 0.1s, color 0.1s;
     white-space: nowrap; flex-shrink: 0;
   }
+  .task-search-reset svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; flex-shrink: 0; }
   .task-search-reset:hover { background: var(--grey200); color: var(--text1); }
 
   /* ── Main ── */
@@ -1016,7 +1025,13 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
       </div>
       <div class="task-search-bar" id="task-search-bar">
         <input class="task-search-input" id="task-search-input" type="text" placeholder="할 일 검색..." oninput="onTaskSearch(this.value)">
-        <button class="task-search-reset" id="task-search-reset" onclick="clearTaskSearch()">초기화</button>
+        <div class="task-search-meta" id="task-search-meta">
+          <span class="task-search-result-label" id="task-search-result-label"></span>
+          <button class="task-search-reset" onclick="clearTaskSearch()">
+            <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            초기화
+          </button>
+        </div>
       </div>
       <div class="task-list" id="task-list">
         <div class="empty-state">불러오는 중...</div>
@@ -2000,8 +2015,14 @@ function renderTasks() {
     ? otherTasks.map(t => taskItemHTML(t, todayIds.includes(t.id), false)).join('')
     : '<div class="empty-state">해당하는 할 일이 없습니다</div>';
 
-  const titleEl = document.getElementById('task-section-title');
-  titleEl.textContent = taskSearchQuery ? `검색 결과(${otherTasks.length})` : '할 일 목록';
+  const metaEl = document.getElementById('task-search-meta');
+  const labelEl = document.getElementById('task-search-result-label');
+  if (taskSearchQuery) {
+    labelEl.textContent = `검색 결과 ${otherTasks.length}`;
+    metaEl.classList.add('visible');
+  } else {
+    metaEl.classList.remove('visible');
+  }
 
   attachDrag(todayList, (srcId, dstId) => {
     const si = todayIds.indexOf(srcId), di = todayIds.indexOf(dstId);
