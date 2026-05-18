@@ -1,6 +1,6 @@
 {
-  "name": "오늘의 할 일",
-  "short_name": "할 일",
+  "name": "SUN TO DO",
+  "short_name": "SUN TO DO",
   "description": "Notion 연동 일일 태스크 매니저",
   "start_url": "/",
   "display": "standalone",
