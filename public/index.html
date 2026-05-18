@@ -46,6 +46,7 @@
 </style>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
   :root {
     --grey50:  #f9fafb;
     --grey100: #f2f4f6;
@@ -1154,14 +1155,36 @@ function toggleSidebar() {
   btn.title = isCollapsed ? '사이드바 펼치기' : '사이드바 접기';
 }
 
+// DIM 레이어가 열릴 때 배경 스크롤 잠금 (iOS 포함)
+let _scrollLockDepth = 0;
+function lockScroll() {
+  if (_scrollLockDepth === 0) {
+    document.body.dataset.scrollY = window.scrollY;
+    document.body.style.top = `-${window.scrollY}px`;
+    document.body.classList.add('scroll-locked');
+  }
+  _scrollLockDepth++;
+}
+function unlockScroll() {
+  _scrollLockDepth = Math.max(0, _scrollLockDepth - 1);
+  if (_scrollLockDepth === 0) {
+    const y = parseInt(document.body.dataset.scrollY || '0');
+    document.body.classList.remove('scroll-locked');
+    document.body.style.top = '';
+    window.scrollTo(0, y);
+  }
+}
+
 function openMobileSidebar() {
   document.querySelector('.sidebar').classList.add('mobile-open');
   document.getElementById('sidebar-overlay').classList.add('visible');
+  lockScroll();
 }
 
 function closeMobileSidebar() {
   document.querySelector('.sidebar').classList.remove('mobile-open');
   document.getElementById('sidebar-overlay').classList.remove('visible');
+  unlockScroll();
 }
 
 function loadRecurring() {
@@ -1323,6 +1346,7 @@ function openTodayModal() {
     : '<div style="padding:24px;text-align:center;color:var(--text3);font-size:14px">할 일이 없어요</div>';
   updateTodaySelectCount();
   document.getElementById('today-modal-backdrop').classList.add('open');
+  lockScroll();
 }
 function updateTodaySelectCount() {
   const el = document.getElementById('today-select-count');
@@ -1330,6 +1354,7 @@ function updateTodaySelectCount() {
 }
 function closeTodayModal() {
   document.getElementById('today-modal-backdrop').classList.remove('open');
+  unlockScroll();
 }
 function handleTodayModalBackdropClick(e) {
   if (e.target === document.getElementById('today-modal-backdrop')) closeTodayModal();
@@ -1453,11 +1478,13 @@ function toggleCategory(name) {
 function openCategoryModal() {
   document.getElementById('new-cat-input').value = '';
   document.getElementById('cat-modal-backdrop').classList.add('open');
+  lockScroll();
   setTimeout(() => document.getElementById('new-cat-input').focus(), 120);
 }
 
 function closeCategoryModal() {
   document.getElementById('cat-modal-backdrop').classList.remove('open');
+  unlockScroll();
 }
 
 async function addCategoryFromModal() {
@@ -1873,11 +1900,13 @@ function openModal(taskId = null) {
   document.getElementById('btn-delete').style.display = isEdit ? '' : 'none';
 
   document.getElementById('modal-backdrop').classList.add('open');
+  lockScroll();
   setTimeout(() => document.getElementById('f-title').focus(), 120);
 }
 
 function closeModal() {
   document.getElementById('modal-backdrop').classList.remove('open');
+  unlockScroll();
   editingId = null;
   editingRecurringId = null;
 }
@@ -2079,12 +2108,14 @@ function setView(mode, el) {
 function openSearchModal() {
   document.getElementById('search-backdrop').classList.add('open');
   document.getElementById('topbar-search-btn').classList.add('active');
+  lockScroll();
   renderSearchResults('');
   setTimeout(() => document.getElementById('search-modal-input').focus(), 80);
 }
 function closeSearchModal() {
   document.getElementById('search-backdrop').classList.remove('open');
   document.getElementById('topbar-search-btn').classList.remove('active');
+  unlockScroll();
 }
 function handleSearchBackdropClick(e) {
   if (e.target === document.getElementById('search-backdrop')) closeSearchModal();
@@ -2175,10 +2206,12 @@ function openTaskDetail(taskId) {
     : '<span style="color:var(--text3)">설명 없음</span>')
     + (t.completedAt ? `<div style="margin-top:16px;font-size:12px;color:var(--text3)">${fmt(t.completedAt)} 완료</div>` : '');
   document.getElementById('detail-backdrop').classList.add('open');
+  lockScroll();
 }
 
 function closeTaskDetail() {
   document.getElementById('detail-backdrop').classList.remove('open');
+  unlockScroll();
 }
 
 function handleDetailBackdropClick(e) {
@@ -2254,11 +2287,13 @@ function openConfig() {
   }
   document.getElementById('cfg-pass').value = '';
   document.getElementById('cfg-backdrop').classList.add('open');
+  lockScroll();
   setTimeout(() => document.getElementById('cfg-pass').focus(), 120);
 }
 
 function closeConfig() {
   document.getElementById('cfg-backdrop').classList.remove('open');
+  unlockScroll();
 }
 
 function handleCfgBackdropClick(e) {
