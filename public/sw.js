@@ -2,7 +2,7 @@ self.addEventListener('push', event => {
   let data = {};
   try { data = event.data?.json() || {}; } catch { data = {}; }
   event.waitUntil(
-    self.registration.showNotification(data.title || 'SUN TO DO', {
+    self.registration.showNotification(data.title || '완료 처리가 필요한 할 일', {
       body: data.body || '알림이 도착했어요.',
       icon: '/icon-192.png',
     })

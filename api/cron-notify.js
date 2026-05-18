@@ -73,7 +73,7 @@ export default async function handler(req, res) {
   );
 
   const payload = JSON.stringify({
-    title: 'SUN TO DO',
+    title: '완료 처리가 필요한 할 일',
     body: '아직 완료 처리하지 않은 할 일이 있어요. 확인해 주세요!',
   });
 
