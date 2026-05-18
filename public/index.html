@@ -49,8 +49,9 @@
 body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
 
   /* ── Push 알림 모달 ── */
-  .push-modal-icon { font-size: 44px; text-align: center; margin-bottom: 14px; }
-  .push-modal-title { font-size: 17px; font-weight: 700; color: var(--text1); text-align: center; margin-bottom: 8px; }
+  .push-modal-icon { text-align: center; margin-bottom: 14px; }
+  .push-modal-icon img { width: 48px; height: 48px; }
+  .push-modal-title { font-size: 20px; font-weight: 700; color: var(--text1); text-align: center; margin-bottom: 8px; }
   .push-modal-desc { font-size: 13px; color: var(--text2); text-align: center; line-height: 1.65; }
   :root {
     --grey50:  #f9fafb;
@@ -962,7 +963,7 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
       <button class="modal-close" onclick="dismissPushModal()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div class="modal-body">
-      <div class="push-modal-icon">🔔</div>
+      <div class="push-modal-icon"><img src="/emoji/u1F514.svg" alt="🔔"></div>
       <div class="push-modal-title">마감 알림 받기</div>
       <div class="push-modal-desc">오늘 마감인 할 일을 완료하지 않았을 때<br>밤 11시 59분에 알림을 드려요.</div>
     </div>
