@@ -455,8 +455,8 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
   .badge-status { background: var(--grey100); color: var(--grey600); }
   .badge-date   { color: var(--text3); font-size: 12px; }
   .badge-overdue { color: var(--red500); font-weight: 600; }
-  .badge-carryover { background: rgba(255,107,0,0.1); color: var(--orange500); display: inline-flex; align-items: center; gap: 3px; }
-  .badge-carryover svg { width: 10px; height: 10px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; flex-shrink: 0; }
+  .badge-carryover { background: rgba(255,107,0,0.1); color: var(--orange500); display: inline-flex; align-items: center; gap: 4px; }
+  .badge-carryover img { width: 13px; height: 13px; vertical-align: middle; flex-shrink: 0; }
 
   .task-actions { display: flex; gap: 2px; opacity: 0; transition: opacity 0.12s; }
   .task-item:hover .task-actions { opacity: 1; }
@@ -1893,8 +1893,8 @@ function taskItemHTML(t, isToday, showCheckbox = false) {
       <div class="task-title-row">
         <div class="task-title-block">
           ${urgentIcon}${overdueIcon}
+          ${isToday && carryOverIds.has(t.id) ? `<span class="badge badge-carryover"><img src="/emoji/u1F440.svg" alt="👀">어제 못한 일</span>` : ''}
           <span class="task-title ${t.done ? 'done' : ''}">${tfEmoji(t.title)}</span>
-          ${isToday && carryOverIds.has(t.id) ? `<span class="badge badge-carryover"><svg viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>이월</span>` : ''}
           ${t.category ? `<span class="badge badge-cat">${tfEmoji(t.category)}</span>` : ''}
           ${t.dueDate  ? `<span class="badge badge-date${overdue?' badge-overdue':''}"><img class="t-emoji" src="/emoji/u1F4C5.svg" alt="📅"> ${fmt(t.dueDate)}${overdue?' 초과':''}</span>` : ''}
         </div>
