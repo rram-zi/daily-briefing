@@ -8,7 +8,7 @@ function getKSTDateStr() {
 
 async function readSubscriptions() {
   try {
-    const { blobs } = await list({ prefix: 'push-subscriptions' });
+    const { blobs } = await list({ prefix: 'push-subscriptions.json' });
     if (!blobs.length) return [];
     const res = await fetch(blobs[0].downloadUrl);
     return await res.json();
@@ -33,7 +33,7 @@ export default async function handler(req, res) {
 
   const today = getKSTDateStr();
 
-  // Notion에서 오늘 마감 + 미완료 태스크 조회
+  // Notion에서 오늘의 할 일(오늘날짜 === today) + 미완료 태스크 조회
   const notionRes = await fetch(
     `https://api.notion.com/v1/databases/${process.env.NOTION_DB_ID}/query`,
     {
@@ -46,7 +46,7 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         filter: {
           and: [
-            { property: '마감일', date: { equals: today } },
+            { property: '오늘날짜', date: { equals: today } },
             { property: '상태', status: { does_not_equal: '완료' } },
             { property: '상태', status: { does_not_equal: 'Done' } },
           ],
