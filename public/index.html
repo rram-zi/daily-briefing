@@ -1711,6 +1711,15 @@ async function confirmTodaySelection() {
   renderTodaySection(); renderTasks();
   const toAdd    = todaySelectTemp.filter(id => !notionSet.has(id));
   const toRemove = [...notionSet].filter(id => !nextSet.has(id));
+  // 명시적으로 제거한 ID는 새로고침 후 재추가되지 않도록 기록
+  if (toRemove.length > 0) {
+    try {
+      const key = 'removed_today_ids';
+      const stored = JSON.parse(localStorage.getItem(key) || '{}');
+      const ids = stored.date === today ? [...new Set([...stored.ids, ...toRemove])] : [...toRemove];
+      localStorage.setItem(key, JSON.stringify({ date: today, ids }));
+    } catch {}
+  }
   try {
     await Promise.all([
       ...toAdd.map(id    => notionFetch(`pages/${id}`, 'PATCH', { properties: { '오늘날짜': { date: { start: today } } } })),
