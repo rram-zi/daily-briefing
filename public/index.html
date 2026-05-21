@@ -1711,19 +1711,23 @@ async function confirmTodaySelection() {
   const notionSet = new Set(tasks.filter(t => t.todayDate === today).map(t => t.id));
   const nextSet   = new Set(todaySelectTemp);
   todayIds = [...todaySelectTemp];
-  todayConfirmed = todayIds.length > 0;
+  todayConfirmed = true; // 빈 선택이어도 확인한 것으로 처리 → 새로고침 시 모달 자동 오픈 방지
   saveTodayIds();
   closeTodayModal();
   renderTodaySection(); renderTasks();
   const toAdd    = todaySelectTemp.filter(id => !notionSet.has(id));
   const toRemove = [...notionSet].filter(id => !nextSet.has(id));
-  // 명시적으로 제거한 ID는 새로고침 후 재추가되지 않도록 기록
   if (toRemove.length > 0) {
     try {
-      const key = 'removed_today_ids';
-      const stored = JSON.parse(localStorage.getItem(key) || '{}');
-      const ids = stored.date === today ? [...new Set([...stored.ids, ...toRemove])] : [...toRemove];
-      localStorage.setItem(key, JSON.stringify({ date: today, ids }));
+      // 새로고침 후 재추가 방지
+      const rt = JSON.parse(localStorage.getItem('removed_today_ids') || '{}');
+      const rtIds = rt.date === today ? [...new Set([...rt.ids, ...toRemove])] : [...toRemove];
+      localStorage.setItem('removed_today_ids', JSON.stringify({ date: today, ids: rtIds }));
+      // carryover_ids에서도 제거 → 모달 추천 목록에서 제외
+      const ci = JSON.parse(localStorage.getItem('carryover_ids') || '{}');
+      if (ci.date === today && Array.isArray(ci.ids)) {
+        localStorage.setItem('carryover_ids', JSON.stringify({ date: today, ids: ci.ids.filter(id => !toRemove.includes(id)) }));
+      }
     } catch {}
   }
   try {
