@@ -1388,6 +1388,7 @@ let taskSearchQuery = '';
 let carryOverIds = new Set();
 let todayIds = [];
 let todayConfirmed = false;
+let _carryoverPatchPromise = Promise.resolve();
 let recurringTasks = [];
 
 function toNotionPriority(p) { return p === '긴급' ? '긴급' : '보통'; }
@@ -1546,10 +1547,13 @@ function loadTodayIds() {
   // 어제 날짜 + 미완료 → 오늘로 이월 (Notion 오늘날짜 기반)
   const carryOver = tasks.filter(t => t.todayDate === yesterday && !t.done);
   if (carryOver.length > 0) {
-    carryOver.forEach(t => {
+    const patches = carryOver.map(t => {
       t.todayDate = today;
-      notionFetch(`pages/${t.id}`, 'PATCH', { properties: { '오늘날짜': { date: { start: today } } } }).catch(() => {});
+      return notionFetch(`pages/${t.id}`, 'PATCH', { properties: { '오늘날짜': { date: { start: today } } } }).catch(() => {});
     });
+    _carryoverPatchPromise = Promise.all(patches);
+  } else {
+    _carryoverPatchPromise = Promise.resolve();
   }
   // 어제 today_tasks 기반 이월: 오늘날짜가 이미 업데이트된 케이스(반복일정 등) 보완
   let localCarryOverIds = [];
@@ -1721,6 +1725,8 @@ async function confirmTodaySelection() {
     } catch {}
   }
   try {
+    // 이월 PATCH가 먼저 완료된 후 제거 PATCH를 전송해야 race condition을 방지할 수 있음
+    await _carryoverPatchPromise;
     await Promise.all([
       ...toAdd.map(id    => notionFetch(`pages/${id}`, 'PATCH', { properties: { '오늘날짜': { date: { start: today } } } })),
       ...toRemove.map(id => notionFetch(`pages/${id}`, 'PATCH', { properties: { '오늘날짜': { date: null } } }))
