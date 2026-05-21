@@ -1575,7 +1575,14 @@ function loadTodayIds() {
   carryOverIds = new Set(mergedCarryOver);
   const _carryOverIdArr = [...carryOverIds];
 
-  const allNotionIds = [...new Set([..._carryOverIdArr, ...notionTodayIds])];
+  // 오늘 명시적으로 제거한 ID는 다시 추가하지 않음
+  let removedTodayIds = new Set();
+  try {
+    const rt = JSON.parse(localStorage.getItem('removed_today_ids') || '{}');
+    if (rt.date === today && Array.isArray(rt.ids)) removedTodayIds = new Set(rt.ids);
+  } catch {}
+
+  const allNotionIds = [...new Set([..._carryOverIdArr, ...notionTodayIds])].filter(id => !removedTodayIds.has(id));
 
   if (allNotionIds.length > 0) {
     try {
@@ -1613,6 +1620,12 @@ function removeFromToday(id) {
   todayIds = todayIds.filter(i => i !== id);
   if (todayIds.length === 0) todayConfirmed = false;
   saveTodayIds();
+  try {
+    const key = 'removed_today_ids';
+    const stored = JSON.parse(localStorage.getItem(key) || '{}');
+    const ids = stored.date === todayKey() ? [...new Set([...stored.ids, id])] : [id];
+    localStorage.setItem(key, JSON.stringify({ date: todayKey(), ids }));
+  } catch {}
   renderTodaySection(); renderTasks();
   notionFetch(`pages/${id}`, 'PATCH', { properties: { '오늘날짜': { date: null } } });
 }
