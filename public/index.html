@@ -2148,17 +2148,18 @@ function attachDrag(container, onDrop) {
 }
 
 function renderTasks() {
+  const isRecurring = t => recurringTasks.some(r => r.title === t.title);
   const todayTasks = todayIds.map(id => tasks.find(t => t.id === id)).filter(Boolean)
     .sort((a, b) => (b.done ? 1 : 0) - (a.done ? 1 : 0));
   const otherTasks = tasks.filter(t => {
-    if (currentFilter === 'done' && !t.done) return false;
-    if (currentFilter === 'todo' && t.done) return false;
+    if (currentFilter === 'done' && (!t.done || isRecurring(t))) return false;
+    if (currentFilter === 'todo' && t.done && !isRecurring(t)) return false;
     if (currentCategories !== null && t.category && !currentCategories.has(t.category)) return false;
     if (taskSearchQuery && !t.title.toLowerCase().includes(taskSearchQuery.toLowerCase())) return false;
     return true;
   }).sort((a, b) => {
     const score = t => {
-      if (t.done) return 2;
+      if (t.done && !isRecurring(t)) return 2;
       const urgent  = t.priority === '긴급' ? 1 : 0;
       const overdue = isOverdue(t.dueDate)  ? 1 : 0;
       if (urgent && overdue) return -2;
