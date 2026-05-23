@@ -2555,17 +2555,14 @@ function renderHistory() {
     </div>`;
   }).join('');
 
-  // 항상 인라인 스타일 초기화 (모바일에서 데스크톱 잔여 inline style 제거)
+  // 가장 높은 셀을 기준으로 모든 행 높이 통일 (데스크톱/모바일 공통)
   const grid = document.getElementById('cal-grid');
   grid.style.gridAutoRows = '';
-
-  // 데스크톱: 가장 높은 셀을 기준으로 모든 행 높이 통일
-  if (window.innerWidth > 680) {
-    const days = grid.querySelectorAll('.cal-day');
-    let maxH = 96;
-    days.forEach(d => { if (d.offsetHeight > maxH) maxH = d.offsetHeight; });
-    grid.style.gridAutoRows = maxH + 'px';
-  }
+  const days = grid.querySelectorAll('.cal-day');
+  const minH = window.innerWidth > 680 ? 96 : 80;
+  let maxH = minH;
+  days.forEach(d => { if (d.offsetHeight > maxH) maxH = d.offsetHeight; });
+  grid.style.gridAutoRows = maxH + 'px';
 }
 
 function changeMonth(delta) {
