@@ -2029,21 +2029,21 @@ function renderBriefing() {
   document.getElementById('briefing-card').style.display = 'block';
 }
 
-function taskItemHTML(t, isToday, showCheckbox = false) {
+function taskItemHTML(t, isToday, showCheckbox = false, showAsDone = t.done) {
   const priClass  = t.priority === '긴급' ? 'badge-urgent' : t.priority === '낮음' ? 'badge-low' : 'badge-normal';
-  const overdue   = isOverdue(t.dueDate) && !t.done;
+  const overdue   = isOverdue(t.dueDate) && !showAsDone;
   const checkbox  = showCheckbox
-    ? `<div class="checkbox ${t.done ? 'checked' : ''}" onclick="toggleDone('${t.id}',${!t.done})">
+    ? `<div class="checkbox ${showAsDone ? 'checked' : ''}" onclick="toggleDone('${t.id}',${!t.done})">
         <svg viewBox="0 0 12 10"><polyline points="1,5 4.5,9 11,1"/></svg>
        </div>`
     : '';
-  const urgentIcon  = t.priority === '긴급' && !t.done
+  const urgentIcon  = t.priority === '긴급' && !showAsDone
     ? `<img class="t-emoji task-flag" src="/emoji/u1F6A8.svg" alt="긴급" title="긴급">`
     : '';
   const overdueIcon = overdue
     ? `<img class="t-emoji task-flag" src="/emoji/u23F0.svg" alt="기한 초과" title="기한 초과">`
     : '';
-  return `<div class="task-item${t.done ? ' task-done-row' : ''}" data-id="${t.id}" draggable="true">
+  return `<div class="task-item${showAsDone ? ' task-done-row' : ''}" data-id="${t.id}" draggable="true">
     <div class="drag-handle"><svg viewBox="0 0 10 16" fill="currentColor"><circle cx="2" cy="2" r="1.5"/><circle cx="8" cy="2" r="1.5"/><circle cx="2" cy="8" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="2" cy="14" r="1.5"/><circle cx="8" cy="14" r="1.5"/></svg></div>
     ${checkbox}
     <div class="task-body">
@@ -2051,9 +2051,10 @@ function taskItemHTML(t, isToday, showCheckbox = false) {
         <div class="task-title-block">
           ${urgentIcon}${overdueIcon}
           ${isToday && carryOverIds.has(t.id) ? `<img class="t-emoji task-flag" src="/emoji/u1F4AB.svg" alt="이월" title="이전에 완료 못한 일">` : ''}
-          <span class="task-title ${t.done ? 'done' : ''}">${tfEmoji(t.title)}</span>
+          <span class="task-title ${showAsDone ? 'done' : ''}">${tfEmoji(t.title)}</span>
           ${t.category ? `<span class="badge badge-cat">${tfEmoji(t.category)}</span>` : ''}
           ${t.dueDate  ? `<span class="badge badge-date${overdue?' badge-overdue':''}"><img class="t-emoji" src="/emoji/u1F4C5.svg" alt="📅"> ${fmt(t.dueDate)}${overdue?' 초과':''}</span>` : ''}
+          ${!isToday && t.done && t.completedAt ? `<span class="badge badge-date"><img class="t-emoji" src="/emoji/u2705.svg" alt="완료"> ${fmt(t.completedAt)} 완료</span>` : ''}
         </div>
       </div>
       ${t.note ? `<div class="task-note">${linkify(tfEmoji(t.note))}</div>` : ''}
@@ -2176,7 +2177,7 @@ function renderTasks() {
 
   const list = document.getElementById('task-list');
   list.innerHTML = otherTasks.length
-    ? otherTasks.map(t => taskItemHTML(t, false, false)).join('')
+    ? otherTasks.map(t => taskItemHTML(t, false, false, false)).join('')
     : '<div class="empty-state">해당하는 할 일이 없습니다</div>';
 
   const metaEl = document.getElementById('task-search-meta');
