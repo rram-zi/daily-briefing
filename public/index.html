@@ -2031,7 +2031,7 @@ function renderBriefing() {
 
 function taskItemHTML(t, isToday, showCheckbox = false, showAsDone = t.done) {
   const priClass  = t.priority === '긴급' ? 'badge-urgent' : t.priority === '낮음' ? 'badge-low' : 'badge-normal';
-  const overdue   = isOverdue(t.dueDate) && !showAsDone;
+  const overdue   = isOverdue(t.dueDate) && !t.done;
   const checkbox  = showCheckbox
     ? `<div class="checkbox ${showAsDone ? 'checked' : ''}" onclick="toggleDone('${t.id}',${!t.done})">
         <svg viewBox="0 0 12 10"><polyline points="1,5 4.5,9 11,1"/></svg>
