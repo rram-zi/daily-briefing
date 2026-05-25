@@ -598,6 +598,9 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
   .today-select-title { font-size: 14px; color: var(--text1); font-weight: 500; min-width: 0; }
   .today-select-info { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
   .today-select-meta { font-size: 12px; color: var(--text3); flex-shrink: 0; }
+  .today-modal-search-wrap { padding: 8px 16px 4px; border-top: 1px solid var(--border); }
+  .today-modal-search-wrap .task-search-input { max-width: 100%; }
+  .today-modal-search-wrap .task-search-meta { margin-top: 6px; }
   .today-select-section-label {
     padding: 10px 20px 4px;
     font-size: 11px; font-weight: 600; color: var(--text3);
@@ -804,9 +807,8 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
   .cal-day.other-month .cal-day-num { color: var(--grey300); }
   .cal-day-num { font-size: 12px; font-weight: 500; color: var(--text2); margin-bottom: 4px; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; border-radius: 50%; flex-shrink: 0; }
   .cal-day.is-today .cal-day-num { background: var(--blue500); color: #fff; font-weight: 700; }
-  .cal-day.is-holiday { background: var(--blue50); }
   .cal-day.is-holiday .cal-day-num { color: var(--blue500); }
-  .cal-day.is-holiday.is-today .cal-day-num { background: var(--bg); color: var(--blue500); }
+  .cal-day.is-holiday.is-today .cal-day-num { background: var(--blue500); color: #fff; }
   .cal-day.is-holiday .cal-task-chip { background: var(--blue500) !important; color: var(--surface); }
   .cal-task-chip {
     display: block; width: 100%; min-width: 0; padding: 0 6px; border-radius: 4px;
@@ -1646,45 +1648,91 @@ function renderTodaySection() {
 }
 
 let todaySelectTemp = [];
+let todayModalSearchQuery = '';
+let _todayModalAvailable = [];
+let _todayModalRecommendedIds = new Set();
+
+function todaySelectItemHTML(t) {
+  return `<div class="today-select-item${todaySelectTemp.includes(t.id) ? ' selected' : ''}"
+       onclick="toggleTodaySelect('${t.id}',this)">
+    <div class="today-select-box">
+      <svg viewBox="0 0 12 10"><polyline points="1,5 4.5,9 11,1"/></svg>
+    </div>
+    <div class="today-select-info">
+      <span class="today-select-title">${tfEmoji(t.title)}</span>
+      ${t.category ? `<span class="badge badge-cat">${tfEmoji(t.category)}</span>` : ''}
+    </div>
+  </div>`;
+}
+
 function openTodayModal() {
   todaySelectTemp = [...todayIds];
-  const isRecurring = t => recurringTasks.some(r => r.title === t.title);
-  const incomplete = tasks.filter(t => !t.done || isRecurring(t));
+  todayModalSearchQuery = '';
+  const isRec = t => recurringTasks.some(r => r.title === t.title);
+  _todayModalAvailable = tasks.filter(t => !t.done || isRec(t));
   const todayStr = todayKey();
-  const recommended = incomplete.filter(t => t.dueDate === todayStr || carryOverIds.has(t.id) || t.priority === '긴급');
-  const others      = incomplete.filter(t => t.dueDate !== todayStr && !carryOverIds.has(t.id) && t.priority !== '긴급');
-
-  function itemHTML(t) {
-    return `<div class="today-select-item${todaySelectTemp.includes(t.id) ? ' selected' : ''}"
-         onclick="toggleTodaySelect('${t.id}',this)">
-      <div class="today-select-box">
-        <svg viewBox="0 0 12 10"><polyline points="1,5 4.5,9 11,1"/></svg>
-      </div>
-      <div class="today-select-info">
-        <span class="today-select-title">${tfEmoji(t.title)}</span>
-        ${t.category ? `<span class="badge badge-cat">${tfEmoji(t.category)}</span>` : ''}
-      </div>
-    </div>`;
-  }
+  const recommended = _todayModalAvailable.filter(t => t.dueDate === todayStr || carryOverIds.has(t.id) || t.priority === '긴급');
+  _todayModalRecommendedIds = new Set(recommended.map(t => t.id));
 
   let html = '';
-  if (!incomplete.length) {
+  if (!_todayModalAvailable.length) {
     html = '<div style="padding:24px;text-align:center;color:var(--text3);font-size:14px">할 일이 없어요</div>';
-  } else if (recommended.length) {
-    html += `<div class="today-select-section-label">할 일 추천</div>`;
-    html += recommended.map(itemHTML).join('');
-    if (others.length) {
-      html += `<div class="today-select-section-divider"></div>`;
-      html += others.map(itemHTML).join('');
-    }
   } else {
-    html = incomplete.map(itemHTML).join('');
+    if (recommended.length) {
+      html += `<div class="today-select-section-label">할 일 추천</div>`;
+      html += recommended.map(todaySelectItemHTML).join('');
+    }
+    html += `<div class="today-modal-search-wrap">
+      <input class="task-search-input" id="today-modal-search-input" type="text"
+        placeholder="할 일 검색..." oninput="onTodayModalSearch(this.value)">
+      <div class="task-search-meta" id="today-modal-search-meta">
+        <span class="task-search-result-label" id="today-modal-search-result-label"></span>
+        <button class="task-search-reset" onclick="clearTodayModalSearch()">
+          <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+          초기화
+        </button>
+      </div>
+    </div>
+    <div id="today-others-list"></div>`;
   }
 
   document.getElementById('today-select-list').innerHTML = html;
+  renderTodayOthersList();
   updateTodaySelectCount();
   document.getElementById('today-modal-backdrop').classList.add('open');
   lockScroll();
+}
+
+function renderTodayOthersList() {
+  const el = document.getElementById('today-others-list');
+  if (!el) return;
+  const q = todayModalSearchQuery.toLowerCase();
+  const others = _todayModalAvailable.filter(t => {
+    if (_todayModalRecommendedIds.has(t.id)) return false;
+    if (q && !t.title.toLowerCase().includes(q)) return false;
+    return true;
+  });
+  const meta = document.getElementById('today-modal-search-meta');
+  const label = document.getElementById('today-modal-search-result-label');
+  if (meta && label) {
+    if (q) { meta.classList.add('visible'); label.textContent = `검색 결과 ${others.length}`; }
+    else    { meta.classList.remove('visible'); }
+  }
+  el.innerHTML = others.length
+    ? others.map(todaySelectItemHTML).join('')
+    : (q ? '<div style="padding:16px 20px;font-size:14px;color:var(--text3)">검색 결과가 없어요</div>' : '');
+}
+
+function onTodayModalSearch(val) {
+  todayModalSearchQuery = val.trim();
+  renderTodayOthersList();
+}
+
+function clearTodayModalSearch() {
+  todayModalSearchQuery = '';
+  const input = document.getElementById('today-modal-search-input');
+  if (input) input.value = '';
+  renderTodayOthersList();
 }
 function updateTodaySelectCount() {
   const el = document.getElementById('today-select-count');
