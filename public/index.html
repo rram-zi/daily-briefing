@@ -1669,7 +1669,11 @@ function openTodayModal() {
   todaySelectTemp = [...todayIds];
   todayModalSearchQuery = '';
   const isRec = t => recurringTasks.some(r => r.title === t.title);
-  _todayModalAvailable = tasks.filter(t => !t.done || isRec(t));
+  const hasActive = t => tasks.some(o => o.id !== t.id && o.title === t.title && !o.done);
+  _todayModalAvailable = tasks.filter(t => {
+    if (t.done && isRec(t) && hasActive(t)) return false;
+    return !t.done || isRec(t);
+  });
   const todayStr = todayKey();
   const recommended = _todayModalAvailable.filter(t => t.dueDate === todayStr || carryOverIds.has(t.id) || t.priority === '긴급');
   _todayModalRecommendedIds = new Set(recommended.map(t => t.id));
@@ -2202,9 +2206,12 @@ function attachDrag(container, onDrop) {
 
 function renderTasks() {
   const isRecurring = t => recurringTasks.some(r => r.title === t.title);
+  // 같은 제목의 미완료 인스턴스가 있으면 완료된 반복 인스턴스는 중복이므로 숨김
+  const hasActiveInstance = t => tasks.some(o => o.id !== t.id && o.title === t.title && !o.done);
   const todayTasks = todayIds.map(id => tasks.find(t => t.id === id)).filter(Boolean)
     .sort((a, b) => (b.done ? 1 : 0) - (a.done ? 1 : 0));
   const otherTasks = tasks.filter(t => {
+    if (t.done && isRecurring(t) && hasActiveInstance(t)) return false;
     if (currentFilter === 'done' && (!t.done || isRecurring(t))) return false;
     if (currentFilter === 'todo' && t.done && !isRecurring(t)) return false;
     if (currentCategories !== null && t.category && !currentCategories.has(t.category)) return false;
