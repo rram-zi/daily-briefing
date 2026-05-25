@@ -2227,46 +2227,49 @@ function attachDrag(container, onDrop) {
 
 function renderTasks() {
   const isRecurring = t => recurringTasks.some(r => r.title === t.title);
-  // 같은 제목의 미완료 인스턴스가 있으면 완료된 반복 인스턴스는 중복이므로 숨김
   const hasActiveInstance = t => tasks.some(o => o.id !== t.id && o.title === t.title && !o.done);
-  const todayTasks = todayIds.map(id => tasks.find(t => t.id === id)).filter(Boolean)
-    .sort((a, b) => (b.done ? 1 : 0) - (a.done ? 1 : 0));
-  // 완료된 반복 할 일: 제목별로 묶어 대표 1개 + _extraDates 배열로 합침
-  const recurringDoneMap = new Map(); // title → [task, ...]
+
+  // 완료 태스크를 제목 기준으로 그룹화 (isRecurring 무관하게 중복 제거)
+  const doneByTitle = new Map();
   tasks.forEach(t => {
-    if (!t.done || !isRecurring(t) || hasActiveInstance(t)) return;
-    if (currentCategories !== null && t.category && !currentCategories.has(t.category)) return;
-    if (taskSearchQuery && !t.title.toLowerCase().includes(taskSearchQuery.toLowerCase())) return;
-    if (!recurringDoneMap.has(t.title)) recurringDoneMap.set(t.title, []);
-    recurringDoneMap.get(t.title).push(t);
+    if (!t.done) return;
+    if (!doneByTitle.has(t.title)) doneByTitle.set(t.title, []);
+    doneByTitle.get(t.title).push(t);
   });
-  const recurringDoneMerged = [...recurringDoneMap.values()].map(group => {
-    const sorted = group.filter(t => t.completedAt).sort((a, b) => a.completedAt.localeCompare(b.completedAt));
-    const rep = { ...sorted[0] };
-    rep._extraDates = sorted.slice(1).map(t => t.completedAt);
-    return rep;
+  // 중복 제거: 제목당 대표 1개만 남기고 나머지 id는 제외 목록에 추가
+  const excludedDoneIds = new Set();
+  const extraDatesMap = new Map(); // representative id → extra completedAt[]
+  doneByTitle.forEach(group => {
+    if (group.length <= 1) return;
+    const sorted = [...group].sort((a, b) => (a.completedAt || '').localeCompare(b.completedAt || ''));
+    const rep = sorted[0];
+    extraDatesMap.set(rep.id, sorted.slice(1).map(t => t.completedAt).filter(Boolean));
+    sorted.slice(1).forEach(t => excludedDoneIds.add(t.id));
   });
 
-  const otherTasks = tasks.filter(t => {
-    if (t.done && isRecurring(t)) return false; // 반복 완료는 위에서 별도 처리
+  const todayTasks = todayIds.map(id => tasks.find(t => t.id === id)).filter(Boolean)
+    .sort((a, b) => (b.done ? 1 : 0) - (a.done ? 1 : 0));
+
+  const allOtherTasks = tasks.filter(t => {
+    if (excludedDoneIds.has(t.id)) return false;
     if (t.done && hasActiveInstance(t)) return false;
     if (currentFilter === 'done' && !t.done) return false;
-    if (currentFilter === 'todo' && t.done) return false;
+    if (currentFilter === 'todo' && t.done && !isRecurring(t)) return false;
     if (currentCategories !== null && t.category && !currentCategories.has(t.category)) return false;
     if (taskSearchQuery && !t.title.toLowerCase().includes(taskSearchQuery.toLowerCase())) return false;
     return true;
-  });
-  const allOtherTasks = [...otherTasks, ...recurringDoneMerged].sort((a, b) => {
-    const score = t => {
-      if (t.done && !isRecurring(t) && !t._extraDates) return 2;
-      const urgent  = t.priority === '긴급' ? 1 : 0;
-      const overdue = isOverdue(t.dueDate)  ? 1 : 0;
-      if (urgent && overdue) return -2;
-      if (urgent || overdue) return -1;
-      return 0;
-    };
-    return score(a) - score(b);
-  });
+  }).map(t => extraDatesMap.has(t.id) ? { ...t, _extraDates: extraDatesMap.get(t.id) } : t)
+    .sort((a, b) => {
+      const score = t => {
+        if (t.done && !isRecurring(t)) return 2;
+        const urgent  = t.priority === '긴급' ? 1 : 0;
+        const overdue = isOverdue(t.dueDate)  ? 1 : 0;
+        if (urgent && overdue) return -2;
+        if (urgent || overdue) return -1;
+        return 0;
+      };
+      return score(a) - score(b);
+    });
 
   const todayList = document.getElementById('today-list');
   todayList.innerHTML = todayTasks.length
