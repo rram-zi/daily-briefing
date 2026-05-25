@@ -534,7 +534,16 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
 
   .task-actions { display: flex; align-items: center; gap: 2px; opacity: 0; transition: opacity 0.12s; }
   .task-item:hover .task-actions { opacity: 1; }
-  .task-completed-date { font-size: 11px; color: var(--text3); flex-shrink: 0; padding: 0 6px; white-space: nowrap; }
+  .task-completed-date { font-size: 11px; color: var(--text3); flex-shrink: 0; padding: 0 6px; white-space: nowrap; position: relative; }
+  .task-completed-date.has-extra { cursor: pointer; text-decoration: underline dotted; }
+  .completed-tooltip {
+    display: none; position: absolute; bottom: calc(100% + 6px); right: 0;
+    background: var(--text1); color: var(--surface); border-radius: 8px;
+    padding: 8px 12px; font-size: 11px; white-space: nowrap;
+    flex-direction: column; gap: 4px; z-index: 200; box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+  }
+  .task-completed-date.has-extra:hover .completed-tooltip,
+  .task-completed-date.tooltip-open .completed-tooltip { display: flex; }
   .act-btn {
     width: 30px; height: 30px; border: none; background: transparent;
     cursor: pointer; border-radius: 8px; color: var(--text3);
@@ -1810,7 +1819,13 @@ async function confirmTodaySelection() {
   renderTodaySection();
 
   document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeConfig(); closeTaskDetail(); closeSearchModal(); closeTodayModal(); closeMobileSidebar(); closeCategoryModal(); closeNotifModal(); closeSettingsDropdown(); clearTaskSearch(); } });
-  document.addEventListener('click', e => { const wrap = document.getElementById('settings-wrap'); if (wrap && !wrap.contains(e.target)) closeSettingsDropdown(); });
+  document.addEventListener('click', e => {
+    const wrap = document.getElementById('settings-wrap');
+    if (wrap && !wrap.contains(e.target)) closeSettingsDropdown();
+    if (!e.target.closest('.task-completed-date')) {
+      document.querySelectorAll('.task-completed-date.tooltip-open').forEach(el => el.classList.remove('tooltip-open'));
+    }
+  });
 
   if (!AUTH) { openConfig(); return; }
 
@@ -2114,7 +2129,13 @@ function taskItemHTML(t, isToday, showCheckbox = false, showAsDone = t.done) {
       ${t.note ? `<div class="task-note">${linkify(tfEmoji(t.note))}</div>` : ''}
     </div>
     ${isToday ? '' : `
-      ${t.done && t.completedAt ? `<span class="task-completed-date">${fmt(t.completedAt)} 완료</span>` : ''}
+      ${t.done && t.completedAt ? (() => {
+        const extra = t._extraDates || [];
+        const allDates = [t.completedAt, ...extra].sort();
+        if (extra.length === 0) return `<span class="task-completed-date">${fmt(allDates[0])} 완료</span>`;
+        const tooltipHtml = allDates.map(d => `<span>${fmt(d)}</span>`).join('');
+        return `<span class="task-completed-date has-extra" onclick="toggleCompletedTooltip(event,this)">${fmt(allDates[0])} 외 ${extra.length}<span class="completed-tooltip">${tooltipHtml}</span></span>`;
+      })() : ''}
       <div class="task-actions">
         <button class="act-btn act-edit" onclick="openModal('${t.id}')" title="수정">
           <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -2210,16 +2231,34 @@ function renderTasks() {
   const hasActiveInstance = t => tasks.some(o => o.id !== t.id && o.title === t.title && !o.done);
   const todayTasks = todayIds.map(id => tasks.find(t => t.id === id)).filter(Boolean)
     .sort((a, b) => (b.done ? 1 : 0) - (a.done ? 1 : 0));
+  // 완료된 반복 할 일: 제목별로 묶어 대표 1개 + _extraDates 배열로 합침
+  const recurringDoneMap = new Map(); // title → [task, ...]
+  tasks.forEach(t => {
+    if (!t.done || !isRecurring(t) || hasActiveInstance(t)) return;
+    if (currentCategories !== null && t.category && !currentCategories.has(t.category)) return;
+    if (taskSearchQuery && !t.title.toLowerCase().includes(taskSearchQuery.toLowerCase())) return;
+    if (!recurringDoneMap.has(t.title)) recurringDoneMap.set(t.title, []);
+    recurringDoneMap.get(t.title).push(t);
+  });
+  const recurringDoneMerged = [...recurringDoneMap.values()].map(group => {
+    const sorted = group.filter(t => t.completedAt).sort((a, b) => a.completedAt.localeCompare(b.completedAt));
+    const rep = { ...sorted[0] };
+    rep._extraDates = sorted.slice(1).map(t => t.completedAt);
+    return rep;
+  });
+
   const otherTasks = tasks.filter(t => {
-    if (t.done && isRecurring(t) && hasActiveInstance(t)) return false;
-    if (currentFilter === 'done' && (!t.done || isRecurring(t))) return false;
-    if (currentFilter === 'todo' && t.done && !isRecurring(t)) return false;
+    if (t.done && isRecurring(t)) return false; // 반복 완료는 위에서 별도 처리
+    if (t.done && hasActiveInstance(t)) return false;
+    if (currentFilter === 'done' && !t.done) return false;
+    if (currentFilter === 'todo' && t.done) return false;
     if (currentCategories !== null && t.category && !currentCategories.has(t.category)) return false;
     if (taskSearchQuery && !t.title.toLowerCase().includes(taskSearchQuery.toLowerCase())) return false;
     return true;
-  }).sort((a, b) => {
+  });
+  const allOtherTasks = [...otherTasks, ...recurringDoneMerged].sort((a, b) => {
     const score = t => {
-      if (t.done && !isRecurring(t)) return 2;
+      if (t.done && !isRecurring(t) && !t._extraDates) return 2;
       const urgent  = t.priority === '긴급' ? 1 : 0;
       const overdue = isOverdue(t.dueDate)  ? 1 : 0;
       if (urgent && overdue) return -2;
@@ -2235,14 +2274,14 @@ function renderTasks() {
     : '<div class="empty-state">선택한 할 일이 없어요. 수정 버튼으로 추가해보세요</div>';
 
   const list = document.getElementById('task-list');
-  list.innerHTML = otherTasks.length
-    ? otherTasks.map(t => taskItemHTML(t, false, false, false)).join('')
+  list.innerHTML = allOtherTasks.length
+    ? allOtherTasks.map(t => taskItemHTML(t, false, false, false)).join('')
     : '<div class="empty-state">해당하는 할 일이 없습니다</div>';
 
   const metaEl = document.getElementById('task-search-meta');
   const labelEl = document.getElementById('task-search-result-label');
   if (taskSearchQuery) {
-    labelEl.textContent = `검색 결과 ${otherTasks.length}`;
+    labelEl.textContent = `검색 결과 ${allOtherTasks.length}`;
     metaEl.classList.add('visible');
   } else {
     metaEl.classList.remove('visible');
@@ -2924,6 +2963,11 @@ function isOverdue(d) {
   const dt = new Date(d); const today = new Date(); today.setHours(0,0,0,0); return dt < today;
 }
 function fmt(d) { const dt = new Date(d); return `${dt.getMonth()+1}/${dt.getDate()}`; }
+function fmtKo(d) { const dt = new Date(d); return `${dt.getMonth()+1}월 ${dt.getDate()}일`; }
+function toggleCompletedTooltip(e, el) {
+  e.stopPropagation();
+  el.classList.toggle('tooltip-open');
+}
 function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 const _TF_CDN = 'https://cdn.jsdelivr.net/gh/toss/tossface/dist/svg/';
