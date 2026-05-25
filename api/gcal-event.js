@@ -1,7 +1,3 @@
-import { put, list } from '@vercel/blob';
-
-const SYNCED_KEY = 'gcal-synced-events.json';
-
 function isAuthed(req) {
   const b64 = (req.headers['authorization'] || '').replace(/^Basic /, '');
   if (!b64) return false;
@@ -11,25 +7,30 @@ function isAuthed(req) {
          decoded.slice(idx + 1) === process.env.APP_PASSWORD;
 }
 
-async function getSyncedIds() {
-  try {
-    const { blobs } = await list({ prefix: SYNCED_KEY });
-    if (!blobs.length) return new Set();
-    const res = await fetch(blobs[0].downloadUrl);
-    const arr = await res.json();
-    return new Set(arr);
-  } catch {
-    return new Set();
-  }
-}
-
-async function saveSyncedIds(ids) {
-  await put(SYNCED_KEY, JSON.stringify([...ids]), {
-    access: 'public',
-    addRandomSuffix: false,
-    allowOverwrite: true,
-    contentType: 'application/json',
-  });
+async function notionTaskExists(title, date) {
+  const res = await fetch(
+    `https://api.notion.com/v1/databases/${process.env.NOTION_DB_ID}/query`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.NOTION_TOKEN}`,
+        'Notion-Version': '2022-06-28',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        filter: {
+          and: [
+            { property: '소스', rich_text: { equals: '구글캘린더' } },
+            { property: '마감일', date: { equals: date } },
+            { property: '이름', title: { equals: title } },
+          ],
+        },
+        page_size: 1,
+      }),
+    }
+  );
+  const data = await res.json();
+  return (data.results || []).length > 0;
 }
 
 export default async function handler(req, res) {
@@ -45,9 +46,8 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Missing required fields: eventId, title, date' });
   }
 
-  // 중복 방지: 이미 동기화된 이벤트 건너뜀
-  const syncedIds = await getSyncedIds();
-  if (syncedIds.has(eventId)) {
+  // Notion에서 직접 중복 확인 (제목 + 날짜 + 소스)
+  if (await notionTaskExists(title, date)) {
     return res.status(200).json({ ok: true, skipped: true });
   }
 
@@ -79,9 +79,6 @@ export default async function handler(req, res) {
     const err = await notionRes.json();
     return res.status(500).json({ error: 'Notion API error', detail: err });
   }
-
-  syncedIds.add(eventId);
-  await saveSyncedIds(syncedIds);
 
   return res.status(200).json({ ok: true });
 }
