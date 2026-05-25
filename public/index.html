@@ -1480,6 +1480,9 @@ async function checkRecurringTasks() {
     let taskId = null;
     const existing = tasks.find(t => !t.done && t.title === rt.title);
     if (!existing) {
+      // 이전 완료 인스턴스가 todayIds에 남아있으면 제거 (중복 방지)
+      const oldDone = tasks.find(t => t.done && t.title === rt.title && todayIds.includes(t.id));
+      if (oldDone) { todayIds = todayIds.filter(id => id !== oldDone.id); saveTodayIds(); }
       try {
         const result = await notionFetch('pages', 'POST', {
           parent: { database_id: DB_ID },
@@ -2247,8 +2250,11 @@ function renderTasks() {
     sorted.slice(1).forEach(t => excludedDoneIds.add(t.id));
   });
 
+  const seenTodayTitles = new Set();
   const todayTasks = todayIds.map(id => tasks.find(t => t.id === id)).filter(Boolean)
-    .sort((a, b) => (b.done ? 1 : 0) - (a.done ? 1 : 0));
+    .sort((a, b) => (a.done ? 1 : 0) - (b.done ? 1 : 0)) // 미완료 우선
+    .filter(t => { if (seenTodayTitles.has(t.title)) return false; seenTodayTitles.add(t.title); return true; })
+    .sort((a, b) => (b.done ? 1 : 0) - (a.done ? 1 : 0)); // 완료된 것 아래로
 
   const allOtherTasks = tasks.filter(t => {
     if (excludedDoneIds.has(t.id)) return false;
