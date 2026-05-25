@@ -1648,7 +1648,8 @@ function renderTodaySection() {
 let todaySelectTemp = [];
 function openTodayModal() {
   todaySelectTemp = [...todayIds];
-  const incomplete = tasks.filter(t => !t.done);
+  const isRecurring = t => recurringTasks.some(r => r.title === t.title);
+  const incomplete = tasks.filter(t => !t.done || isRecurring(t));
   const todayStr = todayKey();
   const recommended = incomplete.filter(t => t.dueDate === todayStr || carryOverIds.has(t.id) || t.priority === '긴급');
   const others      = incomplete.filter(t => t.dueDate !== todayStr && !carryOverIds.has(t.id) && t.priority !== '긴급');
