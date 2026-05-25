@@ -1520,6 +1520,23 @@ async function checkRecurringTasks() {
   if (changed) { updateStats(); renderTasks(); renderTodaySection(); }
 }
 
+function autoAddCalendarTasks() {
+  const today = todayKey();
+  const newIds = [];
+  tasks.forEach(t => {
+    if (t.source === '구글캘린더' && t.dueDate === today && !t.done && !todayIds.includes(t.id)) {
+      todayIds.push(t.id);
+      newIds.push(t.id);
+    }
+  });
+  if (!newIds.length) return;
+  saveTodayIds();
+  renderTodaySection();
+  newIds.forEach(id => {
+    notionFetch(`pages/${id}`, 'PATCH', { properties: { '오늘날짜': { date: { start: today } } } }).catch(() => {});
+  });
+}
+
 function localDateStr(d) { d = d || new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function todayKey() { return localDateStr(); }
 function yesterdayKey() { const d = new Date(); d.setDate(d.getDate() - 1); return localDateStr(d); }
@@ -1993,6 +2010,7 @@ async function loadTasks() {
     updateStats(); renderTasks(); renderBriefing();
     await checkWeeklyTask();
     await checkRecurringTasks();
+    autoAddCalendarTasks();
     if (!todayConfirmed || todayIds.length === 0) openTodayModal();
     const t = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
     setStatus('ok', `${tasks.length}개 할 일 동기화 완료 · ${t}`);
@@ -2029,7 +2047,8 @@ function parsePage(page) {
     done:        rawStatus === 'Done' || rawStatus === '완료',
     order:       p['순서']?.number ?? null,
     completedAt: p['완료일']?.date?.start ?? null,
-    todayDate:   g.date('오늘날짜') || null
+    todayDate:   g.date('오늘날짜') || null,
+    source:      g.text('소스'),
   };
 }
 
