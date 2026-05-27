@@ -820,15 +820,23 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
   .cal-day.is-holiday.is-today .cal-day-num { background: var(--blue500); color: #fff; }
   .cal-day.is-holiday .cal-task-chip { background: var(--blue500) !important; color: var(--surface); }
   .cal-task-chip {
-    display: block; width: 100%; min-width: 0; padding: 0 6px; border-radius: 4px;
+    display: flex; align-items: center; gap: 4px;
+    width: 100%; min-width: 0; padding: 0 5px; border-radius: 4px;
     border: none; font-size: 11px; font-weight: 500;
-    height: 20px; line-height: 20px; flex-shrink: 0;
+    height: 20px; flex-shrink: 0;
     font-family: inherit; color: #fff;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    white-space: nowrap; overflow: hidden;
     cursor: pointer; margin-bottom: 2px; text-align: left;
     transition: opacity 0.1s;
   }
   .cal-task-chip:hover { opacity: 0.82; }
+  .cal-chip-cat {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 14px; height: 14px; min-width: 14px;
+    background: #fff; border-radius: 3px;
+  }
+  .cal-chip-cat .t-emoji { width: 10px; height: 10px; vertical-align: middle; }
+  .cal-chip-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   /* History search */
   .topbar-search-btn {
@@ -2659,7 +2667,9 @@ function renderHistory() {
       const cn  = opt?.color || 'default';
       const BG  = { default:'#8B95A1', gray:'#6B7684', brown:'#9F8062', orange:'#D9730D', yellow:'#CB912F', green:'#448361', blue:'#337EA9', purple:'#9065B0', pink:'#C14C8A', red:'#D44C47' };
       const bg  = BG[cn] || BG.default;
-      return `<button class="cal-task-chip" style="background:${bg}" onclick="openTaskDetail('${t.id}')">${tfEmoji(t.title)}</button>`;
+      const catEmoji = t.category ? [...t.category][0] : '';
+      const catHtml = catEmoji ? `<span class="cal-chip-cat">${tfEmoji(catEmoji)}</span>` : '';
+      return `<button class="cal-task-chip" style="background:${bg}" onclick="openTaskDetail('${t.id}')">${catHtml}<span class="cal-chip-title">${tfEmoji(t.title)}</span></button>`;
     }).join('');
     const cls = [dateStr === today ? 'is-today' : '', holiday ? 'is-holiday' : ''].filter(Boolean).join(' ');
     return `<div class="cal-day ${cls}">
