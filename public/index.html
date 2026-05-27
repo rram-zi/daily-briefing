@@ -830,6 +830,16 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
     transition: opacity 0.1s;
   }
   .cal-task-chip:hover { opacity: 0.82; }
+  .cal-view-toggle {
+    display: flex; background: var(--grey100); border-radius: 8px; padding: 2px; gap: 2px;
+  }
+  .cal-view-btn {
+    padding: 5px 14px; border: none; border-radius: 6px;
+    background: transparent; color: var(--text3);
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    transition: all 0.15s; font-family: inherit;
+  }
+  .cal-view-btn.active { background: var(--surface); color: var(--text1); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
   .cal-chip-cat {
     display: inline-flex; align-items: center; justify-content: center;
     width: 14px; height: 14px; min-width: 14px;
@@ -1153,13 +1163,19 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
     <div id="history-view" style="display:none">
       <div class="cal-wrap">
         <div class="cal-header">
-          <button class="cal-nav-btn" onclick="changeMonth(-1)">
-            <svg viewBox="0 0 24 24"><polyline points="15,18 9,12 15,6"/></svg>
-          </button>
-          <span class="cal-month-label" id="cal-month-label"></span>
-          <button class="cal-nav-btn" onclick="changeMonth(1)">
-            <svg viewBox="0 0 24 24"><polyline points="9,18 15,12 9,6"/></svg>
-          </button>
+          <div style="display:flex;align-items:center;gap:8px">
+            <button class="cal-nav-btn" onclick="changeCalPeriod(-1)">
+              <svg viewBox="0 0 24 24"><polyline points="15,18 9,12 15,6"/></svg>
+            </button>
+            <span class="cal-month-label" id="cal-month-label"></span>
+            <button class="cal-nav-btn" onclick="changeCalPeriod(1)">
+              <svg viewBox="0 0 24 24"><polyline points="9,18 15,12 9,6"/></svg>
+            </button>
+          </div>
+          <div class="cal-view-toggle">
+            <button class="cal-view-btn active" id="cal-view-month-btn" onclick="setCalView('month')">월</button>
+            <button class="cal-view-btn" id="cal-view-week-btn" onclick="setCalView('week')">주</button>
+          </div>
         </div>
         <div class="cal-weekdays">
           <div class="cal-weekday" style="color:var(--red500)">일</div>
@@ -1403,6 +1419,8 @@ let editingId = null;
 let editingRecurringId = null;
 let viewMode = 'tasks';
 let historyMonth = new Date();
+let historyWeek = new Date();
+let historyView = 'month';
 let historySearch = '';
 let taskSearchQuery = '';
 let carryOverIds = new Set();
@@ -2631,22 +2649,68 @@ function renderSearchResults(q) {
 function goToDate(dateStr) {
   const d = new Date(dateStr + 'T00:00:00');
   historyMonth = new Date(d.getFullYear(), d.getMonth(), 1);
+  historyWeek = new Date(d);
   closeSearchModal();
   renderHistory();
 }
 
+function buildDoneMap() {
+  const map = {};
+  tasks.filter(t => t.done && t.completedAt).forEach(t => {
+    if (!map[t.completedAt]) map[t.completedAt] = [];
+    map[t.completedAt].push(t);
+  });
+  return map;
+}
+
+function buildChip(t) {
+  const opt = categoryOptions.find(o => o.name === t.category);
+  const cn  = opt?.color || 'default';
+  const BG  = { default:'#8B95A1', gray:'#6B7684', brown:'#9F8062', orange:'#D9730D', yellow:'#CB912F', green:'#448361', blue:'#337EA9', purple:'#9065B0', pink:'#C14C8A', red:'#D44C47' };
+  const bg  = BG[cn] || BG.default;
+  const catEmoji = t.category ? [...t.category][0] : '';
+  const catHtml = catEmoji ? `<span class="cal-chip-cat">${tfEmoji(catEmoji)}</span>` : '';
+  return `<button class="cal-task-chip" style="background:${bg}" onclick="openTaskDetail('${t.id}')">${catHtml}<span class="cal-chip-title">${tfEmoji(t.title)}</span></button>`;
+}
+
+function equalizeCalHeights(minH) {
+  const grid = document.getElementById('cal-grid');
+  grid.style.gridAutoRows = '';
+  const days = grid.querySelectorAll('.cal-day');
+  let maxH = minH;
+  days.forEach(d => { if (d.offsetHeight > maxH) maxH = d.offsetHeight; });
+  grid.style.gridAutoRows = maxH + 'px';
+}
+
+function setCalView(view) {
+  historyView = view;
+  document.getElementById('cal-view-month-btn').classList.toggle('active', view === 'month');
+  document.getElementById('cal-view-week-btn').classList.toggle('active', view === 'week');
+  renderHistory();
+}
+
+function changeCalPeriod(delta) {
+  if (historyView === 'month') {
+    historyMonth = new Date(historyMonth.getFullYear(), historyMonth.getMonth() + delta, 1);
+  } else {
+    historyWeek = new Date(historyWeek.getTime() + delta * 7 * 24 * 60 * 60 * 1000);
+  }
+  renderHistory();
+}
+
 function renderHistory() {
+  if (historyView === 'week') renderHistoryWeek();
+  else renderHistoryMonth();
+}
+
+function renderHistoryMonth() {
   const y = historyMonth.getFullYear(), m = historyMonth.getMonth();
   document.getElementById('cal-month-label').textContent = `${y}년 ${m + 1}월`;
 
-  const doneMap = {};
-  tasks.filter(t => t.done && t.completedAt).forEach(t => {
-    if (!doneMap[t.completedAt]) doneMap[t.completedAt] = [];
-    doneMap[t.completedAt].push(t);
-  });
-
+  const doneMap = buildDoneMap();
   const today = todayKey();
-  const firstDay   = new Date(y, m, 1).getDay();
+  const q = historySearch.toLowerCase();
+  const firstDay    = new Date(y, m, 1).getDay();
   const daysInMonth = new Date(y, m + 1, 0).getDate();
   const daysInPrev  = new Date(y, m, 0).getDate();
 
@@ -2659,38 +2723,42 @@ function renderHistory() {
   document.getElementById('cal-grid').innerHTML = cells.map(c => {
     if (!c.cur) return `<div class="cal-day other-month"><span class="cal-day-num">${c.day}</span></div>`;
     const dateStr  = `${y}-${String(m+1).padStart(2,'0')}-${String(c.day).padStart(2,'0')}`;
-    const q = historySearch.toLowerCase();
     const dayTasks = (doneMap[dateStr] || []).filter(t => !q || t.title.toLowerCase().includes(q));
     const holiday = isHoliday(dateStr);
-    const chips = dayTasks.map(t => {
-      const opt = categoryOptions.find(o => o.name === t.category);
-      const cn  = opt?.color || 'default';
-      const BG  = { default:'#8B95A1', gray:'#6B7684', brown:'#9F8062', orange:'#D9730D', yellow:'#CB912F', green:'#448361', blue:'#337EA9', purple:'#9065B0', pink:'#C14C8A', red:'#D44C47' };
-      const bg  = BG[cn] || BG.default;
-      const catEmoji = t.category ? [...t.category][0] : '';
-      const catHtml = catEmoji ? `<span class="cal-chip-cat">${tfEmoji(catEmoji)}</span>` : '';
-      return `<button class="cal-task-chip" style="background:${bg}" onclick="openTaskDetail('${t.id}')">${catHtml}<span class="cal-chip-title">${tfEmoji(t.title)}</span></button>`;
-    }).join('');
+    const chips = dayTasks.map(buildChip).join('');
     const cls = [dateStr === today ? 'is-today' : '', holiday ? 'is-holiday' : ''].filter(Boolean).join(' ');
-    return `<div class="cal-day ${cls}">
-      <span class="cal-day-num">${c.day}</span>
-      ${chips}
-    </div>`;
+    return `<div class="cal-day ${cls}"><span class="cal-day-num">${c.day}</span>${chips}</div>`;
   }).join('');
 
-  // 가장 높은 셀을 기준으로 모든 행 높이 통일 (데스크톱/모바일 공통)
-  const grid = document.getElementById('cal-grid');
-  grid.style.gridAutoRows = '';
-  const days = grid.querySelectorAll('.cal-day');
-  const minH = window.innerWidth > 680 ? 96 : 80;
-  let maxH = minH;
-  days.forEach(d => { if (d.offsetHeight > maxH) maxH = d.offsetHeight; });
-  grid.style.gridAutoRows = maxH + 'px';
+  equalizeCalHeights(window.innerWidth > 680 ? 96 : 80);
 }
 
-function changeMonth(delta) {
-  historyMonth = new Date(historyMonth.getFullYear(), historyMonth.getMonth() + delta, 1);
-  renderHistory();
+function renderHistoryWeek() {
+  const base = new Date(historyWeek);
+  base.setDate(base.getDate() - base.getDay()); // 해당 주 일요일
+  const end = new Date(base);
+  end.setDate(base.getDate() + 6);
+
+  const fmtShort = d => `${d.getMonth()+1}.${d.getDate()}`;
+  document.getElementById('cal-month-label').textContent =
+    `${base.getFullYear()}년 ${fmtShort(base)} ~ ${fmtShort(end)}`;
+
+  const doneMap = buildDoneMap();
+  const today = todayKey();
+  const q = historySearch.toLowerCase();
+
+  document.getElementById('cal-grid').innerHTML = Array.from({ length: 7 }, (_, i) => {
+    const day = new Date(base);
+    day.setDate(base.getDate() + i);
+    const dateStr = localDateStr(day);
+    const dayTasks = (doneMap[dateStr] || []).filter(t => !q || t.title.toLowerCase().includes(q));
+    const holiday = isHoliday(dateStr);
+    const chips = dayTasks.map(buildChip).join('');
+    const cls = [dateStr === today ? 'is-today' : '', holiday ? 'is-holiday' : ''].filter(Boolean).join(' ');
+    return `<div class="cal-day ${cls}"><span class="cal-day-num">${day.getDate()}</span>${chips}</div>`;
+  }).join('');
+
+  equalizeCalHeights(window.innerWidth > 680 ? 200 : 150);
 }
 
 function openTaskDetail(taskId) {
