@@ -53,6 +53,7 @@
 </script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scrollbar-gutter: stable; }
 body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
 
   /* ── Push 알림 모달 ── */
@@ -860,6 +861,16 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
   .cal-chip-cat .t-emoji { width: 10px; height: 10px; vertical-align: middle; }
   .cal-chip-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+  .cal-stats {
+    display: flex; gap: 1px;
+    border-top: 1px solid var(--border); margin-top: 12px;
+  }
+  .cal-stat {
+    flex: 1; padding: 16px 8px; text-align: center;
+  }
+  .cal-stat-num { font-size: 28px; font-weight: 700; color: var(--text1); line-height: 1; }
+  .cal-stat-label { font-size: 12px; color: var(--text3); margin-top: 6px; }
+
   /* History search */
   .topbar-search-btn {
     display: flex; align-items: center; gap: 6px;
@@ -1037,7 +1048,7 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
 <div class="shell">
 
   <!-- Sidebar -->
-  <aside class="sidebar">
+  <aside class="sidebar collapsed">
     <div class="logo-row">
       <img class="logo-icon" src="/emoji/u1F31E.svg" alt="Daily Briefing">
     </div>
@@ -1217,6 +1228,7 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
           <div class="cal-weekday" style="color:var(--blue500)">토</div>
         </div>
         <div class="cal-grid" id="cal-grid"></div>
+        <div class="cal-stats" id="cal-stats"></div>
       </div>
     </div>
 
@@ -1425,8 +1437,8 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
 </div>
 
 <!-- 데스크톱 사이드바 펼치기 버튼 -->
-<button class="sidebar-expand-btn" id="sidebar-expand-btn" onclick="toggleSidebar()" title="사이드바 접기">
-  <svg viewBox="0 0 24 24"><polyline points="15,18 9,12 15,6"/></svg>
+<button class="sidebar-expand-btn" id="sidebar-expand-btn" onclick="toggleSidebar()" title="사이드바 펼치기" style="left:16px">
+  <svg viewBox="0 0 24 24"><polyline points="9,18 15,12 9,6"/></svg>
 </button>
 
 <!-- 모바일 오버레이 -->
@@ -2818,6 +2830,7 @@ function renderHistoryMonth() {
   }).join('');
 
   equalizeCalHeights(window.innerWidth > 680 ? 96 : 80);
+  renderCalStats();
 }
 
 function renderHistoryWeek() {
@@ -2846,6 +2859,30 @@ function renderHistoryWeek() {
   }).join('');
 
   equalizeCalHeights(window.innerWidth > 680 ? 200 : 150);
+  renderCalStats();
+}
+
+function renderCalStats() {
+  const doneMap = buildDoneMap();
+  const now = new Date(Date.now() - DAY_CUTOFF_HOURS * 60 * 60 * 1000);
+  const y = now.getFullYear(), mo = now.getMonth();
+
+  const monthPrefix = `${y}-${String(mo + 1).padStart(2, '0')}`;
+  const monthCount = Object.entries(doneMap)
+    .filter(([k]) => k.startsWith(monthPrefix))
+    .reduce((s, [, arr]) => s + arr.length, 0);
+
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - now.getDay());
+  const weekCount = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(weekStart);
+    d.setDate(weekStart.getDate() + i);
+    return localDateStr(d);
+  }).reduce((s, d) => s + (doneMap[d]?.length || 0), 0);
+
+  document.getElementById('cal-stats').innerHTML =
+    `<div class="cal-stat"><div class="cal-stat-num">${monthCount}</div><div class="cal-stat-label">이번 달 완료</div></div>` +
+    `<div class="cal-stat"><div class="cal-stat-num">${weekCount}</div><div class="cal-stat-label">이번 주 완료</div></div>`;
 }
 
 function openTaskDetail(taskId) {
