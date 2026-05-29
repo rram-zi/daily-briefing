@@ -1583,9 +1583,10 @@ function autoAddCalendarTasks() {
   });
 }
 
+const DAY_CUTOFF_HOURS = 2; // 새벽 N시까지를 전날로 간주
 function localDateStr(d) { d = d || new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
-function todayKey() { return localDateStr(); }
-function yesterdayKey() { const d = new Date(); d.setDate(d.getDate() - 1); return localDateStr(d); }
+function todayKey() { return localDateStr(new Date(Date.now() - DAY_CUTOFF_HOURS * 60 * 60 * 1000)); }
+function yesterdayKey() { const d = new Date(Date.now() - DAY_CUTOFF_HOURS * 60 * 60 * 1000); d.setDate(d.getDate() - 1); return localDateStr(d); }
 
 const _HOLIDAY_FIXED = {'01-01':1,'03-01':1,'05-05':1,'06-06':1,'08-15':1,'10-03':1,'10-09':1,'12-25':1};
 const _HOLIDAY_VAR = {
