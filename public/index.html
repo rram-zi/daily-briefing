@@ -878,7 +878,7 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
   .weekly-stat-card { background: var(--grey50); border-radius: 12px; padding: 14px 16px; }
   .weekly-stat-num { font-size: 22px; font-weight: 700; color: var(--text1); line-height: 1.2; }
   .weekly-stat-label { font-size: 12px; color: var(--text3); margin-top: 4px; }
-  .weekly-cat-section { margin-bottom: 16px; }
+  .weekly-cat-section { margin-bottom: 28px; }
   .weekly-cat-header {
     font-size: 13px; font-weight: 600; color: var(--text2);
     padding-bottom: 6px; border-bottom: 1px solid var(--border); margin-bottom: 6px;
@@ -1355,15 +1355,15 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
 
 <!-- Weekly Report Modal -->
 <div class="modal-backdrop" id="weekly-report-backdrop" onclick="if(event.target===this)closeWeeklyReportModal()">
-  <div class="modal" style="max-width:480px">
-    <div class="modal-header">
+  <div class="modal" style="max-width:480px;overflow:hidden;display:flex;flex-direction:column;max-height:85vh">
+    <div class="modal-header" style="flex-shrink:0">
       <div>
         <div class="modal-title">주간 레포트</div>
         <div class="weekly-report-range" id="weekly-report-range"></div>
       </div>
       <button class="modal-close" onclick="closeWeeklyReportModal()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
-    <div class="modal-body" style="max-height:70vh;overflow-y:auto">
+    <div class="modal-body" style="overflow-y:auto;flex:1">
       <div class="weekly-report-summary" id="weekly-report-summary"></div>
       <div id="weekly-report-list"></div>
     </div>
