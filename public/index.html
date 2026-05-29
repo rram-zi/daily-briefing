@@ -1230,7 +1230,7 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
               <svg viewBox="0 0 24 24"><polyline points="15,18 9,12 15,6"/></svg>
             </button>
             <span class="cal-month-label" id="cal-month-label"></span>
-            <button class="cal-nav-btn" onclick="changeCalPeriod(1)">
+            <button class="cal-nav-btn" id="cal-next-btn" onclick="changeCalPeriod(1)">
               <svg viewBox="0 0 24 24"><polyline points="9,18 15,12 9,6"/></svg>
             </button>
           </div>
@@ -2854,7 +2854,30 @@ function setCalView(view) {
   renderHistory();
 }
 
+function isAtCurrentPeriod() {
+  const now = new Date(Date.now() - DAY_CUTOFF_HOURS * 60 * 60 * 1000);
+  if (historyView === 'month') {
+    return historyMonth.getFullYear() === now.getFullYear() && historyMonth.getMonth() === now.getMonth();
+  } else {
+    const base = new Date(historyWeek);
+    base.setDate(base.getDate() - base.getDay());
+    const nowBase = new Date(now);
+    nowBase.setDate(nowBase.getDate() - nowBase.getDay());
+    return base >= nowBase;
+  }
+}
+
+function updateCalNavButtons() {
+  const btn = document.getElementById('cal-next-btn');
+  if (!btn) return;
+  const disable = isAtCurrentPeriod();
+  btn.disabled = disable;
+  btn.style.opacity = disable ? '0.3' : '';
+  btn.style.pointerEvents = disable ? 'none' : '';
+}
+
 function changeCalPeriod(delta) {
+  if (delta > 0 && isAtCurrentPeriod()) return;
   if (historyView === 'month') {
     historyMonth = new Date(historyMonth.getFullYear(), historyMonth.getMonth() + delta, 1);
   } else {
@@ -2897,6 +2920,7 @@ function renderHistoryMonth() {
 
   equalizeCalHeights(window.innerWidth > 680 ? 96 : 80);
   renderCalStats();
+  updateCalNavButtons();
 }
 
 function renderHistoryWeek() {
@@ -2926,6 +2950,7 @@ function renderHistoryWeek() {
 
   equalizeCalHeights(window.innerWidth > 680 ? 200 : 150);
   renderCalStats();
+  updateCalNavButtons();
 }
 
 function renderCalStats() {
