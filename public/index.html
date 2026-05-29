@@ -1367,6 +1367,12 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
       <div class="weekly-report-summary" id="weekly-report-summary"></div>
       <div id="weekly-report-list"></div>
     </div>
+    <div style="flex-shrink:0;padding:12px 24px 20px;border-top:1px solid var(--border)">
+      <button id="weekly-copy-btn" onclick="copyWeeklyReport()" style="width:100%;padding:11px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text1);font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:background 0.1s">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        텍스트로 복사
+      </button>
+    </div>
   </div>
 </div>
 
@@ -3201,6 +3207,44 @@ function openWeeklyReportModal() {
 function closeWeeklyReportModal() {
   document.getElementById('weekly-report-backdrop').classList.remove('open');
   unlockScroll();
+}
+
+async function copyWeeklyReport() {
+  const { mondayStr, saturdayStr, label } = getWeekReportRange();
+  const weekTasks = tasks.filter(t =>
+    t.done && t.completedAt &&
+    t.completedAt >= mondayStr && t.completedAt <= saturdayStr
+  );
+
+  const catMap = {};
+  for (const t of weekTasks) {
+    const k = t.category || '';
+    if (!catMap[k]) catMap[k] = [];
+    catMap[k].push(t);
+  }
+  const sorted = Object.entries(catMap).sort((a, b) => {
+    if (!a[0]) return 1; if (!b[0]) return -1;
+    return b[1].length - a[1].length;
+  });
+
+  const lines = [`📅 ${label} 주간 레포트`, `총 ${weekTasks.length}개 완료`, ''];
+  for (const [cat, ts] of sorted) {
+    lines.push(`${cat || '카테고리 없음'} (${ts.length}개)`);
+    for (const t of ts) lines.push(`- ${t.title}`);
+    lines.push('');
+  }
+
+  const text = lines.join('\n').trimEnd();
+  try {
+    await navigator.clipboard.writeText(text);
+    const btn = document.getElementById('weekly-copy-btn');
+    btn.textContent = '복사됨!';
+    setTimeout(() => {
+      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> 텍스트로 복사';
+    }, 2000);
+  } catch {
+    alert(text);
+  }
 }
 
 function handleNotifBackdropClick(e) {
