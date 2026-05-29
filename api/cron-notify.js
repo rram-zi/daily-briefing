@@ -1,11 +1,6 @@
 import webpush from 'web-push';
 import { put, list } from '@vercel/blob';
 
-function getKSTDateStr() {
-  const kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
-  return kst.toISOString().slice(0, 10);
-}
-
 async function readSubscriptions() {
   try {
     const { blobs } = await list({ prefix: 'push-subscriptions.json' });
@@ -31,36 +26,6 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  const today = getKSTDateStr();
-
-  // Notion에서 오늘의 할 일(오늘날짜 === today) + 미완료 태스크 조회
-  const notionRes = await fetch(
-    `https://api.notion.com/v1/databases/${process.env.NOTION_DB_ID}/query`,
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${process.env.NOTION_TOKEN}`,
-        'Notion-Version': '2022-06-28',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        filter: {
-          and: [
-            { property: '오늘날짜', date: { equals: today } },
-            { property: '상태', status: { does_not_equal: '완료' } },
-            { property: '상태', status: { does_not_equal: 'Done' } },
-          ],
-        },
-        page_size: 1,
-      }),
-    }
-  );
-
-  const { results = [] } = await notionRes.json();
-  if (results.length === 0) {
-    return res.status(200).json({ sent: false, reason: 'No incomplete tasks due today' });
-  }
-
   const subs = await readSubscriptions();
   if (!subs.length) {
     return res.status(200).json({ sent: false, reason: 'No push subscriptions' });
@@ -73,8 +38,8 @@ export default async function handler(req, res) {
   );
 
   const payload = JSON.stringify({
-    title: '완료 처리가 필요한 할 일',
-    body: '아직 완료 처리하지 않은 할 일이 있어요. 확인해 주세요!',
+    title: '오늘 할 일 확인',
+    body: '오늘 할 일을 다 했는지 확인해 보세요!',
   });
 
   // 만료된 구독 제거하며 발송
