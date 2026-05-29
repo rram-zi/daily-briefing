@@ -1293,6 +1293,16 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
     <div class="modal-body">
       <div class="notif-row">
         <div class="notif-row-info">
+          <div class="notif-row-title">주간 레포트</div>
+          <div class="notif-row-desc">매주 일요일 오전 10시에 지난 한 주의 완료 현황을 알려드려요.</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="notif-weekly-toggle" onchange="onWeeklyToggleChange(this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="notif-row">
+        <div class="notif-row-info">
           <div class="notif-row-title">시작 알림</div>
           <div class="notif-row-desc">매일 아침 8시에 할 일 작성을 알려드려요.</div>
         </div>
@@ -2140,6 +2150,7 @@ async function loadTasks() {
     autoAddCalendarTasks();
     if (_startAction === 'morning') { _startAction = ''; openTodayModal(); }
     else if (_startAction === 'deadline') { _startAction = ''; scrollToToday(); }
+    else if (_startAction === 'history') { _startAction = ''; setView('history', null); }
     else if (!todayConfirmed || todayIds.length === 0) openTodayModal();
     const t = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
     setStatus('ok', `${tasks.length}개 할 일 동기화 완료 · ${t}`);
@@ -3055,9 +3066,11 @@ async function openNotifModal() {
   const deadlineToggle = document.getElementById('notif-deadline-toggle');
   const morningToggle  = document.getElementById('notif-morning-toggle');
   const checkToggle    = document.getElementById('notif-check-toggle');
+  const weeklyToggle   = document.getElementById('notif-weekly-toggle');
   deadlineToggle.checked = false;
   morningToggle.checked  = false;
   checkToggle.checked    = false;
+  weeklyToggle.checked   = false;
   if ('serviceWorker' in navigator && Notification.permission === 'granted') {
     try {
       const reg = await navigator.serviceWorker.ready;
@@ -3066,6 +3079,7 @@ async function openNotifModal() {
         deadlineToggle.checked = localStorage.getItem('push_deadline') === 'on';
         morningToggle.checked  = localStorage.getItem('push_morning')  === 'on';
         checkToggle.checked    = localStorage.getItem('push_check')    === 'on';
+        weeklyToggle.checked   = localStorage.getItem('push_weekly')   === 'on';
       }
     } catch {}
   }
@@ -3131,6 +3145,18 @@ async function onCheckToggleChange(checked) {
   }
 }
 
+async function onWeeklyToggleChange(checked) {
+  const el = document.getElementById('notif-weekly-toggle');
+  if (checked) {
+    if (!await _requestPermission(el)) return;
+    await _subscribePush('weekly');
+    localStorage.setItem('push_weekly', 'on');
+  } else {
+    await _unsubscribePush('weekly');
+    localStorage.setItem('push_weekly', 'off');
+  }
+}
+
 async function _unsubscribePush(type) {
   try {
     const reg = await navigator.serviceWorker.ready;
@@ -3141,8 +3167,8 @@ async function _unsubscribePush(type) {
       headers: { 'Content-Type': 'application/json', 'Authorization': `Basic ${AUTH}` },
       body: JSON.stringify({ endpoint: sub.endpoint }),
     });
-    // 세 타입 모두 off일 때만 브라우저 구독 해제
-    const allOff = ['push_morning', 'push_deadline', 'push_check']
+    // 모든 타입이 off일 때만 브라우저 구독 해제
+    const allOff = ['push_morning', 'push_deadline', 'push_check', 'push_weekly']
       .filter(k => k !== `push_${type}`)
       .every(k => localStorage.getItem(k) !== 'on');
     if (allOff) await sub.unsubscribe();
@@ -3276,8 +3302,9 @@ async function _subscribePush(type) {
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(() => {});
   navigator.serviceWorker.addEventListener('message', e => {
-    if (e.data?.action === 'morning') openTodayModal();
+    if (e.data?.action === 'morning')  openTodayModal();
     if (e.data?.action === 'deadline') scrollToToday();
+    if (e.data?.action === 'history')  setView('history', null);
   });
 }
 </script>

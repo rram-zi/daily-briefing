@@ -3,13 +3,15 @@ import { put, list } from '@vercel/blob';
 function blobKey(type) {
   if (type === 'morning') return 'push-subscriptions-morning.json';
   if (type === 'check')   return 'push-subscriptions-check.json';
+  if (type === 'weekly')  return 'push-subscriptions-weekly.json';
   return 'push-subscriptions.json';
 }
 
 async function readSubscriptions(type) {
   try {
     const prefix = type === 'morning' ? 'push-subscriptions-morning'
-      : type === 'check' ? 'push-subscriptions-check'
+      : type === 'check'  ? 'push-subscriptions-check'
+      : type === 'weekly' ? 'push-subscriptions-weekly'
       : 'push-subscriptions.json';
     const { blobs } = await list({ prefix });
     if (!blobs.length) return [];
@@ -45,7 +47,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (!isAuthed(req)) return res.status(401).json({ error: 'Unauthorized' });
 
-  const type = ['morning', 'check'].includes(req.query.type) ? req.query.type : 'deadline';
+  const type = ['morning', 'check', 'weekly'].includes(req.query.type) ? req.query.type : 'deadline';
 
   if (req.method === 'DELETE') {
     const { endpoint } = req.body || {};
