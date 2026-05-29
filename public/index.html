@@ -2930,21 +2930,21 @@ function renderHistoryWeek() {
 
 function renderCalStats() {
   const doneMap = buildDoneMap();
-  const now = new Date(Date.now() - DAY_CUTOFF_HOURS * 60 * 60 * 1000);
 
   let html = '';
   if (historyView === 'month') {
-    const prefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const y = historyMonth.getFullYear(), mo = historyMonth.getMonth();
+    const prefix = `${y}-${String(mo + 1).padStart(2, '0')}`;
     const count = Object.entries(doneMap)
       .filter(([k]) => k.startsWith(prefix))
       .reduce((s, [, arr]) => s + arr.length, 0);
     html = `<div class="cal-stat"><div class="cal-stat-num">${count}</div><div class="cal-stat-label">이번 달 완료</div></div>`;
   } else {
-    const weekStart = new Date(now);
-    weekStart.setDate(now.getDate() - now.getDay());
+    const base = new Date(historyWeek);
+    base.setDate(base.getDate() - base.getDay()); // 해당 주 일요일
     const count = Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(weekStart);
-      d.setDate(weekStart.getDate() + i);
+      const d = new Date(base);
+      d.setDate(base.getDate() + i);
       return localDateStr(d);
     }).reduce((s, d) => s + (doneMap[d]?.length || 0), 0);
     html = `<div class="cal-stat"><div class="cal-stat-num">${count}</div><div class="cal-stat-label">이번 주 완료</div></div>`;
