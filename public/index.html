@@ -504,6 +504,18 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
   .today-card .task-item:hover { box-shadow: none; background: var(--grey50); }
   .today-card .task-item.drag-over { outline: none; box-shadow: none; background: var(--blue50); }
   .today-card .empty-state { padding: 12px 6px; }
+  .today-quick-add {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 14px; border-radius: 10px; cursor: text;
+    transition: background 0.1s;
+  }
+  .today-quick-add:focus-within { background: var(--grey50); }
+  .today-quick-add svg { flex-shrink: 0; color: var(--text3); }
+  .today-quick-add-input {
+    flex: 1; border: none; outline: none; background: transparent;
+    font-size: 14px; color: var(--text1); font-family: inherit;
+  }
+  .today-quick-add-input::placeholder { color: var(--text3); }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 
   .checkbox {
@@ -1447,6 +1459,8 @@ let carryOverIds = new Set();
 let todayIds = [];
 let todayConfirmed = false;
 let _carryoverPatchPromise = Promise.resolve();
+let _startAction = new URLSearchParams(location.search).get('action') || '';
+if (_startAction) history.replaceState(null, '', '/');
 let recurringTasks = [];
 
 function toNotionPriority(p) { return p === '긴급' ? '긴급' : '보통'; }
@@ -2033,6 +2047,42 @@ async function notionFetch(path, method = 'POST', body = null) {
   return res.json();
 }
 
+function scrollToToday() {
+  const el = document.getElementById('today-filled-state') || document.getElementById('today-empty-state');
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+async function quickAddToday(input) {
+  const title = input.value.trim();
+  if (!title) return;
+  input.value = '';
+  input.disabled = true;
+  try {
+    const today = todayKey();
+    const result = await notionFetch('pages', 'POST', {
+      parent: { database_id: DB_ID },
+      properties: {
+        '이름':     { title:  [{ text: { content: title } }] },
+        '마감일':   { date:   { start: today } },
+        '우선순위': { select: { name: '보통' } },
+        '상태':     { status: { name: 'Not started' } },
+        '오늘날짜': { date:   { start: today } },
+      }
+    });
+    tasks.unshift({ id: result.id, title, status: '할 일', priority: '일반', dueDate: today, category: '', note: '', done: false, source: '' });
+    todayIds.push(result.id);
+    todayConfirmed = true;
+    saveTodayIds();
+    updateStats(); renderTasks(); renderBriefing();
+    setStatus('ok', `"${title}" 추가됨`);
+  } catch(e) {
+    setStatus('err', '추가 실패: ' + e.message);
+  }
+  input.disabled = false;
+  // 렌더 후 새 인풋으로 포커스
+  document.querySelector('.today-quick-add-input')?.focus();
+}
+
 function hideSplash() {
   const s = document.getElementById('splash');
   if (!s) return;
@@ -2065,7 +2115,9 @@ async function loadTasks() {
     await checkWeeklyTask();
     await checkRecurringTasks();
     autoAddCalendarTasks();
-    if (!todayConfirmed || todayIds.length === 0) openTodayModal();
+    if (_startAction === 'morning') { _startAction = ''; openTodayModal(); }
+    else if (_startAction === 'deadline') { _startAction = ''; scrollToToday(); }
+    else if (!todayConfirmed || todayIds.length === 0) openTodayModal();
     const t = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
     setStatus('ok', `${tasks.length}개 할 일 동기화 완료 · ${t}`);
   } catch(e) {
@@ -2352,9 +2404,15 @@ function renderTasks() {
     });
 
   const todayList = document.getElementById('today-list');
-  todayList.innerHTML = todayTasks.length
+  const quickAddRow = `<div class="today-quick-add" onclick="this.querySelector('input').focus()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    <input class="today-quick-add-input" type="text" placeholder="빠르게 추가..."
+      onkeydown="if(event.key==='Enter'&&this.value.trim())quickAddToday(this)">
+  </div>`;
+  todayList.innerHTML = (todayTasks.length
     ? todayTasks.map(t => taskItemHTML(t, true, true)).join('')
-    : '<div class="empty-state">선택한 할 일이 없어요. 수정 버튼으로 추가해보세요</div>';
+    : '<div class="empty-state">선택한 할 일이 없어요. 수정 버튼으로 추가해보세요</div>')
+    + quickAddRow;
 
   const list = document.getElementById('task-list');
   list.innerHTML = allOtherTasks.length
@@ -3151,6 +3209,10 @@ async function _subscribePush(type) {
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(() => {});
+  navigator.serviceWorker.addEventListener('message', e => {
+    if (e.data?.action === 'morning') openTodayModal();
+    if (e.data?.action === 'deadline') scrollToToday();
+  });
 }
 </script>
 </body>

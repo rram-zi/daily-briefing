@@ -40,6 +40,7 @@ export default async function handler(req, res) {
   const payload = JSON.stringify({
     title: '오늘 할 일 확인',
     body: '오늘 할 일을 다 했는지 확인해 보세요!',
+    action: 'deadline',
   });
 
   // 만료된 구독 제거하며 발송

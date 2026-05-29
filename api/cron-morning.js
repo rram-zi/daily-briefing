@@ -29,8 +29,9 @@ export default async function handler(req, res) {
   );
 
   const payload = JSON.stringify({
-    title: '모닝 알림',
+    title: '시작 알림',
     body: '오늘 할 일을 작성해 보세요!',
+    action: 'morning',
   });
 
   const validSubs = [];
