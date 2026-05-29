@@ -101,7 +101,7 @@ export default async function handler(req, res) {
   const payload = JSON.stringify({
     title: `주간 레포트 · ${count}개 완료`,
     body,
-    action: 'history',
+    action: 'weekly-report',
   });
 
   const validSubs = [];

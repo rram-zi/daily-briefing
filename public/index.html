@@ -872,6 +872,24 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
   .cal-stat-num { font-size: 18px; font-weight: 700; color: var(--text1); line-height: 1; }
   .cal-stat-label { font-size: 12px; color: var(--text3); }
 
+  /* Weekly Report Modal */
+  .weekly-report-range { font-size: 13px; color: var(--text3); margin-top: 2px; }
+  .weekly-report-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 16px 0 20px; }
+  .weekly-stat-card { background: var(--grey50); border-radius: 12px; padding: 14px 16px; }
+  .weekly-stat-num { font-size: 22px; font-weight: 700; color: var(--text1); line-height: 1.2; }
+  .weekly-stat-label { font-size: 12px; color: var(--text3); margin-top: 4px; }
+  .weekly-cat-section { margin-bottom: 16px; }
+  .weekly-cat-header {
+    font-size: 13px; font-weight: 600; color: var(--text2);
+    padding-bottom: 6px; border-bottom: 1px solid var(--border); margin-bottom: 6px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .weekly-task-item {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 14px; color: var(--text1); padding: 5px 2px;
+  }
+  .weekly-task-item svg { flex-shrink: 0; }
+
   /* History search */
   .topbar-search-btn {
     display: flex; align-items: center; gap: 6px;
@@ -1331,6 +1349,23 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
           <span class="toggle-slider"></span>
         </label>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Weekly Report Modal -->
+<div class="modal-backdrop" id="weekly-report-backdrop" onclick="if(event.target===this)closeWeeklyReportModal()">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">주간 레포트</div>
+        <div class="weekly-report-range" id="weekly-report-range"></div>
+      </div>
+      <button class="modal-close" onclick="closeWeeklyReportModal()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body" style="max-height:70vh;overflow-y:auto">
+      <div class="weekly-report-summary" id="weekly-report-summary"></div>
+      <div id="weekly-report-list"></div>
     </div>
   </div>
 </div>
@@ -2150,7 +2185,7 @@ async function loadTasks() {
     autoAddCalendarTasks();
     if (_startAction === 'morning') { _startAction = ''; openTodayModal(); }
     else if (_startAction === 'deadline') { _startAction = ''; scrollToToday(); }
-    else if (_startAction === 'history') { _startAction = ''; setView('history', null); }
+    else if (_startAction === 'weekly-report') { _startAction = ''; openWeeklyReportModal(); }
     else if (!todayConfirmed || todayIds.length === 0) openTodayModal();
     const t = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
     setStatus('ok', `${tasks.length}개 할 일 동기화 완료 · ${t}`);
@@ -3092,6 +3127,82 @@ function closeNotifModal() {
   unlockScroll();
 }
 
+function getWeekReportRange() {
+  const now = new Date(Date.now() - DAY_CUTOFF_HOURS * 60 * 60 * 1000);
+  const day = now.getDay();
+  const daysSinceSat = day === 0 ? 1 : day === 6 ? 0 : day + 1;
+  const saturday = new Date(now); saturday.setDate(now.getDate() - daysSinceSat);
+  const monday   = new Date(saturday); monday.setDate(saturday.getDate() - 5);
+  const days = ['일','월','화','수','목','금','토'];
+  const fmt = d => `${d.getMonth()+1}.${d.getDate()}(${days[d.getDay()]})`;
+  return { mondayStr: localDateStr(monday), saturdayStr: localDateStr(saturday),
+           label: `${fmt(monday)} ~ ${fmt(saturday)}` };
+}
+
+function openWeeklyReportModal() {
+  const { mondayStr, saturdayStr, label } = getWeekReportRange();
+  document.getElementById('weekly-report-range').textContent = label;
+
+  const weekTasks = tasks.filter(t =>
+    t.done && t.completedAt &&
+    t.completedAt >= mondayStr && t.completedAt <= saturdayStr
+  );
+  const count = weekTasks.length;
+
+  // 카테고리별 집계
+  const catMap = {};
+  for (const t of weekTasks) {
+    const k = t.category || '';
+    if (!catMap[k]) catMap[k] = [];
+    catMap[k].push(t);
+  }
+  const topCat = Object.entries(catMap)
+    .filter(([k]) => k)
+    .sort((a, b) => b[1].length - a[1].length)[0];
+
+  document.getElementById('weekly-report-summary').innerHTML =
+    `<div class="weekly-stat-card">
+       <div class="weekly-stat-num">${count}개</div>
+       <div class="weekly-stat-label">이번 주 완료</div>
+     </div>
+     <div class="weekly-stat-card">
+       <div class="weekly-stat-num" style="font-size:18px">${topCat ? tfEmoji(topCat[0]) : '–'}</div>
+       <div class="weekly-stat-label">${topCat ? `최다 카테고리 · ${topCat[1].length}개` : '카테고리 없음'}</div>
+     </div>`;
+
+  const listEl = document.getElementById('weekly-report-list');
+  if (count === 0) {
+    listEl.innerHTML = '<div class="empty-state">이번 주 완료한 할 일이 없어요.</div>';
+  } else {
+    const sorted = Object.entries(catMap).sort((a, b) => {
+      if (!a[0]) return 1; if (!b[0]) return -1;
+      return b[1].length - a[1].length;
+    });
+    listEl.innerHTML = sorted.map(([cat, ts]) =>
+      `<div class="weekly-cat-section">
+         <div class="weekly-cat-header">
+           <span>${cat ? tfEmoji(cat) : '카테고리 없음'}</span>
+           <span style="font-weight:400;color:var(--text3)">${ts.length}개</span>
+         </div>
+         ${ts.map(t =>
+           `<div class="weekly-task-item">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--blue500)" stroke-width="2.5"><polyline points="20,6 9,17 4,12"/></svg>
+              ${tfEmoji(t.title)}
+            </div>`
+         ).join('')}
+       </div>`
+    ).join('');
+  }
+
+  document.getElementById('weekly-report-backdrop').classList.add('open');
+  lockScroll();
+}
+
+function closeWeeklyReportModal() {
+  document.getElementById('weekly-report-backdrop').classList.remove('open');
+  unlockScroll();
+}
+
 function handleNotifBackdropClick(e) {
   if (e.target === document.getElementById('notif-modal-backdrop')) closeNotifModal();
 }
@@ -3304,7 +3415,7 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('message', e => {
     if (e.data?.action === 'morning')  openTodayModal();
     if (e.data?.action === 'deadline') scrollToToday();
-    if (e.data?.action === 'history')  setView('history', null);
+    if (e.data?.action === 'weekly-report') openWeeklyReportModal();
   });
 }
 </script>
