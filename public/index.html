@@ -1358,7 +1358,7 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
 </div>
 
 <!-- Weekly Report Modal -->
-<div class="modal-backdrop" id="weekly-report-backdrop" onclick="if(event.target===this)closeWeeklyReportModal()">
+<div class="modal-backdrop" id="weekly-report-backdrop" onclick="if(!isDesktop()&&event.target===this)closeWeeklyReportModal()">
   <div class="modal" style="max-width:480px;overflow:hidden;display:flex;flex-direction:column;max-height:85vh">
     <div class="modal-header" style="flex-shrink:0">
       <div>
@@ -1912,8 +1912,10 @@ function closeTodayModal() {
   document.getElementById('today-modal-backdrop').classList.remove('open');
   unlockScroll();
 }
+function isDesktop() { return window.innerWidth > 680; }
+
 function handleTodayModalBackdropClick(e) {
-  if (e.target === document.getElementById('today-modal-backdrop')) closeTodayModal();
+  if (!isDesktop() && e.target === document.getElementById('today-modal-backdrop')) closeTodayModal();
 }
 function toggleTodaySelect(id, el) {
   if (todaySelectTemp.includes(id)) {
@@ -2592,7 +2594,7 @@ function endRecurring() {
 }
 
 function handleBackdropClick(e) {
-  if (e.target === document.getElementById('modal-backdrop')) closeModal();
+  if (!isDesktop() && e.target === document.getElementById('modal-backdrop')) closeModal();
 }
 
 async function saveTask() {
@@ -2788,7 +2790,7 @@ function closeSearchModal() {
   unlockScroll();
 }
 function handleSearchBackdropClick(e) {
-  if (e.target === document.getElementById('search-backdrop')) closeSearchModal();
+  if (!isDesktop() && e.target === document.getElementById('search-backdrop')) closeSearchModal();
 }
 function onHistorySearch(val) {
   historySearch = val.trim();
@@ -3000,7 +3002,7 @@ function closeTaskDetail() {
 }
 
 function handleDetailBackdropClick(e) {
-  if (e.target === document.getElementById('detail-backdrop')) closeTaskDetail();
+  if (!isDesktop() && e.target === document.getElementById('detail-backdrop')) closeTaskDetail();
 }
 
 function toggleTaskSearch() {
@@ -3276,7 +3278,7 @@ async function copyWeeklyReport() {
 }
 
 function handleNotifBackdropClick(e) {
-  if (e.target === document.getElementById('notif-modal-backdrop')) closeNotifModal();
+  if (!isDesktop() && e.target === document.getElementById('notif-modal-backdrop')) closeNotifModal();
 }
 
 async function _requestPermission(toggleEl) {
@@ -3380,7 +3382,7 @@ function closeConfig() {
 }
 
 function handleCfgBackdropClick(e) {
-  if (e.target === document.getElementById('cfg-backdrop')) closeConfig();
+  if (!isDesktop() && e.target === document.getElementById('cfg-backdrop')) closeConfig();
 }
 
 async function saveConfig() {
