@@ -1303,6 +1303,16 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
       </div>
       <div class="notif-row">
         <div class="notif-row-info">
+          <div class="notif-row-title">점검 알림</div>
+          <div class="notif-row-desc">매일 오후 3시에 할 일을 하고 있는지 확인할 수 있도록 알려드려요.</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="notif-check-toggle" onchange="onCheckToggleChange(this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="notif-row">
+        <div class="notif-row-info">
           <div class="notif-row-title">마감 알림</div>
           <div class="notif-row-desc">매일 새벽 12시반에 오늘 할 일을 다 했는지 확인할 수 있도록 알려드려요.</div>
         </div>
@@ -3044,8 +3054,10 @@ function settingsOpenAccount() {
 async function openNotifModal() {
   const deadlineToggle = document.getElementById('notif-deadline-toggle');
   const morningToggle  = document.getElementById('notif-morning-toggle');
+  const checkToggle    = document.getElementById('notif-check-toggle');
   deadlineToggle.checked = false;
   morningToggle.checked  = false;
+  checkToggle.checked    = false;
   if ('serviceWorker' in navigator && Notification.permission === 'granted') {
     try {
       const reg = await navigator.serviceWorker.ready;
@@ -3053,6 +3065,7 @@ async function openNotifModal() {
       if (sub) {
         deadlineToggle.checked = localStorage.getItem('push_deadline') === 'on';
         morningToggle.checked  = localStorage.getItem('push_morning')  === 'on';
+        checkToggle.checked    = localStorage.getItem('push_check')    === 'on';
       }
     } catch {}
   }
@@ -3106,6 +3119,18 @@ async function onMorningToggleChange(checked) {
   }
 }
 
+async function onCheckToggleChange(checked) {
+  const el = document.getElementById('notif-check-toggle');
+  if (checked) {
+    if (!await _requestPermission(el)) return;
+    await _subscribePush('check');
+    localStorage.setItem('push_check', 'on');
+  } else {
+    await _unsubscribePush('check');
+    localStorage.setItem('push_check', 'off');
+  }
+}
+
 async function _unsubscribePush(type) {
   try {
     const reg = await navigator.serviceWorker.ready;
@@ -3116,9 +3141,11 @@ async function _unsubscribePush(type) {
       headers: { 'Content-Type': 'application/json', 'Authorization': `Basic ${AUTH}` },
       body: JSON.stringify({ endpoint: sub.endpoint }),
     });
-    // 두 타입 모두 off일 때만 브라우저 구독 해제
-    const otherKey = type === 'morning' ? 'push_deadline' : 'push_morning';
-    if (localStorage.getItem(otherKey) !== 'on') await sub.unsubscribe();
+    // 세 타입 모두 off일 때만 브라우저 구독 해제
+    const allOff = ['push_morning', 'push_deadline', 'push_check']
+      .filter(k => k !== `push_${type}`)
+      .every(k => localStorage.getItem(k) !== 'on');
+    if (allOff) await sub.unsubscribe();
   } catch (e) {
     console.warn('Push 구독 해제 실패:', e);
   }

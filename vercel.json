@@ -4,6 +4,7 @@
   ],
   "crons": [
     { "path": "/api/cron-notify",  "schedule": "30 15 * * *" },
-    { "path": "/api/cron-morning", "schedule": "0 23 * * *" }
+    { "path": "/api/cron-morning", "schedule": "0 23 * * *" },
+    { "path": "/api/cron-check",   "schedule": "0 6 * * *"  }
   ]
 }
