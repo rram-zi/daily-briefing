@@ -1366,9 +1366,9 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
     <div class="modal-body" style="overflow-y:auto;flex:1">
       <div class="weekly-report-summary" id="weekly-report-summary"></div>
       <div id="weekly-report-list"></div>
-      <button id="weekly-copy-btn" onclick="copyWeeklyReport()" style="width:100%;margin-top:8px;padding:11px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text1);font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:background 0.1s">
+      <button id="weekly-copy-btn" onclick="copyWeeklyReport()" style="margin-top:8px;padding:9px 16px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text1);font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:background 0.1s">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-        텍스트로 복사
+        복사하기
       </button>
     </div>
   </div>
@@ -3238,7 +3238,7 @@ async function copyWeeklyReport() {
     const btn = document.getElementById('weekly-copy-btn');
     btn.textContent = '복사했어요!';
     setTimeout(() => {
-      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> 텍스트로 복사';
+      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> 복사하기';
     }, 2000);
   } catch {
     alert(text);
