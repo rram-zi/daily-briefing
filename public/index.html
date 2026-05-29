@@ -862,14 +862,15 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
   .cal-chip-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   .cal-stats {
-    display: flex; gap: 1px;
+    display: flex;
     border-bottom: 1px solid var(--border); margin-bottom: 12px;
+    padding: 0 0 12px;
   }
   .cal-stat {
-    flex: 1; padding: 16px 8px; text-align: center;
+    display: flex; align-items: baseline; gap: 6px;
   }
-  .cal-stat-num { font-size: 28px; font-weight: 700; color: var(--text1); line-height: 1; }
-  .cal-stat-label { font-size: 12px; color: var(--text3); margin-top: 6px; }
+  .cal-stat-num { font-size: 18px; font-weight: 700; color: var(--text1); line-height: 1; }
+  .cal-stat-label { font-size: 12px; color: var(--text3); }
 
   /* History search */
   .topbar-search-btn {
