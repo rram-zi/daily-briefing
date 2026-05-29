@@ -49,13 +49,13 @@ export default async function handler(req, res) {
   const subs = await readSubscriptions();
   if (!subs.length) return res.status(200).json({ sent: false, reason: 'No subscriptions' });
 
-  // 일요일 KST 10시 실행 기준 — 월(6일 전) ~ 토(1일 전)
+  // 일요일 KST 10시 실행 기준 — 일(7일 전) ~ 토(1일 전)
   const kstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
-  const monday = new Date(kstNow);
-  monday.setUTCDate(kstNow.getUTCDate() - 6);
+  const sunday = new Date(kstNow);
+  sunday.setUTCDate(kstNow.getUTCDate() - 7);
   const saturday = new Date(kstNow);
   saturday.setUTCDate(kstNow.getUTCDate() - 1);
-  const mondayStr   = monday.toISOString().slice(0, 10);
+  const mondayStr   = sunday.toISOString().slice(0, 10);
   const saturdayStr = saturday.toISOString().slice(0, 10);
 
   const pages = await queryNotion({
