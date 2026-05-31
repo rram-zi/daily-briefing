@@ -2983,7 +2983,7 @@ function renderSearchResults(q) {
     return;
   }
   el.innerHTML = matched.map(t => `
-    <div class="search-result-item" onclick="goToDate('${t.completedAt}')">
+    <div class="search-result-item" onclick="closeSearchModal();openTaskDetail('${t.id}')">
       <span class="search-result-title">${tfEmoji(t.title)}</span>
       <span class="search-result-date">${fmt(t.completedAt)} 완료</span>
     </div>`).join('');
