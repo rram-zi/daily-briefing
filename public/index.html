@@ -2653,22 +2653,33 @@ function onLocationInput(val) {
 }
 
 async function searchKakaoPlace(q) {
+  if (!q) return;
+  const el = document.getElementById('location-results');
+  el.innerHTML = `<div class="location-result-item" style="color:var(--text3)">검색 중...</div>`;
+  el.style.display = 'block';
   try {
     const res = await fetch(`/api/kakao-place?q=${encodeURIComponent(q)}`, {
       headers: { Authorization: `Basic ${AUTH}` },
     });
-    if (!res.ok) return;
-    const { places } = await res.json();
-    const el = document.getElementById('location-results');
-    if (!places.length) { el.style.display = 'none'; return; }
+    const json = await res.json();
+    if (!res.ok) {
+      el.innerHTML = `<div class="location-result-item" style="color:var(--red500)">오류: ${json.error || res.status}</div>`;
+      return;
+    }
+    const { places } = json;
+    if (!places.length) {
+      el.innerHTML = `<div class="location-result-item" style="color:var(--text3)">검색 결과가 없어요</div>`;
+      return;
+    }
     el.innerHTML = places.map(p =>
       `<div class="location-result-item" onmousedown="selectPlace(${JSON.stringify(p.name)})">
         <div class="location-result-name">${p.name}</div>
         <div class="location-result-meta">${[p.category, p.address].filter(Boolean).join(' · ')}</div>
       </div>`
     ).join('');
-    el.style.display = 'block';
-  } catch {}
+  } catch(e) {
+    el.innerHTML = `<div class="location-result-item" style="color:var(--red500)">네트워크 오류: ${e.message}</div>`;
+  }
 }
 
 function selectPlace(name) {
