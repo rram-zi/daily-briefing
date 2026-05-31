@@ -957,7 +957,7 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
 
   /* Task detail modal */
   .detail-note { font-size: 14px; color: var(--text2); line-height: 1.8; white-space: pre-wrap; }
-  .detail-meta { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .detail-meta { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-thumb { background: var(--grey200); border-radius: 4px; }
@@ -3148,15 +3148,25 @@ function openTaskDetail(taskId) {
   const t = tasks.find(t => t.id === taskId);
   if (!t) return;
   document.getElementById('detail-title').innerHTML = tfEmoji(t.title);
+  const { name: locName, url: locUrl } = parseLocation(t.location);
+  const locBadge = locName
+    ? `<a class="badge badge-location" href="${locUrl || 'https://map.kakao.com/?q=' + encodeURIComponent(locName)}" target="_blank" onclick="event.stopPropagation()">📍 ${locName}</a>`
+    : '';
+  const completedLine = t.completedAt
+    ? `<span style="font-size:12px;color:var(--text3)">${fmt(t.completedAt)} 완료</span>${locBadge ? ' ' + locBadge : ''}`
+    : '';
   document.getElementById('detail-meta').innerHTML = [
     t.category ? `<span class="badge badge-cat">${tfEmoji(t.category)}</span>` : '',
-    t.priority && t.priority !== '보통' ? `<span class="badge ${t.priority==='긴급'?'badge-urgent':'badge-low'}">${t.priority}</span>` : '',
-    t.dueDate  ? `<span class="badge badge-date"><img class="t-emoji" src="/emoji/u1F4C5.svg" alt="📅"> ${fmt(t.dueDate)}</span>` : ''
+    t.priority === '긴급' ? `<span class="badge badge-urgent">긴급</span>` : '',
+    t.dueDate  ? `<span class="badge badge-date"><img class="t-emoji" src="/emoji/u1F4C5.svg" alt="📅"> ${fmt(t.dueDate)}</span>` : '',
+    completedLine
   ].filter(Boolean).join('');
-  document.getElementById('detail-note').innerHTML = (t.note
-    ? linkify(tfEmoji(t.note)).replace(/\n/g, '<br>')
-    : '<span style="color:var(--text3)">설명 없음</span>')
-    + (t.completedAt ? `<div style="margin-top:16px;font-size:12px;color:var(--text3)">${fmt(t.completedAt)} 완료</div>` : '');
+  const noteHtml = t.note ? linkify(tfEmoji(t.note)).replace(/\n/g, '<br>') : '';
+  const detailMeta = document.getElementById('detail-meta');
+  const detailNote = document.getElementById('detail-note');
+  detailMeta.style.marginBottom = noteHtml ? '14px' : '0';
+  detailNote.innerHTML = noteHtml;
+  detailNote.style.display = noteHtml ? '' : 'none';
   document.getElementById('detail-backdrop').classList.add('open');
   lockScroll();
 }
