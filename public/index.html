@@ -691,16 +691,18 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
     border-radius: 20px;
     width: 100%;
     max-width: 520px;
+    max-height: 80vh;
     margin: 20px;
     box-shadow: 0 20px 60px rgba(0,0,0,0.18), 0 0 0 1px var(--border);
     transform: translateY(12px) scale(0.98);
     transition: transform 0.2s cubic-bezier(.34,1.56,.64,1);
+    display: flex; flex-direction: column;
   }
   .modal-backdrop.open .modal { transform: translateY(0) scale(1); }
 
   .modal-header {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 22px 24px 0;
+    padding: 22px 24px 0; flex-shrink: 0;
   }
   .modal-title { font-size: 17px; font-weight: 700; color: var(--text1); letter-spacing: -0.2px; }
   .modal-close {
@@ -712,7 +714,7 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
   .modal-close:hover { background: var(--grey200); color: var(--text1); }
   .modal-close svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; }
 
-  .modal-body { padding: 20px 24px; }
+  .modal-body { padding: 20px 24px; flex: 1; overflow-y: auto; }
 
   .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
   .form-group { display: flex; flex-direction: column; gap: 6px; }
@@ -732,8 +734,9 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
   .form-full { grid-column: 1 / -1; }
 
   /* 카테고리 칩 선택기 */
-  .cat-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-  .cat-chips:empty { display: none; }
+  .cat-picker-wrap { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .cat-chips { display: contents; }
+  .cat-chips:empty { display: contents; }
   .cat-chip {
     display: inline-flex; align-items: center; gap: 6px;
     padding: 5px 12px; border-radius: 20px;
@@ -799,7 +802,7 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
 
   .modal-footer {
     display: flex; justify-content: flex-end; gap: 8px;
-    padding: 0 24px 22px;
+    padding: 0 24px 22px; flex-shrink: 0;
   }
   .btn-cancel {
     padding: 11px 20px; font-size: 14px; font-family: inherit; font-weight: 500;
@@ -1485,11 +1488,13 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
         </div>
         <div class="form-group form-full">
           <label class="form-label">카테고리</label>
-          <div class="cat-chips" id="cat-chips"></div>
-          <button type="button" class="cat-add-trigger" onclick="openCategoryModal()">
-            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            추가하기
-          </button>
+          <div class="cat-picker-wrap">
+            <div class="cat-chips" id="cat-chips"></div>
+            <button type="button" class="cat-add-trigger" onclick="openCategoryModal()">
+              <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              추가하기
+            </button>
+          </div>
         </div>
         <div class="form-group form-full">
           <label class="form-label">메모</label>
@@ -2650,7 +2655,7 @@ function initLocationField(raw) {
   document.getElementById('f-location').placeholder = name || '장소 검색...';
   const sel = document.getElementById('location-selected');
   sel.style.display = name ? 'flex' : 'none';
-  document.getElementById('location-selected-name').textContent = name;
+  document.getElementById('location-selected-name').textContent = name ? `📍 ${name}` : '';
   hideLocationResults();
 }
 
@@ -2697,7 +2702,7 @@ function selectPlace(name, url) {
   selectedLocation = url ? `${name}|||${url}` : name;
   document.getElementById('f-location').value = '';
   document.getElementById('f-location').placeholder = name;
-  document.getElementById('location-selected-name').textContent = name;
+  document.getElementById('location-selected-name').textContent = `📍 ${name}`;
   document.getElementById('location-selected').style.display = 'flex';
   hideLocationResults();
 }
