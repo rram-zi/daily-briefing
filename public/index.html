@@ -1504,6 +1504,7 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
             </div>
             <input type="text" id="f-location" placeholder="장소 검색..." autocomplete="off"
               oninput="onLocationInput(this.value)"
+              onkeydown="if(event.key==='Enter'){event.preventDefault();clearTimeout(_locationTimer);searchKakaoPlace(this.value.trim())}"
               onblur="setTimeout(hideLocationResults, 200)">
             <div class="location-results" id="location-results" style="display:none"></div>
           </div>
