@@ -32,6 +32,7 @@ export default async function handler(req, res) {
     name: d.place_name,
     address: d.road_address_name || d.address_name,
     category: d.category_name?.split(' > ').pop() || '',
+    url: d.place_url || '',
   }));
 
   return res.status(200).json({ places });

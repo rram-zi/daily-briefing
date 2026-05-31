@@ -2376,7 +2376,7 @@ function taskItemHTML(t, isToday, showCheckbox = false, showAsDone = t.done) {
           <span class="task-title ${showAsDone ? 'done' : ''}">${tfEmoji(t.title)}</span>
           ${t.category ? `<span class="badge badge-cat">${tfEmoji(t.category)}</span>` : ''}
           ${t.dueDate && !completedOnTime ? `<span class="badge badge-date${overdue?' badge-overdue':''}"><img class="t-emoji" src="/emoji/u1F4C5.svg" alt="📅"> ${fmt(t.dueDate)}${overdue?' 초과':''}</span>` : ''}
-          ${t.location ? `<a class="badge badge-location" href="https://map.kakao.com/?q=${encodeURIComponent(t.location)}" target="_blank" onclick="event.stopPropagation()"><img class="t-emoji" src="/emoji/u1F4CD.svg" alt="📍"> ${t.location}</a>` : ''}
+          ${t.location ? (() => { const { name, url } = parseLocation(t.location); return `<a class="badge badge-location" href="${url || 'https://map.kakao.com/?q=' + encodeURIComponent(name)}" target="_blank" onclick="event.stopPropagation()"><img class="t-emoji" src="/emoji/u1F4CD.svg" alt="📍"> ${name}</a>`; })() : ''}
         </div>
       </div>
       ${t.note ? `<div class="task-note">${linkify(tfEmoji(t.note))}</div>` : ''}
@@ -2636,13 +2636,21 @@ function closeModal() {
 let selectedLocation = '';
 let _locationTimer = null;
 
-function initLocationField(loc) {
-  selectedLocation = loc;
+function parseLocation(raw) {
+  if (!raw) return { name: '', url: '' };
+  const sep = raw.indexOf('|||');
+  if (sep === -1) return { name: raw, url: '' };
+  return { name: raw.slice(0, sep), url: raw.slice(sep + 3) };
+}
+
+function initLocationField(raw) {
+  selectedLocation = raw || '';
+  const { name } = parseLocation(raw);
   document.getElementById('f-location').value = '';
-  document.getElementById('f-location').placeholder = loc ? loc : '장소 검색...';
+  document.getElementById('f-location').placeholder = name || '장소 검색...';
   const sel = document.getElementById('location-selected');
-  sel.style.display = loc ? 'flex' : 'none';
-  document.getElementById('location-selected-name').textContent = loc;
+  sel.style.display = name ? 'flex' : 'none';
+  document.getElementById('location-selected-name').textContent = name;
   hideLocationResults();
 }
 
@@ -2672,7 +2680,10 @@ async function searchKakaoPlace(q) {
       return;
     }
     el.innerHTML = places.map(p =>
-      `<div class="location-result-item" data-name="${p.name.replace(/"/g,'&quot;')}" onmousedown="selectPlace(this.dataset.name)">
+      `<div class="location-result-item"
+        data-name="${p.name.replace(/"/g,'&quot;')}"
+        data-url="${(p.url||'').replace(/"/g,'&quot;')}"
+        onmousedown="selectPlace(this.dataset.name, this.dataset.url)">
         <div class="location-result-name">${p.name}</div>
         <div class="location-result-meta">${[p.category, p.address].filter(Boolean).join(' · ')}</div>
       </div>`
@@ -2682,8 +2693,8 @@ async function searchKakaoPlace(q) {
   }
 }
 
-function selectPlace(name) {
-  selectedLocation = name;
+function selectPlace(name, url) {
+  selectedLocation = url ? `${name}|||${url}` : name;
   document.getElementById('f-location').value = '';
   document.getElementById('f-location').placeholder = name;
   document.getElementById('location-selected-name').textContent = name;
