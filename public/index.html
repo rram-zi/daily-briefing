@@ -2672,7 +2672,7 @@ async function searchKakaoPlace(q) {
       return;
     }
     el.innerHTML = places.map(p =>
-      `<div class="location-result-item" onmousedown="selectPlace(${JSON.stringify(p.name)})">
+      `<div class="location-result-item" data-name="${p.name.replace(/"/g,'&quot;')}" onmousedown="selectPlace(this.dataset.name)">
         <div class="location-result-name">${p.name}</div>
         <div class="location-result-meta">${[p.category, p.address].filter(Boolean).join(' · ')}</div>
       </div>`
