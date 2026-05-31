@@ -2790,7 +2790,7 @@ async function saveTask() {
     '마감일':   dueDate  ? { date: { start: dueDate } } : { date: null },
     '카테고리': category ? { select: { name: category } } : { select: null },
     '메모':     { rich_text: note ? [{ text: { content: note } }] : [] },
-    '위치':     { rich_text: location ? [{ text: { content: location } }] : [] },
+    ...(location ? { '위치': { rich_text: [{ text: { content: location } }] } } : {}),
   };
 
   const statusMap = { 'Not started': '할 일', 'In progress': '할 일', 'Done': '완료' };
