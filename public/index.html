@@ -544,6 +544,32 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
   .badge-status { background: var(--grey100); color: var(--grey600); }
   .badge-date   { color: var(--text3); font-size: 12px; }
   .badge-overdue { color: var(--red500); font-weight: 600; }
+  .badge-location { color: var(--text3); font-size: 12px; text-decoration: none; }
+  .badge-location:hover { color: var(--blue500); }
+
+  /* 위치 검색 필드 */
+  .location-wrap { position: relative; }
+  .location-selected {
+    display: none; align-items: center; justify-content: space-between;
+    background: var(--blue50); border-radius: 8px;
+    padding: 7px 10px; margin-bottom: 6px; font-size: 14px; color: var(--blue600); font-weight: 500;
+  }
+  .location-clear-btn {
+    background: none; border: none; cursor: pointer; color: var(--text3);
+    font-size: 16px; line-height: 1; padding: 0 2px;
+  }
+  .location-results {
+    position: absolute; top: 100%; left: 0; right: 0; z-index: 200;
+    background: var(--surface); border: 1.5px solid var(--border); border-radius: 10px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.1); overflow: hidden; margin-top: 4px;
+  }
+  .location-result-item {
+    padding: 10px 14px; cursor: pointer; transition: background 0.1s;
+  }
+  .location-result-item:hover { background: var(--grey50); }
+  .location-result-item + .location-result-item { border-top: 1px solid var(--border); }
+  .location-result-name { font-size: 14px; font-weight: 500; color: var(--text1); }
+  .location-result-meta { font-size: 12px; color: var(--text3); margin-top: 2px; }
 
   .task-actions { display: flex; align-items: center; gap: 2px; opacity: 0; transition: opacity 0.12s; }
   .task-item:hover .task-actions { opacity: 1; }
@@ -1469,6 +1495,19 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
           <label class="form-label">메모</label>
           <textarea id="f-note" placeholder="추가 설명 (선택)"></textarea>
         </div>
+        <div class="form-group form-full">
+          <label class="form-label">위치</label>
+          <div class="location-wrap">
+            <div class="location-selected" id="location-selected">
+              <span id="location-selected-name"></span>
+              <button type="button" class="location-clear-btn" onclick="clearLocation()">×</button>
+            </div>
+            <input type="text" id="f-location" placeholder="장소 검색..." autocomplete="off"
+              oninput="onLocationInput(this.value)"
+              onblur="setTimeout(hideLocationResults, 200)">
+            <div class="location-results" id="location-results" style="display:none"></div>
+          </div>
+        </div>
       </div>
     </div>
     <div class="modal-footer">
@@ -2238,6 +2277,7 @@ function parsePage(page) {
     completedAt: p['완료일']?.date?.start ?? null,
     todayDate:   g.date('오늘날짜') || null,
     source:      g.text('소스'),
+    location:    g.text('위치'),
   };
 }
 
@@ -2335,6 +2375,7 @@ function taskItemHTML(t, isToday, showCheckbox = false, showAsDone = t.done) {
           <span class="task-title ${showAsDone ? 'done' : ''}">${tfEmoji(t.title)}</span>
           ${t.category ? `<span class="badge badge-cat">${tfEmoji(t.category)}</span>` : ''}
           ${t.dueDate && !completedOnTime ? `<span class="badge badge-date${overdue?' badge-overdue':''}"><img class="t-emoji" src="/emoji/u1F4C5.svg" alt="📅"> ${fmt(t.dueDate)}${overdue?' 초과':''}</span>` : ''}
+          ${t.location ? `<a class="badge badge-location" href="https://map.kakao.com/?q=${encodeURIComponent(t.location)}" target="_blank" onclick="event.stopPropagation()"><img class="t-emoji" src="/emoji/u1F4CD.svg" alt="📍"> ${t.location}</a>` : ''}
         </div>
       </div>
       ${t.note ? `<div class="task-note">${linkify(tfEmoji(t.note))}</div>` : ''}
@@ -2539,6 +2580,7 @@ function openModal(taskId = null) {
   selectedCategory = task ? (task.category || '') : '';
   renderCategoryChips();
   document.getElementById('f-note').value = task ? (task.note || '') : '';
+  initLocationField(task?.location || '');
 
   const rawPriority = task ? task.priority : '일반';
   const rawStatus   = task ? (statusToRaw[task.status] || 'Not started') : 'Not started';
@@ -2586,6 +2628,69 @@ function closeModal() {
   unlockScroll();
   editingId = null;
   editingRecurringId = null;
+  clearLocation();
+}
+
+// 위치 검색
+let selectedLocation = '';
+let _locationTimer = null;
+
+function initLocationField(loc) {
+  selectedLocation = loc;
+  document.getElementById('f-location').value = '';
+  document.getElementById('f-location').placeholder = loc ? loc : '장소 검색...';
+  const sel = document.getElementById('location-selected');
+  sel.style.display = loc ? 'flex' : 'none';
+  document.getElementById('location-selected-name').textContent = loc;
+  hideLocationResults();
+}
+
+function onLocationInput(val) {
+  clearTimeout(_locationTimer);
+  if (!val.trim()) { hideLocationResults(); return; }
+  _locationTimer = setTimeout(() => searchKakaoPlace(val.trim()), 400);
+}
+
+async function searchKakaoPlace(q) {
+  try {
+    const res = await fetch(`/api/kakao-place?q=${encodeURIComponent(q)}`, {
+      headers: { Authorization: `Basic ${AUTH}` },
+    });
+    if (!res.ok) return;
+    const { places } = await res.json();
+    const el = document.getElementById('location-results');
+    if (!places.length) { el.style.display = 'none'; return; }
+    el.innerHTML = places.map(p =>
+      `<div class="location-result-item" onmousedown="selectPlace(${JSON.stringify(p.name)})">
+        <div class="location-result-name">${p.name}</div>
+        <div class="location-result-meta">${[p.category, p.address].filter(Boolean).join(' · ')}</div>
+      </div>`
+    ).join('');
+    el.style.display = 'block';
+  } catch {}
+}
+
+function selectPlace(name) {
+  selectedLocation = name;
+  document.getElementById('f-location').value = '';
+  document.getElementById('f-location').placeholder = name;
+  document.getElementById('location-selected-name').textContent = name;
+  document.getElementById('location-selected').style.display = 'flex';
+  hideLocationResults();
+}
+
+function clearLocation() {
+  selectedLocation = '';
+  const inp = document.getElementById('f-location');
+  if (inp) { inp.value = ''; inp.placeholder = '장소 검색...'; }
+  const sel = document.getElementById('location-selected');
+  if (sel) sel.style.display = 'none';
+  hideLocationResults();
+}
+
+function hideLocationResults() {
+  const el = document.getElementById('location-results');
+  if (el) el.style.display = 'none';
 }
 
 function endRecurring() {
@@ -2664,6 +2769,7 @@ async function saveTask() {
   const category = selectedCategory;
   const status   = document.getElementById('f-status').dataset.value;
   const note     = document.getElementById('f-note').value.trim();
+  const location = selectedLocation;
 
   const props = {
     '이름':     { title:  [{ text: { content: title } }] },
@@ -2671,7 +2777,8 @@ async function saveTask() {
     '상태':     { status: { name: status } },
     '마감일':   dueDate  ? { date: { start: dueDate } } : { date: null },
     '카테고리': category ? { select: { name: category } } : { select: null },
-    '메모':     { rich_text: note ? [{ text: { content: note } }] : [] }
+    '메모':     { rich_text: note ? [{ text: { content: note } }] : [] },
+    '위치':     { rich_text: location ? [{ text: { content: location } }] : [] },
   };
 
   const statusMap = { 'Not started': '할 일', 'In progress': '할 일', 'Done': '완료' };
@@ -2687,6 +2794,7 @@ async function saveTask() {
         t.dueDate  = dueDate  || null;
         t.category = category;
         t.note     = note;
+        t.location = location;
         t.done     = status === 'Done';
       }
       setStatus('ok', '할 일이 수정됐습니다');
@@ -2698,7 +2806,7 @@ async function saveTask() {
       tasks.unshift({
         id: result.id, title,
         status: statusMap[status] || status,
-        priority, dueDate: dueDate || null, category, note,
+        priority, dueDate: dueDate || null, category, note, location,
         done: status === 'Done'
       });
       setStatus('ok', '새 할 일이 Notion에 저장됐습니다');
