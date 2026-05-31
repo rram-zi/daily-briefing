@@ -3170,11 +3170,22 @@ function closeNotifModal() {
 }
 
 function getWeekReportRange(refDate) {
-  const base = refDate ? new Date(refDate) : new Date(Date.now() - DAY_CUTOFF_HOURS * 60 * 60 * 1000);
-  const sunday = new Date(base); sunday.setDate(base.getDate() - base.getDay());
-  const saturday = new Date(sunday); saturday.setDate(sunday.getDate() + 6);
   const days = ['일','월','화','수','목','금','토'];
   const fmt = d => `${d.getMonth()+1}.${d.getDate()}(${days[d.getDay()]})`;
+  let sunday, saturday;
+  if (refDate) {
+    // 캘린더에서 선택한 주: refDate가 속한 주(일~토)
+    const base = new Date(refDate);
+    sunday = new Date(base); sunday.setDate(base.getDate() - base.getDay());
+    saturday = new Date(sunday); saturday.setDate(sunday.getDate() + 6);
+  } else {
+    // 알림에서 호출: 가장 최근 완료된 주(지난 일~토)
+    const now = new Date(Date.now() - DAY_CUTOFF_HOURS * 60 * 60 * 1000);
+    const day = now.getDay();
+    const daysSinceSat = day === 0 ? 1 : day === 6 ? 0 : day + 1;
+    saturday = new Date(now); saturday.setDate(now.getDate() - daysSinceSat);
+    sunday = new Date(saturday); sunday.setDate(saturday.getDate() - 6);
+  }
   return { mondayStr: localDateStr(sunday), saturdayStr: localDateStr(saturday),
            label: `${fmt(sunday)} ~ ${fmt(saturday)}` };
 }
