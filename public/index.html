@@ -2376,7 +2376,7 @@ function taskItemHTML(t, isToday, showCheckbox = false, showAsDone = t.done) {
           <span class="task-title ${showAsDone ? 'done' : ''}">${tfEmoji(t.title)}</span>
           ${t.category ? `<span class="badge badge-cat">${tfEmoji(t.category)}</span>` : ''}
           ${t.dueDate && !completedOnTime ? `<span class="badge badge-date${overdue?' badge-overdue':''}"><img class="t-emoji" src="/emoji/u1F4C5.svg" alt="📅"> ${fmt(t.dueDate)}${overdue?' 초과':''}</span>` : ''}
-          ${t.location ? (() => { const { name, url } = parseLocation(t.location); return `<a class="badge badge-location" href="${url || 'https://map.kakao.com/?q=' + encodeURIComponent(name)}" target="_blank" onclick="event.stopPropagation()"><img class="t-emoji" src="/emoji/u1F4CD.svg" alt="📍"> ${name}</a>`; })() : ''}
+          ${t.location ? (() => { const { name, url } = parseLocation(t.location); return `<a class="badge badge-location" href="${url || 'https://map.kakao.com/?q=' + encodeURIComponent(name)}" target="_blank" onclick="event.stopPropagation()">📍 ${name}</a>`; })() : ''}
         </div>
       </div>
       ${t.note ? `<div class="task-note">${linkify(tfEmoji(t.note))}</div>` : ''}
