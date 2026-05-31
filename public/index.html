@@ -956,8 +956,11 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
   .search-modal-footer { height: 8px; }
 
   /* Task detail modal */
+  .detail-title-row { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+  .detail-title-row .modal-title { flex: 1; min-width: 0; }
   .detail-note { font-size: 14px; color: var(--text2); line-height: 1.8; white-space: pre-wrap; }
   .detail-meta { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .detail-footer { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-thumb { background: var(--grey200); border-radius: 4px; }
@@ -1322,13 +1325,17 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
 <!-- Task Detail Modal -->
 <div class="modal-backdrop" id="detail-backdrop" onclick="handleDetailBackdropClick(event)">
   <div class="modal" style="max-width:440px">
-    <div class="modal-header">
-      <div class="modal-title" id="detail-title"></div>
+    <div class="modal-header" style="flex-wrap:wrap;gap:8px">
+      <div class="detail-title-row">
+        <div class="modal-title" id="detail-title"></div>
+        <span id="detail-cat"></span>
+      </div>
       <button class="modal-close" onclick="closeTaskDetail()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div class="modal-body">
       <div class="detail-meta" id="detail-meta"></div>
       <div class="detail-note" id="detail-note"></div>
+      <div class="detail-footer" id="detail-footer"></div>
     </div>
   </div>
 </div>
@@ -3147,26 +3154,47 @@ function renderCalStats() {
 function openTaskDetail(taskId) {
   const t = tasks.find(t => t.id === taskId);
   if (!t) return;
+
+  // 헤더: 제목 + 카테고리
   document.getElementById('detail-title').innerHTML = tfEmoji(t.title);
+  document.getElementById('detail-cat').innerHTML = t.category
+    ? `<span class="badge badge-cat">${tfEmoji(t.category)}</span>` : '';
+
+  // meta: 긴급 뱃지 + (미완료일 때만) 마감일
+  const metaParts = [
+    t.priority === '긴급' ? `<span class="badge badge-urgent">긴급</span>` : '',
+    (!t.done && t.dueDate) ? `<span class="badge badge-date"><img class="t-emoji" src="/emoji/u1F4C5.svg" alt="📅"> ${fmt(t.dueDate)}</span>` : '',
+  ].filter(Boolean);
+  const detailMeta = document.getElementById('detail-meta');
+  detailMeta.innerHTML = metaParts.join('');
+  detailMeta.style.display = metaParts.length ? '' : 'none';
+
+  // note
+  const noteHtml = t.note ? linkify(tfEmoji(t.note)).replace(/\n/g, '<br>') : '';
+  const detailNote = document.getElementById('detail-note');
+  detailNote.innerHTML = noteHtml;
+  detailNote.style.display = noteHtml ? '' : 'none';
+  detailNote.style.marginTop = metaParts.length ? '14px' : '0';
+
+  // footer: 완료 일자 + 위치 (완료된 경우만)
   const { name: locName, url: locUrl } = parseLocation(t.location);
   const locBadge = locName
     ? `<a class="badge badge-location" href="${locUrl || 'https://map.kakao.com/?q=' + encodeURIComponent(locName)}" target="_blank" onclick="event.stopPropagation()">📍 ${locName}</a>`
     : '';
-  const completedLine = t.completedAt
-    ? `<span style="font-size:12px;color:var(--text3)">${fmt(t.completedAt)} 완료</span>${locBadge ? ' ' + locBadge : ''}`
-    : '';
-  document.getElementById('detail-meta').innerHTML = [
-    t.category ? `<span class="badge badge-cat">${tfEmoji(t.category)}</span>` : '',
-    t.priority === '긴급' ? `<span class="badge badge-urgent">긴급</span>` : '',
-    t.dueDate  ? `<span class="badge badge-date"><img class="t-emoji" src="/emoji/u1F4C5.svg" alt="📅"> ${fmt(t.dueDate)}</span>` : '',
-    completedLine
-  ].filter(Boolean).join('');
-  const noteHtml = t.note ? linkify(tfEmoji(t.note)).replace(/\n/g, '<br>') : '';
-  const detailMeta = document.getElementById('detail-meta');
-  const detailNote = document.getElementById('detail-note');
-  detailMeta.style.marginBottom = noteHtml ? '14px' : '0';
-  detailNote.innerHTML = noteHtml;
-  detailNote.style.display = noteHtml ? '' : 'none';
+  const detailFooter = document.getElementById('detail-footer');
+  if (t.completedAt) {
+    detailFooter.innerHTML = `<span style="font-size:12px;color:var(--text3)">${fmt(t.completedAt)} 완료</span>${locBadge}`;
+    detailFooter.style.display = '';
+    detailFooter.style.marginTop = (noteHtml || metaParts.length) ? '14px' : '0';
+  } else if (locBadge) {
+    detailFooter.innerHTML = locBadge;
+    detailFooter.style.display = '';
+    detailFooter.style.marginTop = (noteHtml || metaParts.length) ? '14px' : '0';
+  } else {
+    detailFooter.innerHTML = '';
+    detailFooter.style.display = 'none';
+  }
+
   document.getElementById('detail-backdrop').classList.add('open');
   lockScroll();
 }
