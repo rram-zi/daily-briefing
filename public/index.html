@@ -547,29 +547,24 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
   .badge-location { color: var(--text3); font-size: 12px; text-decoration: none; }
   .badge-location:hover { color: var(--blue500); }
 
-  /* 위치 검색 필드 */
-  .location-wrap { position: relative; }
+  /* 위치 선택 표시 */
   .location-selected {
     display: none; align-items: center; justify-content: space-between;
     background: var(--blue50); border-radius: 8px;
-    padding: 7px 10px; margin-bottom: 6px; font-size: 14px; color: var(--blue600); font-weight: 500;
+    padding: 5px 10px; font-size: 13px; color: var(--blue600); font-weight: 500;
   }
   .location-clear-btn {
-    background: none; border: none; cursor: pointer; color: var(--text3);
-    font-size: 16px; line-height: 1; padding: 0 2px;
+    background: none; border: none; cursor: pointer; color: var(--blue400);
+    font-size: 16px; line-height: 1; padding: 0 0 0 8px;
   }
-  .location-results {
-    position: absolute; top: 100%; left: 0; right: 0; z-index: 200;
-    background: var(--surface); border: 1.5px solid var(--border); border-radius: 10px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.1); overflow: hidden; margin-top: 4px;
-  }
+  /* 위치 검색 모달 결과 */
   .location-result-item {
-    padding: 10px 14px; cursor: pointer; transition: background 0.1s;
+    padding: 12px 0; cursor: pointer; transition: background 0.1s; border-radius: 8px;
   }
-  .location-result-item:hover { background: var(--grey50); }
+  .location-result-item:hover { background: var(--grey50); padding-left: 8px; padding-right: 8px; margin: 0 -8px; }
   .location-result-item + .location-result-item { border-top: 1px solid var(--border); }
   .location-result-name { font-size: 14px; font-weight: 500; color: var(--text1); }
-  .location-result-meta { font-size: 12px; color: var(--text3); margin-top: 2px; }
+  .location-result-meta { font-size: 12px; color: var(--text3); margin-top: 3px; }
 
   .task-actions { display: flex; align-items: center; gap: 2px; opacity: 0; transition: opacity 0.12s; }
   .task-item:hover .task-actions { opacity: 1; }
@@ -1502,16 +1497,15 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
         </div>
         <div class="form-group form-full">
           <label class="form-label">위치</label>
-          <div class="location-wrap">
-            <div class="location-selected" id="location-selected">
+          <div class="cat-picker-wrap">
+            <div class="location-selected" id="location-selected" style="display:none">
               <span id="location-selected-name"></span>
               <button type="button" class="location-clear-btn" onclick="clearLocation()">×</button>
             </div>
-            <input type="text" id="f-location" placeholder="장소 검색..." autocomplete="off"
-              oninput="onLocationInput(this.value)"
-              onkeydown="if(event.key==='Enter'){event.preventDefault();clearTimeout(_locationTimer);searchKakaoPlace(this.value.trim())}"
-              onblur="setTimeout(hideLocationResults, 200)">
-            <div class="location-results" id="location-results" style="display:none"></div>
+            <button type="button" class="cat-add-trigger" id="location-add-btn" onclick="openLocationModal()">
+              <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              추가하기
+            </button>
           </div>
         </div>
       </div>
@@ -1544,6 +1538,23 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
     <div class="modal-footer">
       <button class="btn-cancel" onclick="closeCategoryModal()">취소</button>
       <button class="btn-save" id="cat-modal-save-btn" onclick="addCategoryFromModal()">추가하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 위치 검색 모달 -->
+<div class="modal-backdrop cat-modal-backdrop" id="location-modal-backdrop" onclick="if(!isDesktop()&&event.target===this)closeLocationModal()">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <div class="modal-title">위치 검색</div>
+      <button class="modal-close" onclick="closeLocationModal()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body" style="padding:16px 20px 20px;display:flex;flex-direction:column;gap:12px">
+      <input type="text" id="location-modal-input" placeholder="장소명 또는 주소 검색..."
+        autocomplete="off" style="width:100%;box-sizing:border-box"
+        oninput="onLocationModalInput(this.value)"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();clearTimeout(_locationTimer);runLocationSearch(this.value.trim())}">
+      <div id="location-modal-results"></div>
     </div>
   </div>
 </div>
@@ -2651,25 +2662,34 @@ function parseLocation(raw) {
 function initLocationField(raw) {
   selectedLocation = raw || '';
   const { name } = parseLocation(raw);
-  document.getElementById('f-location').value = '';
-  document.getElementById('f-location').placeholder = name || '장소 검색...';
   const sel = document.getElementById('location-selected');
+  const btn = document.getElementById('location-add-btn');
   sel.style.display = name ? 'flex' : 'none';
   document.getElementById('location-selected-name').textContent = name ? `📍 ${name}` : '';
-  hideLocationResults();
+  if (btn) btn.style.display = name ? 'none' : '';
 }
 
-function onLocationInput(val) {
+function openLocationModal() {
+  document.getElementById('location-modal-input').value = '';
+  document.getElementById('location-modal-results').innerHTML = '';
+  document.getElementById('location-modal-backdrop').classList.add('open');
+  setTimeout(() => document.getElementById('location-modal-input').focus(), 120);
+}
+
+function closeLocationModal() {
+  document.getElementById('location-modal-backdrop').classList.remove('open');
+}
+
+function onLocationModalInput(val) {
   clearTimeout(_locationTimer);
-  if (!val.trim()) { hideLocationResults(); return; }
-  _locationTimer = setTimeout(() => searchKakaoPlace(val.trim()), 400);
+  if (!val.trim()) { document.getElementById('location-modal-results').innerHTML = ''; return; }
+  _locationTimer = setTimeout(() => runLocationSearch(val.trim()), 400);
 }
 
-async function searchKakaoPlace(q) {
+async function runLocationSearch(q) {
   if (!q) return;
-  const el = document.getElementById('location-results');
+  const el = document.getElementById('location-modal-results');
   el.innerHTML = `<div class="location-result-item" style="color:var(--text3)">검색 중...</div>`;
-  el.style.display = 'block';
   try {
     const res = await fetch(`/api/kakao-place?q=${encodeURIComponent(q)}`, {
       headers: { Authorization: `Basic ${AUTH}` },
@@ -2688,7 +2708,7 @@ async function searchKakaoPlace(q) {
       `<div class="location-result-item"
         data-name="${p.name.replace(/"/g,'&quot;')}"
         data-url="${(p.url||'').replace(/"/g,'&quot;')}"
-        onmousedown="selectPlace(this.dataset.name, this.dataset.url)">
+        onclick="selectPlace(this.dataset.name, this.dataset.url)">
         <div class="location-result-name">${p.name}</div>
         <div class="location-result-meta">${[p.category, p.address].filter(Boolean).join(' · ')}</div>
       </div>`
@@ -2700,25 +2720,19 @@ async function searchKakaoPlace(q) {
 
 function selectPlace(name, url) {
   selectedLocation = url ? `${name}|||${url}` : name;
-  document.getElementById('f-location').value = '';
-  document.getElementById('f-location').placeholder = name;
   document.getElementById('location-selected-name').textContent = `📍 ${name}`;
   document.getElementById('location-selected').style.display = 'flex';
-  hideLocationResults();
+  const btn = document.getElementById('location-add-btn');
+  if (btn) btn.style.display = 'none';
+  closeLocationModal();
 }
 
 function clearLocation() {
   selectedLocation = '';
-  const inp = document.getElementById('f-location');
-  if (inp) { inp.value = ''; inp.placeholder = '장소 검색...'; }
   const sel = document.getElementById('location-selected');
   if (sel) sel.style.display = 'none';
-  hideLocationResults();
-}
-
-function hideLocationResults() {
-  const el = document.getElementById('location-results');
-  if (el) el.style.display = 'none';
+  const btn = document.getElementById('location-add-btn');
+  if (btn) btn.style.display = '';
 }
 
 function endRecurring() {
