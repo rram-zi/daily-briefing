@@ -2482,7 +2482,10 @@ function renderTasks() {
         if (urgent || overdue) return -1;
         return 0;
       };
-      return score(a) - score(b);
+      const sa = score(a), sb = score(b);
+      if (sa !== sb) return sa - sb;
+      if (a.done && b.done) return (b.completedAt || '').localeCompare(a.completedAt || '');
+      return 0;
     });
 
   const todayList = document.getElementById('today-list');
