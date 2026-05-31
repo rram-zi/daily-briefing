@@ -565,6 +565,7 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
   .location-result-item + .location-result-item { border-top: 1px solid var(--border); }
   .location-result-name { font-size: 14px; font-weight: 500; color: var(--text1); }
   .location-result-meta { font-size: 12px; color: var(--text3); margin-top: 3px; }
+  .location-result-empty { font-size: 14px; color: var(--text3); text-align: center; padding: 32px 0; }
 
   .task-actions { display: flex; align-items: center; gap: 2px; opacity: 0; transition: opacity 0.12s; }
   .task-item:hover .task-actions { opacity: 1; }
@@ -1544,17 +1545,23 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
 
 <!-- 위치 검색 모달 -->
 <div class="modal-backdrop cat-modal-backdrop" id="location-modal-backdrop" onclick="if(!isDesktop()&&event.target===this)closeLocationModal()">
-  <div class="modal" style="max-width:480px">
-    <div class="modal-header">
+  <div class="modal" style="max-width:480px;height:60vh">
+    <div class="modal-header" style="padding-bottom:16px;border-bottom:1px solid var(--border)">
       <div class="modal-title">위치 검색</div>
       <button class="modal-close" onclick="closeLocationModal()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
-    <div class="modal-body" style="padding:16px 20px 20px;display:flex;flex-direction:column;gap:12px">
-      <input type="text" id="location-modal-input" placeholder="장소명 또는 주소 검색..."
-        autocomplete="off" style="width:100%;box-sizing:border-box"
-        oninput="onLocationModalInput(this.value)"
-        onkeydown="if(event.key==='Enter'){event.preventDefault();clearTimeout(_locationTimer);runLocationSearch(this.value.trim())}">
-      <div id="location-modal-results"></div>
+    <div style="padding:16px 24px;flex-shrink:0">
+      <div class="form-group">
+        <input type="text" id="location-modal-input" placeholder="장소명 또는 주소 검색..."
+          autocomplete="off"
+          oninput="onLocationModalInput(this.value)"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();clearTimeout(_locationTimer);runLocationSearch(this.value.trim())}">
+      </div>
+    </div>
+    <div class="modal-body" style="padding:0 24px 20px;overflow-y:auto">
+      <div id="location-modal-results">
+        <div class="location-result-empty">장소명을 검색해보세요</div>
+      </div>
     </div>
   </div>
 </div>
@@ -2669,9 +2676,11 @@ function initLocationField(raw) {
   if (btn) btn.style.display = name ? 'none' : '';
 }
 
+const LOCATION_EMPTY_MSG = `<div class="location-result-empty">장소명을 검색해보세요</div>`;
+
 function openLocationModal() {
   document.getElementById('location-modal-input').value = '';
-  document.getElementById('location-modal-results').innerHTML = '';
+  document.getElementById('location-modal-results').innerHTML = LOCATION_EMPTY_MSG;
   document.getElementById('location-modal-backdrop').classList.add('open');
   setTimeout(() => document.getElementById('location-modal-input').focus(), 120);
 }
@@ -2682,7 +2691,7 @@ function closeLocationModal() {
 
 function onLocationModalInput(val) {
   clearTimeout(_locationTimer);
-  if (!val.trim()) { document.getElementById('location-modal-results').innerHTML = ''; return; }
+  if (!val.trim()) { document.getElementById('location-modal-results').innerHTML = LOCATION_EMPTY_MSG; return; }
   _locationTimer = setTimeout(() => runLocationSearch(val.trim()), 400);
 }
 
