@@ -22,7 +22,10 @@ export default async function handler(req, res) {
     headers: { Authorization: `KakaoAK ${process.env.KAKAO_REST_API_KEY}` },
   });
 
-  if (!resp.ok) return res.status(resp.status).json({ error: 'Kakao API error' });
+  if (!resp.ok) {
+    const errBody = await resp.json().catch(() => ({}));
+    return res.status(resp.status).json({ error: `Kakao ${resp.status}: ${errBody.msg || JSON.stringify(errBody)}` });
+  }
 
   const data = await resp.json();
   const places = (data.documents || []).map(d => ({
