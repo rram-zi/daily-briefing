@@ -1616,6 +1616,7 @@ let _startAction = new URLSearchParams(location.search).get('action') || '';
 if (_startAction) history.replaceState(null, '', '/');
 let recurringTasks = [];
 let _recurringLast = {};
+let _recurringPromise = Promise.resolve();
 
 function toNotionPriority(p) { return p === '긴급' ? '긴급' : '보통'; }
 
@@ -1664,9 +1665,13 @@ function closeMobileSidebar() {
 
 async function loadRecurring() {
   try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 5000);
     const res = await fetch('/api/recurring', {
-      headers: { Authorization: `Basic ${AUTH}` }
+      headers: { Authorization: `Basic ${AUTH}` },
+      signal: ctrl.signal,
     });
+    clearTimeout(timer);
     if (res.ok) {
       const data = await res.json();
       recurringTasks = Array.isArray(data.tasks) ? data.tasks : [];
@@ -2067,6 +2072,7 @@ async function confirmTodaySelection() {
       return;
     }
   }
+  _recurringPromise = loadRecurring();
   loadTasks();
 
   // 자정 감지: 날짜 바뀌면 오늘 섹션 재계산 (미완료 이월 포함)
@@ -2260,7 +2266,7 @@ async function loadTasks() {
     });
     updateStats(); renderTasks(); renderBriefing();
     await checkWeeklyTask();
-    await loadRecurring();
+    await _recurringPromise;
     await checkRecurringTasks();
     autoAddCalendarTasks();
     if (_startAction === 'morning') { _startAction = ''; openTodayModal(); }
