@@ -1787,11 +1787,18 @@ function loadTodayIds() {
   const today = todayKey();
   const yesterday = yesterdayKey();
 
+  // 오늘 명시적으로 제거한 ID — 이월 PATCH 전에 먼저 읽어서 re-patch 방지
+  let removedTodayIds = new Set();
+  try {
+    const rt = JSON.parse(localStorage.getItem('removed_today_ids') || '{}');
+    if (rt.date === today && Array.isArray(rt.ids)) removedTodayIds = new Set(rt.ids);
+  } catch {}
+
   // 오늘 날짜로 설정된 Notion 할 일
   const notionTodayIds = tasks.filter(t => t.todayDate === today).map(t => t.id);
 
-  // 어제 날짜 + 미완료 → 오늘로 이월 (Notion 오늘날짜 기반)
-  const carryOver = tasks.filter(t => t.todayDate === yesterday && !t.done);
+  // 어제 날짜 + 미완료 → 오늘로 이월 (제거한 항목은 re-patch 하지 않음)
+  const carryOver = tasks.filter(t => t.todayDate === yesterday && !t.done && !removedTodayIds.has(t.id));
   if (carryOver.length > 0) {
     const patches = carryOver.map(t => {
       t.todayDate = today;
@@ -1824,13 +1831,6 @@ function loadTodayIds() {
   }
   carryOverIds = new Set(mergedCarryOver);
   const _carryOverIdArr = [...carryOverIds];
-
-  // 오늘 명시적으로 제거한 ID는 다시 추가하지 않음
-  let removedTodayIds = new Set();
-  try {
-    const rt = JSON.parse(localStorage.getItem('removed_today_ids') || '{}');
-    if (rt.date === today && Array.isArray(rt.ids)) removedTodayIds = new Set(rt.ids);
-  } catch {}
 
   // Notion 데이터만 source of truth로 사용 (carryover_ids localStorage는 배지 표시용)
   // _carryOverIdArr를 포함하면 다른 기기에서 제거한 태스크가 재출현하는 버그 발생
@@ -1879,7 +1879,9 @@ function removeFromToday(id) {
     localStorage.setItem(key, JSON.stringify({ date: todayKey(), ids }));
   } catch {}
   renderTodaySection(); renderTasks();
-  notionFetch(`pages/${id}`, 'PATCH', { properties: { '오늘날짜': { date: null } } });
+  _carryoverPatchPromise.then(() => {
+    notionFetch(`pages/${id}`, 'PATCH', { properties: { '오늘날짜': { date: null } } });
+  });
 }
 
 function renderTodaySection() {
@@ -2840,7 +2842,7 @@ async function saveTask() {
     '마감일':   dueDate  ? { date: { start: dueDate } } : { date: null },
     '카테고리': category ? { select: { name: category } } : { select: null },
     '메모':     { rich_text: note ? [{ text: { content: note } }] : [] },
-    ...(location ? { '위치': { rich_text: [{ text: { content: location } }] } } : {}),
+    '위치': { rich_text: location ? [{ text: { content: location } }] : [] },
   };
 
   const statusMap = { 'Not started': '할 일', 'In progress': '할 일', 'Done': '완료' };
