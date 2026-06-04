@@ -1615,6 +1615,8 @@ let _carryoverPatchPromise = Promise.resolve();
 let _startAction = new URLSearchParams(location.search).get('action') || '';
 if (_startAction) history.replaceState(null, '', '/');
 let recurringTasks = [];
+let _recurringLast = {};
+let _recurringPromise = null;
 
 function toNotionPriority(p) { return p === '긴급' ? '긴급' : '보통'; }
 
@@ -1661,12 +1663,33 @@ function closeMobileSidebar() {
   unlockScroll();
 }
 
-function loadRecurring() {
-  try { recurringTasks = JSON.parse(localStorage.getItem('recurring_tasks') || '[]'); }
-  catch { recurringTasks = []; }
+async function loadRecurring() {
+  try {
+    const fetchP = fetch('/api/recurring', { headers: { Authorization: `Basic ${AUTH}` } })
+      .then(r => r.ok ? r.json() : null).catch(() => null);
+    const data = await Promise.race([
+      fetchP,
+      new Promise(resolve => setTimeout(() => resolve(null), 3000)),
+    ]);
+    if (data && typeof data === 'object') {
+      if (Array.isArray(data.tasks)) recurringTasks = data.tasks;
+      if (data.last && typeof data.last === 'object') _recurringLast = data.last;
+    }
+  } catch {}
 }
-function saveRecurring() {
-  localStorage.setItem('recurring_tasks', JSON.stringify(recurringTasks));
+async function saveRecurring() {
+  fetch('/api/recurring?type=tasks', {
+    method: 'POST',
+    headers: { Authorization: `Basic ${AUTH}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(recurringTasks),
+  }).catch(() => {});
+}
+async function saveRecurringLast() {
+  fetch('/api/recurring?type=last', {
+    method: 'POST',
+    headers: { Authorization: `Basic ${AUTH}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(_recurringLast),
+  }).catch(() => {});
 }
 
 function selectTaskType(type) {
@@ -1683,7 +1706,7 @@ async function checkRecurringTasks() {
   if (!DB_ID || recurringTasks.length === 0) return;
   const dayName = ['일','월','화','수','목','금','토'][new Date().getDay()];
   const dateStr = todayKey();
-  const lastRun = JSON.parse(localStorage.getItem('recurring_last') || '{}');
+  const lastRun = _recurringLast;
   let changed = false;
 
   for (const rt of recurringTasks) {
@@ -1729,8 +1752,7 @@ async function checkRecurringTasks() {
     changed = true;
   }
 
-  localStorage.setItem('recurring_last', JSON.stringify(lastRun));
-  if (changed) { updateStats(); renderTasks(); renderTodaySection(); }
+  if (changed) { saveRecurringLast(); updateStats(); renderTasks(); renderTodaySection(); }
 }
 
 function autoAddCalendarTasks() {
@@ -2049,6 +2071,7 @@ async function confirmTodaySelection() {
       return;
     }
   }
+  _recurringPromise = loadRecurring();
   loadTasks();
 
   // 자정 감지: 날짜 바뀌면 오늘 섹션 재계산 (미완료 이월 포함)
@@ -2241,7 +2264,19 @@ async function loadTasks() {
       return 0;
     });
     updateStats(); renderTasks(); renderBriefing();
+  } catch(e) {
+    setStatus('err', '연결 실패: ' + e.message);
+    document.getElementById('task-list').innerHTML =
+      `<div class="empty-state">Notion 연결에 실패했습니다.<br>
+       <small style="font-size:12px;color:var(--text3)">${e.message}</small></div>`;
+  } finally {
+    btn.classList.remove('spinning');
+    hideSplash();
+  }
+  // splash 이후 백그라운드 처리 — 여기서 hang해도 화면에는 영향 없음
+  try {
     await checkWeeklyTask();
+    if (_recurringPromise) await _recurringPromise;
     await checkRecurringTasks();
     autoAddCalendarTasks();
     if (_startAction === 'morning') { _startAction = ''; openTodayModal(); }
@@ -2250,14 +2285,7 @@ async function loadTasks() {
     else if (!todayConfirmed || todayIds.length === 0) openTodayModal();
     const t = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
     setStatus('ok', `${tasks.length}개 할 일 동기화 완료 · ${t}`);
-  } catch(e) {
-    setStatus('err', '연결 실패: ' + e.message);
-    document.getElementById('task-list').innerHTML =
-      `<div class="empty-state">Notion 연결에 실패했습니다.<br>
-       <small style="font-size:12px;color:var(--text3)">${e.message}</small></div>`;
-  }
-  btn.classList.remove('spinning');
-  hideSplash();
+  } catch {}
 }
 
 function parsePage(page) {
