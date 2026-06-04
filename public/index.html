@@ -1615,6 +1615,7 @@ let _carryoverPatchPromise = Promise.resolve();
 let _startAction = new URLSearchParams(location.search).get('action') || '';
 if (_startAction) history.replaceState(null, '', '/');
 let recurringTasks = [];
+let _recurringLast = {};
 
 function toNotionPriority(p) { return p === '긴급' ? '긴급' : '보통'; }
 
@@ -1661,12 +1662,31 @@ function closeMobileSidebar() {
   unlockScroll();
 }
 
-function loadRecurring() {
-  try { recurringTasks = JSON.parse(localStorage.getItem('recurring_tasks') || '[]'); }
-  catch { recurringTasks = []; }
+async function loadRecurring() {
+  try {
+    const res = await fetch('/api/recurring', {
+      headers: { Authorization: `Basic ${AUTH}` }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      recurringTasks = Array.isArray(data.tasks) ? data.tasks : [];
+      _recurringLast = (data.last && typeof data.last === 'object') ? data.last : {};
+    }
+  } catch {}
 }
-function saveRecurring() {
-  localStorage.setItem('recurring_tasks', JSON.stringify(recurringTasks));
+async function saveRecurring() {
+  await fetch('/api/recurring?type=tasks', {
+    method: 'POST',
+    headers: { Authorization: `Basic ${AUTH}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(recurringTasks),
+  }).catch(() => {});
+}
+async function saveRecurringLast() {
+  await fetch('/api/recurring?type=last', {
+    method: 'POST',
+    headers: { Authorization: `Basic ${AUTH}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(_recurringLast),
+  }).catch(() => {});
 }
 
 function selectTaskType(type) {
@@ -1683,7 +1703,7 @@ async function checkRecurringTasks() {
   if (!DB_ID || recurringTasks.length === 0) return;
   const dayName = ['일','월','화','수','목','금','토'][new Date().getDay()];
   const dateStr = todayKey();
-  const lastRun = JSON.parse(localStorage.getItem('recurring_last') || '{}');
+  const lastRun = _recurringLast;
   let changed = false;
 
   for (const rt of recurringTasks) {
@@ -1729,8 +1749,7 @@ async function checkRecurringTasks() {
     changed = true;
   }
 
-  localStorage.setItem('recurring_last', JSON.stringify(lastRun));
-  if (changed) { updateStats(); renderTasks(); renderTodaySection(); }
+  if (changed) { saveRecurringLast(); updateStats(); renderTasks(); renderTodaySection(); }
 }
 
 function autoAddCalendarTasks() {
@@ -2025,7 +2044,6 @@ async function confirmTodaySelection() {
     '오늘은 ' + now.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' }) + ' (' + days[now.getDay()] + ')';
   document.getElementById('date-sub').textContent = '';
 
-  loadRecurring();
   renderTodaySection();
 
   document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeConfig(); closeTaskDetail(); closeSearchModal(); closeTodayModal(); closeMobileSidebar(); closeCategoryModal(); closeNotifModal(); closeSettingsDropdown(); clearTaskSearch(); } });
@@ -2049,6 +2067,7 @@ async function confirmTodaySelection() {
       return;
     }
   }
+  await loadRecurring();
   loadTasks();
 
   // 자정 감지: 날짜 바뀌면 오늘 섹션 재계산 (미완료 이월 포함)
@@ -2733,7 +2752,7 @@ function endRecurring() {
   if (!editingRecurringId) return;
   if (!confirm('반복 일정을 종료할까요? 이미 생성된 할 일은 유지됩니다.')) return;
   recurringTasks = recurringTasks.filter(r => r.id !== editingRecurringId);
-  saveRecurring();
+  await saveRecurring();
   editingRecurringId = null;
   document.getElementById('btn-end-recurring').style.display = 'none';
   selectTaskType('once');
@@ -2763,7 +2782,7 @@ async function saveTask() {
       title, days, priority, category, note
     };
     recurringTasks.push(rt);
-    saveRecurring();
+    await saveRecurring();
     closeModal();
     await checkRecurringTasks();
     setStatus('ok', `반복 할 일 "${title}" 이(가) 저장됐습니다 (${days.join(', ')} 반복)`);
@@ -2787,11 +2806,11 @@ async function saveTask() {
         recurringTasks.push(newRt);
         editingRecurringId = newRt.id;
       }
-      saveRecurring();
+      await saveRecurring();
     } else if (editingRecurringId) {
       // 반복→1회성으로 변경: 템플릿 종료
       recurringTasks = recurringTasks.filter(r => r.id !== editingRecurringId);
-      saveRecurring();
+      await saveRecurring();
       editingRecurringId = null;
     }
   }
