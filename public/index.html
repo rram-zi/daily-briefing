@@ -1787,18 +1787,11 @@ function loadTodayIds() {
   const today = todayKey();
   const yesterday = yesterdayKey();
 
-  // 오늘 명시적으로 제거한 ID — 이월 PATCH 전에 먼저 읽어서 re-patch 방지
-  let removedTodayIds = new Set();
-  try {
-    const rt = JSON.parse(localStorage.getItem('removed_today_ids') || '{}');
-    if (rt.date === today && Array.isArray(rt.ids)) removedTodayIds = new Set(rt.ids);
-  } catch {}
-
-  // 오늘 날짜로 설정된 Notion 할 일
+  // Notion의 오늘날짜 필드가 단일 source of truth — localStorage는 순서 보존 전용
   const notionTodayIds = tasks.filter(t => t.todayDate === today).map(t => t.id);
 
-  // 어제 날짜 + 미완료 → 오늘로 이월 (제거한 항목은 re-patch 하지 않음)
-  const carryOver = tasks.filter(t => t.todayDate === yesterday && !t.done && !removedTodayIds.has(t.id));
+  // 어제 날짜 + 미완료 → 오늘로 이월 PATCH (오늘날짜 null인 항목은 사용자가 제거한 것 — 건드리지 않음)
+  const carryOver = tasks.filter(t => t.todayDate === yesterday && !t.done);
   if (carryOver.length > 0) {
     const patches = carryOver.map(t => {
       t.todayDate = today;
@@ -1808,33 +1801,22 @@ function loadTodayIds() {
   } else {
     _carryoverPatchPromise = Promise.resolve();
   }
-  // 어제 today_tasks 기반 이월: 오늘날짜가 이미 업데이트된 케이스(반복일정 등) 보완
-  let localCarryOverIds = [];
-  try {
-    const prev = JSON.parse(localStorage.getItem('today_tasks') || '{}');
-    if (prev.date === yesterday && Array.isArray(prev.ids)) {
-      localCarryOverIds = tasks
-        .filter(t => prev.ids.includes(t.id) && !t.done && !carryOver.find(c => c.id === t.id))
-        .map(t => t.id);
-    }
-  } catch {}
-  // 이월 ID를 localStorage에 날짜와 함께 저장 (리로드 후에도 배지 유지)
-  const newCarryOverIds = [...carryOver.map(t => t.id), ...localCarryOverIds];
+
+  // 이월 ID 저장 (배지 표시용)
+  const carryOverIdSet = new Set(carryOver.map(t => t.id));
   let persistedCarryOver = [];
   try {
     const pc = JSON.parse(localStorage.getItem('carryover_ids') || '{}');
     if (pc.date === today && Array.isArray(pc.ids)) persistedCarryOver = pc.ids;
   } catch {}
-  const mergedCarryOver = [...new Set([...persistedCarryOver, ...newCarryOverIds])];
-  if (newCarryOverIds.length > 0) {
+  const mergedCarryOver = [...new Set([...persistedCarryOver, ...carryOverIdSet])];
+  if (carryOverIdSet.size > 0) {
     localStorage.setItem('carryover_ids', JSON.stringify({ date: today, ids: mergedCarryOver }));
   }
   carryOverIds = new Set(mergedCarryOver);
-  const _carryOverIdArr = [...carryOverIds];
 
-  // Notion 데이터만 source of truth로 사용 (carryover_ids localStorage는 배지 표시용)
-  // _carryOverIdArr를 포함하면 다른 기기에서 제거한 태스크가 재출현하는 버그 발생
-  const allNotionIds = [...new Set([...carryOver.map(t => t.id), ...notionTodayIds])].filter(id => !removedTodayIds.has(id));
+  // 오늘의 할 일 = Notion 오늘날짜 기준 + 이월 — localStorage 순서 우선 적용
+  const allNotionIds = [...new Set([...carryOver.map(t => t.id), ...notionTodayIds])];
 
   if (allNotionIds.length > 0) {
     try {
@@ -1849,12 +1831,7 @@ function loadTodayIds() {
     } catch { todayIds = allNotionIds; }
     todayConfirmed = true;
   } else {
-    try {
-      const stored = JSON.parse(localStorage.getItem('today_tasks') || '{}');
-      if (stored.date === today && Array.isArray(stored.ids)) {
-        todayIds = stored.ids; todayConfirmed = !!stored.confirmed;
-      } else { todayIds = []; todayConfirmed = false; }
-    } catch { todayIds = []; todayConfirmed = false; }
+    todayIds = []; todayConfirmed = false;
   }
 }
 function saveTodayIds() {
@@ -1872,13 +1849,8 @@ function removeFromToday(id) {
   todayIds = todayIds.filter(i => i !== id);
   if (todayIds.length === 0) todayConfirmed = false;
   saveTodayIds();
-  try {
-    const key = 'removed_today_ids';
-    const stored = JSON.parse(localStorage.getItem(key) || '{}');
-    const ids = stored.date === todayKey() ? [...new Set([...stored.ids, id])] : [id];
-    localStorage.setItem(key, JSON.stringify({ date: todayKey(), ids }));
-  } catch {}
   renderTodaySection(); renderTasks();
+  // 이월 PATCH 완료 후 삭제 PATCH — 순서 역전 방지
   _carryoverPatchPromise.then(() => {
     notionFetch(`pages/${id}`, 'PATCH', { properties: { '오늘날짜': { date: null } } });
   });
