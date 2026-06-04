@@ -2067,7 +2067,6 @@ async function confirmTodaySelection() {
       return;
     }
   }
-  await loadRecurring();
   loadTasks();
 
   // 자정 감지: 날짜 바뀌면 오늘 섹션 재계산 (미완료 이월 포함)
@@ -2261,6 +2260,7 @@ async function loadTasks() {
     });
     updateStats(); renderTasks(); renderBriefing();
     await checkWeeklyTask();
+    await loadRecurring();
     await checkRecurringTasks();
     autoAddCalendarTasks();
     if (_startAction === 'morning') { _startAction = ''; openTodayModal(); }
