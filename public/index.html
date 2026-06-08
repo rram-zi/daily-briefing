@@ -1676,6 +1676,17 @@ async function loadRecurring() {
       if (Array.isArray(data.tasks)) recurringTasks = data.tasks;
       if (data.last && typeof data.last === 'object') _recurringLast = data.last;
     }
+    // localStorage → Blob 일회성 마이그레이션
+    if (recurringTasks.length === 0) {
+      try {
+        const local = JSON.parse(localStorage.getItem('recurring_tasks') || '[]');
+        if (Array.isArray(local) && local.length > 0) {
+          recurringTasks = local;
+          saveRecurring();
+          localStorage.removeItem('recurring_tasks');
+        }
+      } catch {}
+    }
   } catch {}
 }
 async function saveRecurring() {
