@@ -2075,12 +2075,17 @@ async function confirmTodaySelection() {
 
   // DB_ID가 이미 저장돼 있으면 재검증 없이 바로 로드 (세션 유지)
   if (!DB_ID) {
-    const ok = await initAuth();
-    if (!ok) {
+    const result = await initAuth();
+    if (result === 'unauthorized') {
       AUTH = '';
       localStorage.removeItem('app_auth');
       hideSplash(); openConfig();
       return;
+    }
+    if (result !== 'ok') {
+      // 네트워크/서버 오류 — 인증정보는 유지하고 일단 진행
+      DB_ID = localStorage.getItem('app_db_id') || '';
+      if (!DB_ID) { hideSplash(); openConfig(); return; }
     }
   }
   _recurringPromise = loadRecurring();
@@ -2188,12 +2193,13 @@ async function initAuth() {
       method: 'POST',
       headers: { 'Authorization': `Basic ${AUTH}`, 'Content-Type': 'application/json' }
     });
-    if (!res.ok) return false;
+    if (res.status === 401) return 'unauthorized';
+    if (!res.ok) return 'error';
     const data = await res.json();
     DB_ID = data.dbId || '';
     if (DB_ID) localStorage.setItem('app_db_id', DB_ID);
-    return !!DB_ID;
-  } catch { return false; }
+    return !!DB_ID ? 'ok' : 'error';
+  } catch { return 'error'; }
 }
 
 async function notionFetch(path, method = 'POST', body = null) {
@@ -3622,10 +3628,15 @@ async function saveConfig() {
   const p = document.getElementById('cfg-pass').value.trim();
   if (!u || !p) { alert('아이디와 비밀번호를 입력해주세요'); return; }
   AUTH = btoa(`${u}:${p}`);
-  const ok = await initAuth();
-  if (!ok) {
+  const result = await initAuth();
+  if (result === 'unauthorized') {
     AUTH = '';
     alert('아이디 또는 비밀번호가 올바르지 않습니다');
+    return;
+  }
+  if (result !== 'ok') {
+    alert('서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요.');
+    AUTH = '';
     return;
   }
   localStorage.setItem('app_auth', AUTH);
