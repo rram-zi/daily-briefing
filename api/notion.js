@@ -49,7 +49,9 @@ export default async function handler(req, res) {
 
     const response = await fetch(url, fetchOpts);
     const data = await response.json();
-    return res.status(response.status).json(data);
+    // Notion API 401은 502로 변환 — 프론트엔드의 Basic Auth 실패(401)와 구분
+    const status = response.status === 401 ? 502 : response.status;
+    return res.status(status).json(data);
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }
