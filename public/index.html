@@ -2345,35 +2345,7 @@ function parsePage(page) {
 }
 
 function updateStats() {
-  const isRecurring     = t => recurringTasks.some(r => r.title === t.title);
-  const hasActiveInstance = t => tasks.some(o => o.id !== t.id && o.title === t.title && !o.done);
-
-  // renderTasks()와 동일한 중복 제거
-  const doneByTitle = new Map();
-  tasks.forEach(t => {
-    if (!t.done) return;
-    if (!doneByTitle.has(t.title)) doneByTitle.set(t.title, []);
-    doneByTitle.get(t.title).push(t);
-  });
-  const excludedDoneIds = new Set();
-  doneByTitle.forEach(group => {
-    if (group.length <= 1) return;
-    const sorted = [...group].sort((a, b) => (a.completedAt || '').localeCompare(b.completedAt || ''));
-    sorted.slice(1).forEach(t => excludedDoneIds.add(t.id));
-  });
-
-  const visible = tasks.filter(t => {
-    if (excludedDoneIds.has(t.id)) return false;
-    if (t.done && hasActiveInstance(t)) return false;
-    return true;
-  });
-
-  const total = visible.length;
-  const todo  = visible.filter(t => !t.done || isRecurring(t)).length;
-  const done  = visible.filter(t =>  t.done).length;
-  document.getElementById('fc-all').textContent  = `전체(${total})`;
-  document.getElementById('fc-todo').textContent = `할 일(${todo})`;
-  document.getElementById('fc-done').textContent = `완료(${done})`;
+  renderTasks();
 }
 
 async function checkWeeklyTask() {
@@ -2591,9 +2563,17 @@ function renderTasks() {
     .filter(t => { if (seenTodayTitles.has(t.title)) return false; seenTodayTitles.add(t.title); return true; })
     .sort((a, b) => (b.done ? 1 : 0) - (a.done ? 1 : 0)); // 완료된 것 아래로
 
-  const allOtherTasks = tasks.filter(t => {
+  // 중복 제거만 적용한 기반 목록으로 탭 카운트 계산
+  const baseVisible = tasks.filter(t => {
     if (excludedDoneIds.has(t.id)) return false;
     if (t.done && hasActiveInstance(t)) return false;
+    return true;
+  });
+  document.getElementById('fc-all').textContent  = `전체(${baseVisible.length})`;
+  document.getElementById('fc-todo').textContent = `할 일(${baseVisible.filter(t => !t.done || isRecurring(t)).length})`;
+  document.getElementById('fc-done').textContent = `완료(${baseVisible.filter(t => t.done).length})`;
+
+  const allOtherTasks = baseVisible.filter(t => {
     if (currentFilter === 'done' && !t.done) return false;
     if (currentFilter === 'todo' && t.done && !isRecurring(t)) return false;
     if (currentCategories !== null && t.category && !currentCategories.has(t.category)) return false;
