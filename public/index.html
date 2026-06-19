@@ -2040,15 +2040,29 @@ async function confirmTodaySelection() {
   try {
     // 이월 PATCH가 먼저 완료된 후 제거 PATCH를 전송해야 race condition을 방지할 수 있음
     await _carryoverPatchPromise;
+    // 완료된 반복일정을 오늘 할일에 추가하면 상태를 미완료로 리셋
+    const doneRecurringIds = new Set(
+      toAdd.filter(id => {
+        const t = tasks.find(t => t.id === id);
+        return t && t.done && recurringTasks.some(r => r.title === t.title);
+      })
+    );
     await Promise.all([
-      ...toAdd.map(id    => notionFetch(`pages/${id}`, 'PATCH', { properties: { '오늘날짜': { date: { start: today } } } })),
+      ...toAdd.map(id => {
+        const props = { '오늘날짜': { date: { start: today } } };
+        if (doneRecurringIds.has(id)) props['상태'] = { status: { name: 'Not started' } };
+        return notionFetch(`pages/${id}`, 'PATCH', { properties: props });
+      }),
       ...toRemove.map(id => notionFetch(`pages/${id}`, 'PATCH', { properties: { '오늘날짜': { date: null } } }))
     ]);
     // 저장 후 tasks의 todayDate 업데이트 (재로드 없이 sync 유지)
     tasks.forEach(t => {
-      if (nextSet.has(t.id)) t.todayDate = today;
-      else if (notionSet.has(t.id)) t.todayDate = null;
+      if (nextSet.has(t.id)) {
+        t.todayDate = today;
+        if (doneRecurringIds.has(t.id)) t.done = false;
+      } else if (notionSet.has(t.id)) t.todayDate = null;
     });
+    if (doneRecurringIds.size > 0) renderTodaySection();
   } catch(e) { setStatus('err', '오늘날짜 저장 실패: ' + e.message); }
 }
 
