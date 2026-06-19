@@ -1921,10 +1921,19 @@ function openTodayModal() {
   todayModalSearchQuery = '';
   const isRec = t => recurringTasks.some(r => r.title === t.title);
   const hasActive = t => tasks.some(o => o.id !== t.id && o.title === t.title && !o.done);
-  _todayModalAvailable = tasks.filter(t => {
+  const rawAvailable = tasks.filter(t => {
     if (t.done && isRec(t) && hasActive(t)) return false;
     return !t.done || isRec(t);
   });
+  // 제목 기준 중복 제거: 미완료 우선, 그 다음 최근 완료 순
+  const titleMap = new Map();
+  rawAvailable.forEach(t => {
+    if (!titleMap.has(t.title)) { titleMap.set(t.title, t); return; }
+    const cur = titleMap.get(t.title);
+    if (cur.done && !t.done) titleMap.set(t.title, t);
+    else if (cur.done && t.done && (t.completedAt || '') > (cur.completedAt || '')) titleMap.set(t.title, t);
+  });
+  _todayModalAvailable = [...titleMap.values()];
   const todayStr = todayKey();
   const recommended = _todayModalAvailable.filter(t => t.dueDate === todayStr || carryOverIds.has(t.id) || t.priority === '긴급');
   _todayModalRecommendedIds = new Set(recommended.map(t => t.id));
@@ -2653,7 +2662,9 @@ function openModal(taskId = null) {
   const task = taskId ? tasks.find(t => t.id === taskId) : null;
 
   document.getElementById('modal-title').textContent = task ? '할 일 수정' : '새 할 일 추가';
-  document.getElementById('btn-save').textContent    = task ? '수정 완료' : '저장';
+  const saveBtn = document.getElementById('btn-save');
+  saveBtn.textContent = task ? '수정 완료' : '저장';
+  saveBtn.disabled = false;
 
   document.getElementById('f-title').value    = task ? task.title    : '';
   document.getElementById('f-date').value     = task ? (task.dueDate || '') : '';
