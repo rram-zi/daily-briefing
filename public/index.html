@@ -2326,6 +2326,7 @@ async function loadTasks() {
   try {
     await checkWeeklyTask();
     if (_recurringPromise) await _recurringPromise;
+    if (recurringTasks.length > 0) renderTasks(); // recurringTasks 로드 후 isRecurring 분류 재적용
     await checkRecurringTasks();
     autoAddCalendarTasks();
     if (_startAction === 'morning') { _startAction = ''; openTodayModal(); }
