@@ -24,20 +24,16 @@ const pending  = all.filter(t => !t.done);
 const doneCount = all.length - pending.length;
 const family = config.widgetFamily;
 
-const C_TEXT   = new Color("#1c1c1e");
-const C_MUTED  = new Color("#8e8e93");
-const C_ACCENT = new Color("#007aff");
-const C_CHECK  = new Color("#34c759");
+// iOS 26 liquid glass에서는 흰색 텍스트가 잘 보임
+const C_TEXT   = Color.white();
+const C_MUTED  = new Color("#ffffff", 0.6);
+const C_ACCENT = new Color("#ffffff", 0.95);
+const C_CHECK  = new Color("#30d158");
 
 const widget = new ListWidget();
 
-// Liquid Glass 배경
-const bg = new LinearGradient();
-bg.colors    = [new Color("#ffffff", 0.72), new Color("#f2f2f7", 0.60)];
-bg.locations = [0, 1];
-bg.startPoint = new Point(0, 0);
-bg.endPoint   = new Point(1, 1);
-widget.backgroundGradient = bg;
+// 배경 투명 → iOS 26이 자체적으로 liquid glass 렌더링
+widget.backgroundColor = Color.clear();
 
 // ── 잠금화면 직사각형 ──
 if (family === "accessoryRectangular") {
