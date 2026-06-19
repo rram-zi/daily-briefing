@@ -29,7 +29,7 @@ const C_MUTED  = new Color("#ffffff", 0.55);
 const C_CHECK  = new Color("#30d158");
 
 const widget = new ListWidget();
-widget.backgroundColor = Color.clear(); // liquid glass
+widget.backgroundColor = new Color("#1c1c1e", 0.78);
 
 const ACTION_ADD      = `scriptable:///run?scriptName=SunToDo&action=add`;
 const ACTION_COMPLETE = `scriptable:///run?scriptName=SunToDo&action=complete`;
