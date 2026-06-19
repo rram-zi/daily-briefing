@@ -24,14 +24,40 @@ async function apiRequest(method, body) {
 }
 
 // ── 완료 처리 ──
-if (action === "complete" && taskId) {
-  await apiRequest("PATCH", { id: taskId });
-
-  const alert = new Alert();
-  alert.title = "✅ 완료!";
-  alert.message = taskTitle || "할 일이 완료 처리됐어요.";
-  alert.addAction("확인");
-  await alert.present();
+if (action === "complete") {
+  // 특정 ID가 있으면 바로 완료, 없으면 목록에서 선택
+  if (taskId) {
+    await apiRequest("PATCH", { id: taskId });
+    const a = new Alert();
+    a.title = "✅ 완료!";
+    a.message = taskTitle || "할 일이 완료 처리됐어요.";
+    a.addAction("확인");
+    await a.present();
+  } else {
+    const res = await (async () => {
+      const req = new Request(`${BASE_URL}/api/today`);
+      req.headers = { Authorization: `Basic ${AUTH}` };
+      req.timeoutInterval = 10;
+      try { return await req.loadJSON(); } catch { return { tasks: [] }; }
+    })();
+    const pending = (res.tasks || []).filter(t => !t.done);
+    if (pending.length === 0) {
+      const a = new Alert();
+      a.title = "🎉 모두 완료!";
+      a.message = "남은 할 일이 없어요.";
+      a.addAction("확인");
+      await a.present();
+    } else {
+      const a = new Alert();
+      a.title = "완료할 할 일 선택";
+      for (const t of pending) a.addAction(t.title);
+      a.addCancelAction("취소");
+      const idx = await a.present();
+      if (idx !== -1 && pending[idx]) {
+        await apiRequest("PATCH", { id: pending[idx].id });
+      }
+    }
+  }
 
 // ── 할 일 추가 ──
 } else if (action === "add") {
