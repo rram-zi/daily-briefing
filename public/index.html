@@ -1959,16 +1959,6 @@ function saveTodayIds() {
   localStorage.setItem('today_tasks', JSON.stringify({ date: todayKey(), ids: todayIds, confirmed: todayConfirmed }));
 }
 
-function saveTodayWidget() {
-  const widgetTasks = todayIds
-    .map(id => { const t = tasks.find(t => t.id === id); return t ? { id: t.id, title: t.title, done: t.done } : null; })
-    .filter(Boolean);
-  fetch('/api/today', {
-    method: 'POST',
-    headers: { Authorization: `Basic ${AUTH}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ date: todayKey(), tasks: widgetTasks }),
-  }).catch(() => {});
-}
 
 function addToToday(id) {
   if (!todayIds.includes(id)) todayIds.push(id);
@@ -2170,7 +2160,7 @@ async function confirmTodaySelection() {
       } else if (notionSet.has(t.id)) t.todayDate = null;
     });
     if (doneRecurringIds.size > 0) renderTodaySection();
-    saveTodayWidget();
+
   } catch(e) { setStatus('err', '오늘날짜 저장 실패: ' + e.message); }
 }
 
@@ -2408,7 +2398,7 @@ async function quickAddToday(input) {
     todayIds.push(result.id);
     todayConfirmed = true;
     saveTodayIds();
-    saveTodayWidget();
+
     updateStats(); renderTasks(); renderBriefing();
     setStatus('ok', `"${title}" 추가됨`);
   } catch(e) {
@@ -3115,7 +3105,7 @@ async function toggleDone(id, done) {
     updateStats(); renderTasks(); renderBriefing();
     if (viewMode === 'history') renderHistory();
     setStatus('ok', '업데이트 완료');
-    saveTodayWidget();
+
   } catch(e) { setStatus('err', '업데이트 실패: ' + e.message); }
 }
 

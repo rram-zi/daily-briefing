@@ -1,5 +1,3 @@
-import { put, list } from '@vercel/blob';
-
 function isAuthed(req) {
   const b64 = (req.headers['authorization'] || '').replace(/^Basic /, '');
   if (!b64) return false;
@@ -9,37 +7,49 @@ function isAuthed(req) {
          decoded.slice(idx + 1) === process.env.APP_PASSWORD;
 }
 
-async function readBlob(key) {
-  try {
-    const { blobs } = await list({ prefix: key.replace('.json', '') });
-    if (!blobs.length) return null;
-    const res = await fetch(blobs[0].downloadUrl);
-    return await res.json();
-  } catch { return null; }
-}
-
-async function writeBlob(key, data) {
-  await put(key, JSON.stringify(data), {
-    access: 'public', addRandomSuffix: false, allowOverwrite: true, contentType: 'application/json',
-  });
+function todayKST() {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
 }
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (!isAuthed(req)) return res.status(401).json({ error: 'Unauthorized' });
 
-  if (req.method === 'GET') {
-    const data = await readBlob('today-widget.json');
-    return res.status(200).json(data || { date: '', tasks: [] });
-  }
+  const token = process.env.NOTION_TOKEN;
+  const dbId  = process.env.NOTION_DB_ID;
+  if (!token || !dbId) return res.status(500).json({ error: 'Server not configured' });
 
-  if (req.method === 'POST') {
-    await writeBlob('today-widget.json', req.body);
-    return res.status(200).json({ ok: true });
-  }
+  const today = todayKST();
 
-  return res.status(405).end();
+  try {
+    const response = await fetch(`https://api.notion.com/v1/databases/${dbId}/query`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Notion-Version': '2022-06-28',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        filter: { property: '오늘날짜', date: { equals: today } },
+        sorts: [{ property: '순서', direction: 'ascending' }],
+      }),
+    });
+
+    const data = await response.json();
+    const tasks = (data.results || []).map(page => {
+      const props = page.properties || {};
+      const titleArr = props['이름']?.title || [];
+      const title = titleArr.map(t => t.plain_text).join('');
+      const status = props['상태']?.status?.name || '';
+      const done = status === 'Done';
+      return { id: page.id, title, done };
+    });
+
+    return res.status(200).json({ date: today, tasks });
+  } catch (e) {
+    return res.status(500).json({ error: e.message });
+  }
 }
