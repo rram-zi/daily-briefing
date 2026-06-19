@@ -881,18 +881,36 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
   .cal-day.is-today .cal-day-num { background: var(--blue500); color: #fff; font-weight: 700; }
   .cal-day.is-holiday .cal-day-num { color: var(--blue500); }
   .cal-day.is-holiday.is-today .cal-day-num { background: var(--blue500); color: #fff; }
-  .cal-day.is-holiday .cal-task-chip { background: var(--blue500) !important; color: var(--surface); }
-  .cal-task-chip {
-    display: flex; align-items: center; gap: 4px;
-    width: 100%; min-width: 0; padding: 3px; border-radius: 4px;
-    border: none; font-size: 11px; font-weight: 500;
-    height: 20px; flex-shrink: 0;
-    font-family: inherit; color: #fff;
-    white-space: nowrap; overflow: hidden;
-    cursor: pointer; margin-bottom: 2px; text-align: left;
-    transition: opacity 0.1s;
+  .cal-day.has-tasks { cursor: pointer; }
+  .cal-day.has-tasks:hover { background: var(--grey100); }
+  .cal-day-item {
+    display: flex; align-items: center; gap: 3px;
+    width: 100%; min-width: 0; height: 18px; margin-bottom: 2px; flex-shrink: 0;
   }
-  .cal-task-chip:hover { opacity: 0.82; }
+  .cal-item-icon { flex-shrink: 0; line-height: 1; }
+  .cal-item-icon .t-emoji { width: 11px; height: 11px; vertical-align: middle; }
+  .cal-item-title {
+    font-size: 11px; color: var(--text1); font-weight: 500;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0;
+  }
+  .cal-day.is-holiday .cal-item-title { color: var(--blue500); }
+  /* 날짜 팝업 */
+  .day-popup-header-date { font-size: 13px; color: var(--text3); font-weight: 400; margin-top: 2px; }
+  .day-popup-body { padding: 4px 0 12px; }
+  .day-popup-task {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 20px; cursor: pointer; transition: background 0.1s;
+  }
+  .day-popup-task:hover { background: var(--grey50); }
+  .day-popup-profile {
+    width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+    background: var(--grey100); display: flex; align-items: center; justify-content: center;
+  }
+  .day-popup-profile .t-emoji { width: 18px; height: 18px; }
+  .day-popup-profile-default { font-size: 15px; color: var(--text3); line-height: 1; }
+  .day-popup-info { flex: 1; min-width: 0; }
+  .day-popup-task-title { font-size: 14px; font-weight: 500; color: var(--text1); }
+  .day-popup-task-cat { font-size: 12px; color: var(--text3); margin-top: 1px; }
   .cal-view-toggle {
     display: flex; background: var(--grey100); border-radius: 8px; padding: 2px; gap: 2px;
   }
@@ -1313,6 +1331,20 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
     </div>
 
   </main>
+</div>
+
+<!-- 날짜별 완료 팝업 -->
+<div class="modal-backdrop" id="day-popup-backdrop" onclick="if(!event.target.closest('.modal'))closeDayPopup()">
+  <div class="modal" style="max-width:440px;padding:0;overflow:hidden">
+    <div class="modal-header" style="padding:18px 20px 14px">
+      <div>
+        <div class="modal-title" id="day-popup-title"></div>
+        <div class="day-popup-header-date" id="day-popup-date"></div>
+      </div>
+      <button class="modal-close" onclick="closeDayPopup()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="day-popup-body" id="day-popup-body"></div>
+  </div>
 </div>
 
 <!-- Push 알림 모달 -->
@@ -2111,7 +2143,7 @@ async function confirmTodaySelection() {
 
   renderTodaySection();
 
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeConfig(); closeTaskDetail(); closeSearchModal(); closeTodayModal(); closeMobileSidebar(); closeCategoryModal(); closeNotifModal(); closeSettingsDropdown(); clearTaskSearch(); document.getElementById('qa-cat-dropdown')?.classList.remove('open'); } });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeConfig(); closeTaskDetail(); closeSearchModal(); closeTodayModal(); closeMobileSidebar(); closeCategoryModal(); closeNotifModal(); closeSettingsDropdown(); clearTaskSearch(); closeDayPopup(); document.getElementById('qa-cat-dropdown')?.classList.remove('open'); } });
   document.addEventListener('click', e => {
     const wrap = document.getElementById('settings-wrap');
     if (wrap && !wrap.contains(e.target)) closeSettingsDropdown();
@@ -3133,14 +3165,41 @@ function buildDoneMap() {
   return map;
 }
 
-function buildChip(t) {
-  const opt = categoryOptions.find(o => o.name === t.category);
-  const cn  = opt?.color || 'default';
-  const BG  = { default:'#8B95A1', gray:'#6B7684', brown:'#9F8062', orange:'#D9730D', yellow:'#CB912F', green:'#448361', blue:'#337EA9', purple:'#9065B0', pink:'#C14C8A', red:'#D44C47' };
-  const bg  = BG[cn] || BG.default;
+function buildCalItem(t) {
   const catEmoji = t.category ? [...t.category][0] : '';
-  const catHtml = catEmoji ? `<span class="cal-chip-cat">${tfEmoji(catEmoji)}</span>` : '';
-  return `<button class="cal-task-chip" style="background:${bg}" onclick="openTaskDetail('${t.id}')">${catHtml}<span class="cal-chip-title">${tfEmoji(t.title)}</span></button>`;
+  const icon = catEmoji ? `<span class="cal-item-icon">${tfEmoji(catEmoji)}</span>` : '';
+  return `<div class="cal-day-item">${icon}<span class="cal-item-title">${t.title}</span></div>`;
+}
+
+function openDayPopup(dateStr) {
+  const q = historySearch.toLowerCase();
+  const dayTasks = tasks.filter(t => t.done && t.completedAt === dateStr && (!q || t.title.toLowerCase().includes(q)));
+  if (!dayTasks.length) return;
+  const d = new Date(dateStr + 'T12:00:00');
+  const days = ['일','월','화','수','목','금','토'];
+  document.getElementById('day-popup-title').textContent = `${d.getMonth()+1}월 ${d.getDate()}일 (${days[d.getDay()]})`;
+  document.getElementById('day-popup-date').textContent = `완료한 할 일 ${dayTasks.length}개`;
+  document.getElementById('day-popup-body').innerHTML = dayTasks.map(t => {
+    const catEmoji = t.category ? [...t.category][0] : '';
+    const profile = catEmoji
+      ? `<div class="day-popup-profile">${tfEmoji(catEmoji)}</div>`
+      : `<div class="day-popup-profile"><span class="day-popup-profile-default">✓</span></div>`;
+    const cat = t.category ? `<div class="day-popup-task-cat">${t.category}</div>` : '';
+    return `<div class="day-popup-task" onclick="closeDayPopup();openTaskDetail('${t.id}')">
+      ${profile}
+      <div class="day-popup-info">
+        <div class="day-popup-task-title">${tfEmoji(t.title)}</div>
+        ${cat}
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('day-popup-backdrop').classList.add('open');
+  lockScroll();
+}
+
+function closeDayPopup() {
+  document.getElementById('day-popup-backdrop').classList.remove('open');
+  unlockScroll();
 }
 
 function equalizeCalHeights(minH) {
@@ -3219,9 +3278,10 @@ function renderHistoryMonth() {
     const dateStr  = `${y}-${String(m+1).padStart(2,'0')}-${String(c.day).padStart(2,'0')}`;
     const dayTasks = (doneMap[dateStr] || []).filter(t => !q || t.title.toLowerCase().includes(q));
     const holiday = isHoliday(dateStr);
-    const chips = dayTasks.map(buildChip).join('');
-    const cls = [dateStr === today ? 'is-today' : '', holiday ? 'is-holiday' : ''].filter(Boolean).join(' ');
-    return `<div class="cal-day ${cls}"><span class="cal-day-num">${c.day}</span>${chips}</div>`;
+    const items = dayTasks.map(buildCalItem).join('');
+    const hasTasks = dayTasks.length > 0;
+    const cls = [dateStr === today ? 'is-today' : '', holiday ? 'is-holiday' : '', hasTasks ? 'has-tasks' : ''].filter(Boolean).join(' ');
+    return `<div class="cal-day ${cls}"${hasTasks ? ` onclick="openDayPopup('${dateStr}')"` : ''}><span class="cal-day-num">${c.day}</span>${items}</div>`;
   }).join('');
 
   equalizeCalHeights(window.innerWidth > 680 ? 96 : 80);
@@ -3249,9 +3309,10 @@ function renderHistoryWeek() {
     const dateStr = localDateStr(day);
     const dayTasks = (doneMap[dateStr] || []).filter(t => !q || t.title.toLowerCase().includes(q));
     const holiday = isHoliday(dateStr);
-    const chips = dayTasks.map(buildChip).join('');
-    const cls = [dateStr === today ? 'is-today' : '', holiday ? 'is-holiday' : ''].filter(Boolean).join(' ');
-    return `<div class="cal-day ${cls}"><span class="cal-day-num">${day.getDate()}</span>${chips}</div>`;
+    const items = dayTasks.map(buildCalItem).join('');
+    const hasTasks = dayTasks.length > 0;
+    const cls = [dateStr === today ? 'is-today' : '', holiday ? 'is-holiday' : '', hasTasks ? 'has-tasks' : ''].filter(Boolean).join(' ');
+    return `<div class="cal-day ${cls}"${hasTasks ? ` onclick="openDayPopup('${dateStr}')"` : ''}><span class="cal-day-num">${day.getDate()}</span>${items}</div>`;
   }).join('');
 
   equalizeCalHeights(window.innerWidth > 680 ? 200 : 150);
