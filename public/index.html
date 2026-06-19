@@ -2288,7 +2288,7 @@ function toggleQuickAddCatDropdown(e) {
   const noneOpt = _quickAddCategory
     ? `<div class="qa-cat-option" onclick="selectQuickAddCat('',event)">없음</div>` : '';
   const opts = categoryOptions.map(o =>
-    `<div class="qa-cat-option" onclick="selectQuickAddCat('${o.name.replace(/'/g,"\\'")}',event)">${o.name}</div>`
+    `<div class="qa-cat-option" onclick="selectQuickAddCat('${o.name.replace(/'/g,"\\'")}',event)">${tfEmoji(o.name)}</div>`
   ).join('');
   dd.innerHTML = noneOpt + opts;
   dd.classList.add('open');
@@ -2302,7 +2302,7 @@ function selectQuickAddCat(name, e) {
   if (!btn) return;
   const chevron = `<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>`;
   if (name) {
-    btn.innerHTML = `${name}${chevron}`;
+    btn.innerHTML = `${tfEmoji(name)}${chevron}`;
     btn.classList.add('has-value');
   } else {
     btn.innerHTML = `카테고리${chevron}`;
@@ -2686,7 +2686,7 @@ function renderTasks() {
       onkeydown="if(event.key==='Enter'&&!event.isComposing&&this.value.trim())quickAddToday(this)">
     <div class="qa-cat-wrap">
       <button class="qa-cat-btn${_quickAddCategory ? ' has-value' : ''}" type="button" onclick="toggleQuickAddCatDropdown(event)">
-        ${_quickAddCategory || '카테고리'}
+        ${_quickAddCategory ? tfEmoji(_quickAddCategory) : '카테고리'}
         <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
       <div class="qa-cat-dropdown" id="qa-cat-dropdown"></div>
