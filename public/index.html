@@ -2302,8 +2302,7 @@ function selectQuickAddCat(name, e) {
   if (!btn) return;
   const chevron = `<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>`;
   if (name) {
-    const color = catColor(categoryOptions.find(o => o.name === name)?.color || 'default');
-    btn.innerHTML = `<span class="qa-cat-dot" style="background:${color}"></span>${name}${chevron}`;
+    btn.innerHTML = `${name}${chevron}`;
     btn.classList.add('has-value');
   } else {
     btn.innerHTML = `카테고리${chevron}`;
@@ -2681,14 +2680,13 @@ function renderTasks() {
     });
 
   const todayList = document.getElementById('today-list');
-  const _qaCatColor = _quickAddCategory ? catColor(categoryOptions.find(o => o.name === _quickAddCategory)?.color || 'default') : '';
   const quickAddRow = `<div class="today-quick-add" onclick="if(!event.target.closest('.qa-cat-wrap'))this.querySelector('input').focus()">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
     <input class="today-quick-add-input" type="text" placeholder="빠르게 추가..."
       onkeydown="if(event.key==='Enter'&&!event.isComposing&&this.value.trim())quickAddToday(this)">
     <div class="qa-cat-wrap">
       <button class="qa-cat-btn${_quickAddCategory ? ' has-value' : ''}" type="button" onclick="toggleQuickAddCatDropdown(event)">
-        ${_quickAddCategory ? `<span class="qa-cat-dot" style="background:${_qaCatColor}"></span>${_quickAddCategory}` : '카테고리'}
+        ${_quickAddCategory || '카테고리'}
         <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
       <div class="qa-cat-dropdown" id="qa-cat-dropdown"></div>
