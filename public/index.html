@@ -517,6 +517,30 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
     font-size: 14px; color: var(--text1); font-family: inherit;
   }
   .today-quick-add-input::placeholder { color: var(--text3); }
+  .qa-cat-wrap { position: relative; flex-shrink: 0; }
+  .qa-cat-btn {
+    display: flex; align-items: center; gap: 4px;
+    font-size: 12px; color: var(--text3); cursor: pointer;
+    padding: 2px 2px; border: none; background: none; font-family: inherit;
+    white-space: nowrap; transition: color 0.1s;
+  }
+  .qa-cat-btn:hover { color: var(--text2); }
+  .qa-cat-btn.has-value { color: var(--text2); }
+  .qa-cat-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .qa-cat-dropdown {
+    position: absolute; bottom: calc(100% + 6px); right: 0;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 4px; min-width: 130px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+    z-index: 200; display: none;
+  }
+  .qa-cat-dropdown.open { display: block; }
+  .qa-cat-option {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 10px; border-radius: 7px; cursor: pointer;
+    font-size: 13px; color: var(--text1); transition: background 0.1s;
+  }
+  .qa-cat-option:hover { background: var(--grey100); }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 
   .checkbox {
@@ -1598,6 +1622,7 @@ let AUTH  = localStorage.getItem('app_auth')  || '';
 let DB_ID = localStorage.getItem('app_db_id') || '';
 let categoryOptions = [];
 let selectedCategory = '';
+let _quickAddCategory = '';
 let tasks = [];
 let currentFilter = 'todo';
 let currentCategories = null; // null = 전체 선택(기본), Set = 일부 선택
@@ -2084,10 +2109,11 @@ async function confirmTodaySelection() {
 
   renderTodaySection();
 
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeConfig(); closeTaskDetail(); closeSearchModal(); closeTodayModal(); closeMobileSidebar(); closeCategoryModal(); closeNotifModal(); closeSettingsDropdown(); clearTaskSearch(); } });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeConfig(); closeTaskDetail(); closeSearchModal(); closeTodayModal(); closeMobileSidebar(); closeCategoryModal(); closeNotifModal(); closeSettingsDropdown(); clearTaskSearch(); document.getElementById('qa-cat-dropdown')?.classList.remove('open'); } });
   document.addEventListener('click', e => {
     const wrap = document.getElementById('settings-wrap');
     if (wrap && !wrap.contains(e.target)) closeSettingsDropdown();
+    if (!e.target.closest('.qa-cat-wrap')) document.getElementById('qa-cat-dropdown')?.classList.remove('open');
     if (!e.target.closest('.task-completed-date')) {
       document.querySelectorAll('.task-completed-date.tooltip-open').forEach(el => el.classList.remove('tooltip-open'));
     }
@@ -2253,6 +2279,39 @@ function scrollToToday() {
   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+function toggleQuickAddCatDropdown(e) {
+  e.stopPropagation();
+  const dd = document.getElementById('qa-cat-dropdown');
+  if (dd) dd.classList.toggle('open');
+}
+function selectQuickAddCat(name, e) {
+  e.stopPropagation();
+  _quickAddCategory = name;
+  document.getElementById('qa-cat-dropdown')?.classList.remove('open');
+  // 버튼 텍스트/색상 직접 업데이트 (전체 리렌더 없이)
+  const btn = document.querySelector('.qa-cat-btn');
+  if (!btn) return;
+  const chevron = `<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>`;
+  if (name) {
+    const color = catColor(categoryOptions.find(o => o.name === name)?.color || 'default');
+    btn.innerHTML = `<span class="qa-cat-dot" style="background:${color}"></span>${name}${chevron}`;
+    btn.classList.add('has-value');
+  } else {
+    btn.innerHTML = `카테고리${chevron}`;
+    btn.classList.remove('has-value');
+  }
+  // 없음 옵션 토글 (선택된 카테고리가 있을 때만 표시)
+  const dd = document.getElementById('qa-cat-dropdown');
+  if (dd) {
+    const noneOpt = `<div class="qa-cat-option" onclick="selectQuickAddCat('',event)"><span class="qa-cat-dot" style="background:var(--grey300)"></span>없음</div>`;
+    const existing = dd.innerHTML;
+    const hasNone = existing.startsWith('<div class="qa-cat-option"') && dd.querySelector('.qa-cat-option')?.textContent.trim() === '없음';
+    if (name && !hasNone) dd.insertAdjacentHTML('afterbegin', noneOpt);
+    else if (!name && hasNone) dd.querySelector('.qa-cat-option')?.remove();
+  }
+  document.querySelector('.today-quick-add-input')?.focus();
+}
+
 async function quickAddToday(input) {
   const title = input.value.trim();
   if (!title) return;
@@ -2260,6 +2319,7 @@ async function quickAddToday(input) {
   input.disabled = true;
   try {
     const today = todayKey();
+    const cat = _quickAddCategory;
     const result = await notionFetch('pages', 'POST', {
       parent: { database_id: DB_ID },
       properties: {
@@ -2268,9 +2328,10 @@ async function quickAddToday(input) {
         '우선순위': { select: { name: '보통' } },
         '상태':     { status: { name: 'Not started' } },
         '오늘날짜': { date:   { start: today } },
+        '카테고리': cat ? { select: { name: cat } } : { select: null },
       }
     });
-    tasks.unshift({ id: result.id, title, status: '할 일', priority: '일반', dueDate: today, category: '', note: '', done: false, source: '' });
+    tasks.unshift({ id: result.id, title, status: '할 일', priority: '일반', dueDate: today, category: cat, note: '', done: false, source: '' });
     todayIds.push(result.id);
     todayConfirmed = true;
     saveTodayIds();
@@ -2620,10 +2681,22 @@ function renderTasks() {
     });
 
   const todayList = document.getElementById('today-list');
-  const quickAddRow = `<div class="today-quick-add" onclick="this.querySelector('input').focus()">
+  const _qaCatColor = _quickAddCategory ? catColor(categoryOptions.find(o => o.name === _quickAddCategory)?.color || 'default') : '';
+  const _qaCatOptions = [
+    _quickAddCategory ? `<div class="qa-cat-option" onclick="selectQuickAddCat('',event)"><span class="qa-cat-dot" style="background:var(--grey300)"></span>없음</div>` : '',
+    ...categoryOptions.map(o => `<div class="qa-cat-option" onclick="selectQuickAddCat('${o.name.replace(/'/g,"\\'")}',event)"><span class="qa-cat-dot" style="background:${catColor(o.color)}"></span>${o.name}</div>`)
+  ].join('');
+  const quickAddRow = `<div class="today-quick-add" onclick="if(!event.target.closest('.qa-cat-wrap'))this.querySelector('input').focus()">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
     <input class="today-quick-add-input" type="text" placeholder="빠르게 추가..."
-      onkeydown="if(event.key==='Enter'&&this.value.trim())quickAddToday(this)">
+      onkeydown="if(event.key==='Enter'&&!event.isComposing&&this.value.trim())quickAddToday(this)">
+    <div class="qa-cat-wrap">
+      <button class="qa-cat-btn${_quickAddCategory ? ' has-value' : ''}" type="button" onclick="toggleQuickAddCatDropdown(event)">
+        ${_quickAddCategory ? `<span class="qa-cat-dot" style="background:${_qaCatColor}"></span>${_quickAddCategory}` : '카테고리'}
+        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="qa-cat-dropdown" id="qa-cat-dropdown">${_qaCatOptions}</div>
+    </div>
   </div>`;
   todayList.innerHTML = (todayTasks.length
     ? todayTasks.map(t => taskItemHTML(t, true, true)).join('')
