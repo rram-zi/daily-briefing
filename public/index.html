@@ -1317,6 +1317,10 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             주간 레포트 보기
           </button>
+          <button id="monthly-report-btn" onclick="openMonthlyReportModal()" style="display:inline-flex;padding:7px 14px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text1);font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;align-items:center;gap:6px;transition:background 0.1s;white-space:nowrap;flex-shrink:0">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            월간 레포트 보기
+          </button>
         </div>
         <div class="cal-weekdays">
           <div class="cal-weekday" style="color:var(--red500)">일</div>
@@ -1468,6 +1472,27 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
       <div class="weekly-report-summary" id="weekly-report-summary"></div>
       <div id="weekly-report-list"></div>
       <button id="weekly-copy-btn" onclick="copyWeeklyReport()" style="margin-top:8px;padding:9px 16px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text1);font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:background 0.1s">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        복사하기
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Monthly Report Modal -->
+<div class="modal-backdrop" id="monthly-report-backdrop" onclick="if(!isDesktop()&&event.target===this)closeMonthlyReportModal()">
+  <div class="modal" style="max-width:480px;overflow:hidden;display:flex;flex-direction:column;max-height:85vh">
+    <div class="modal-header" style="flex-shrink:0">
+      <div>
+        <div class="modal-title">월간 레포트</div>
+        <div class="weekly-report-range" id="monthly-report-range"></div>
+      </div>
+      <button class="modal-close" onclick="closeMonthlyReportModal()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body" style="overflow-y:auto;flex:1">
+      <div class="weekly-report-summary" id="monthly-report-summary"></div>
+      <div id="monthly-report-list"></div>
+      <button id="monthly-copy-btn" onclick="copyMonthlyReport()" style="margin-top:8px;padding:9px 16px;border:1.5px solid var(--border);border-radius:10px;background:var(--surface);color:var(--text1);font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:background 0.1s">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
         복사하기
       </button>
@@ -2142,7 +2167,7 @@ async function confirmTodaySelection() {
 
   renderTodaySection();
 
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeConfig(); closeTaskDetail(); closeSearchModal(); closeTodayModal(); closeMobileSidebar(); closeCategoryModal(); closeNotifModal(); closeSettingsDropdown(); clearTaskSearch(); closeDayPopup(); document.getElementById('qa-cat-dropdown')?.classList.remove('open'); } });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeConfig(); closeTaskDetail(); closeSearchModal(); closeTodayModal(); closeMobileSidebar(); closeCategoryModal(); closeNotifModal(); closeSettingsDropdown(); clearTaskSearch(); closeDayPopup(); closeWeeklyReportModal(); closeMonthlyReportModal(); document.getElementById('qa-cat-dropdown')?.classList.remove('open'); } });
   document.addEventListener('click', e => {
     const wrap = document.getElementById('settings-wrap');
     if (wrap && !wrap.contains(e.target)) closeSettingsDropdown();
@@ -3215,6 +3240,7 @@ function setCalView(view) {
   document.getElementById('cal-view-month-btn').classList.toggle('active', view === 'month');
   document.getElementById('cal-view-week-btn').classList.toggle('active', view === 'week');
   document.getElementById('weekly-report-btn').style.display = view === 'week' ? 'inline-flex' : 'none';
+  document.getElementById('monthly-report-btn').style.display = view === 'month' ? 'inline-flex' : 'none';
   renderHistory();
 }
 
@@ -3674,6 +3700,109 @@ async function copyWeeklyReport() {
   try {
     await navigator.clipboard.writeText(text);
     const btn = document.getElementById('weekly-copy-btn');
+    btn.textContent = '복사했어요!';
+    setTimeout(() => {
+      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> 복사하기';
+    }, 2000);
+  } catch {
+    alert(text);
+  }
+}
+
+function openMonthlyReportModal() {
+  const y = historyMonth.getFullYear(), m = historyMonth.getMonth();
+  const label = `${y}년 ${m + 1}월`;
+  const prefix = `${y}-${String(m + 1).padStart(2, '0')}`;
+  document.getElementById('monthly-report-range').textContent = label;
+
+  const monthTasks = tasks.filter(t =>
+    t.done && t.completedAt && t.completedAt.startsWith(prefix)
+  );
+  const count = monthTasks.length;
+
+  const catMap = {};
+  for (const t of monthTasks) {
+    const k = t.category || '';
+    if (!catMap[k]) catMap[k] = [];
+    catMap[k].push(t);
+  }
+  const topCat = Object.entries(catMap)
+    .filter(([k]) => k)
+    .sort((a, b) => b[1].length - a[1].length)[0];
+
+  document.getElementById('monthly-report-summary').innerHTML =
+    `<div class="weekly-stat-card">
+       <div class="weekly-stat-num">${count}개</div>
+       <div class="weekly-stat-label">이번 달 완료</div>
+     </div>
+     <div class="weekly-stat-card">
+       <div class="weekly-stat-num">${topCat ? tfEmoji(topCat[0]) : '–'}</div>
+       <div class="weekly-stat-label">${topCat ? `최다 카테고리 · ${topCat[1].length}개` : '카테고리 없음'}</div>
+     </div>`;
+
+  const listEl = document.getElementById('monthly-report-list');
+  if (count === 0) {
+    listEl.innerHTML = '<div class="empty-state">이번 달 완료한 할 일이 없어요.</div>';
+  } else {
+    const sorted = Object.entries(catMap).sort((a, b) => {
+      if (!a[0]) return 1; if (!b[0]) return -1;
+      return b[1].length - a[1].length;
+    });
+    listEl.innerHTML = sorted.map(([cat, ts]) =>
+      `<div class="weekly-cat-section">
+         <div class="weekly-cat-header">
+           <span>${cat ? tfEmoji(cat) : '카테고리 없음'}</span>
+           <span style="font-weight:400;color:var(--text3)">${ts.length}개</span>
+         </div>
+         ${ts.map(t =>
+           `<div class="weekly-task-item">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--blue500)" stroke-width="2.5"><polyline points="20,6 9,17 4,12"/></svg>
+              ${tfEmoji(t.title)}
+            </div>`
+         ).join('')}
+       </div>`
+    ).join('');
+  }
+
+  document.getElementById('monthly-report-backdrop').classList.add('open');
+  lockScroll();
+}
+
+function closeMonthlyReportModal() {
+  document.getElementById('monthly-report-backdrop').classList.remove('open');
+  unlockScroll();
+}
+
+async function copyMonthlyReport() {
+  const y = historyMonth.getFullYear(), m = historyMonth.getMonth();
+  const label = `${y}년 ${m + 1}월`;
+  const prefix = `${y}-${String(m + 1).padStart(2, '0')}`;
+  const monthTasks = tasks.filter(t =>
+    t.done && t.completedAt && t.completedAt.startsWith(prefix)
+  );
+
+  const catMap = {};
+  for (const t of monthTasks) {
+    const k = t.category || '';
+    if (!catMap[k]) catMap[k] = [];
+    catMap[k].push(t);
+  }
+  const sorted = Object.entries(catMap).sort((a, b) => {
+    if (!a[0]) return 1; if (!b[0]) return -1;
+    return b[1].length - a[1].length;
+  });
+
+  const lines = [`📅 ${label} 월간 레포트`, `총 ${monthTasks.length}개 완료`, ''];
+  for (const [cat, ts] of sorted) {
+    lines.push(`${cat || '카테고리 없음'} (${ts.length}개)`);
+    for (const t of ts) lines.push(`- ${t.title}`);
+    lines.push('');
+  }
+
+  const text = lines.join('\n').trimEnd();
+  try {
+    await navigator.clipboard.writeText(text);
+    const btn = document.getElementById('monthly-copy-btn');
     btn.textContent = '복사했어요!';
     setTimeout(() => {
       btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> 복사하기';
