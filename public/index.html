@@ -1576,6 +1576,10 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
           <label class="form-label">마감일</label>
           <input type="date" id="f-date" />
         </div>
+        <div class="form-group" id="f-completed-at-row" style="display:none">
+          <label class="form-label">완료일</label>
+          <input type="date" id="f-completed-at" />
+        </div>
         <div class="form-group form-full">
           <label class="form-label">카테고리</label>
           <div class="cat-picker-wrap">
@@ -2833,6 +2837,11 @@ function openModal(taskId = null) {
     document.getElementById('btn-end-recurring').style.display = 'none';
   }
 
+  // 완료일 필드: 완료 상태인 기존 할 일 편집 시에만 노출
+  const isDone = task && task.done;
+  document.getElementById('f-completed-at-row').style.display = isDone ? '' : 'none';
+  document.getElementById('f-completed-at').value = isDone ? (task.completedAt || '') : '';
+
   // 편집 전용 컨트롤 표시
   const isEdit = taskId !== null;
   document.getElementById('btn-delete').style.display = isEdit ? '' : 'none';
@@ -3010,12 +3019,13 @@ async function saveTask() {
   btn.disabled = true; btn.textContent = '저장 중...';
   setStatus('loading', 'Notion에 저장 중...');
 
-  const dueDate  = document.getElementById('f-date').value;
-  const priority = document.getElementById('f-priority').dataset.value;
-  const category = selectedCategory;
-  const status   = document.getElementById('f-status').dataset.value;
-  const note     = document.getElementById('f-note').value.trim();
-  const location = selectedLocation;
+  const dueDate     = document.getElementById('f-date').value;
+  const priority    = document.getElementById('f-priority').dataset.value;
+  const category    = selectedCategory;
+  const status      = document.getElementById('f-status').dataset.value;
+  const note        = document.getElementById('f-note').value.trim();
+  const location    = selectedLocation;
+  const completedAt = document.getElementById('f-completed-at').value;
 
   const props = {
     '이름':     { title:  [{ text: { content: title } }] },
@@ -3026,6 +3036,11 @@ async function saveTask() {
     '메모':     { rich_text: note ? [{ text: { content: note } }] : [] },
     '위치': { rich_text: location ? [{ text: { content: location } }] : [] },
   };
+
+  // 완료 상태이고 완료일 필드가 표시된 경우에만 완료일 업데이트
+  if (editingId && document.getElementById('f-completed-at-row').style.display !== 'none') {
+    props['완료일'] = completedAt ? { date: { start: completedAt } } : { date: null };
+  }
 
   const statusMap = { 'Not started': '할 일', 'In progress': '할 일', 'Done': '완료' };
 
@@ -3042,6 +3057,7 @@ async function saveTask() {
         t.note     = note;
         t.location = location;
         t.done     = status === 'Done';
+        if (props['완료일']) t.completedAt = completedAt || null;
       }
       setStatus('ok', '할 일이 수정됐습니다');
     } else {
