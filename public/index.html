@@ -2286,9 +2286,9 @@ function toggleQuickAddCatDropdown(e) {
   if (dd.classList.contains('open')) { dd.classList.remove('open'); return; }
   // 열릴 때마다 최신 categoryOptions로 내용 재빌드
   const noneOpt = _quickAddCategory
-    ? `<div class="qa-cat-option" onclick="selectQuickAddCat('',event)"><span class="qa-cat-dot" style="background:var(--grey300)"></span>없음</div>` : '';
+    ? `<div class="qa-cat-option" onclick="selectQuickAddCat('',event)">없음</div>` : '';
   const opts = categoryOptions.map(o =>
-    `<div class="qa-cat-option" onclick="selectQuickAddCat('${o.name.replace(/'/g,"\\'")}',event)"><span class="qa-cat-dot" style="background:${catColor(o.color)}"></span>${o.name}</div>`
+    `<div class="qa-cat-option" onclick="selectQuickAddCat('${o.name.replace(/'/g,"\\'")}',event)">${o.name}</div>`
   ).join('');
   dd.innerHTML = noneOpt + opts;
   dd.classList.add('open');
