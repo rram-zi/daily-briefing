@@ -2282,7 +2282,16 @@ function scrollToToday() {
 function toggleQuickAddCatDropdown(e) {
   e.stopPropagation();
   const dd = document.getElementById('qa-cat-dropdown');
-  if (dd) dd.classList.toggle('open');
+  if (!dd) return;
+  if (dd.classList.contains('open')) { dd.classList.remove('open'); return; }
+  // 열릴 때마다 최신 categoryOptions로 내용 재빌드
+  const noneOpt = _quickAddCategory
+    ? `<div class="qa-cat-option" onclick="selectQuickAddCat('',event)"><span class="qa-cat-dot" style="background:var(--grey300)"></span>없음</div>` : '';
+  const opts = categoryOptions.map(o =>
+    `<div class="qa-cat-option" onclick="selectQuickAddCat('${o.name.replace(/'/g,"\\'")}',event)"><span class="qa-cat-dot" style="background:${catColor(o.color)}"></span>${o.name}</div>`
+  ).join('');
+  dd.innerHTML = noneOpt + opts;
+  dd.classList.add('open');
 }
 function selectQuickAddCat(name, e) {
   e.stopPropagation();
@@ -2299,15 +2308,6 @@ function selectQuickAddCat(name, e) {
   } else {
     btn.innerHTML = `카테고리${chevron}`;
     btn.classList.remove('has-value');
-  }
-  // 없음 옵션 토글 (선택된 카테고리가 있을 때만 표시)
-  const dd = document.getElementById('qa-cat-dropdown');
-  if (dd) {
-    const noneOpt = `<div class="qa-cat-option" onclick="selectQuickAddCat('',event)"><span class="qa-cat-dot" style="background:var(--grey300)"></span>없음</div>`;
-    const existing = dd.innerHTML;
-    const hasNone = existing.startsWith('<div class="qa-cat-option"') && dd.querySelector('.qa-cat-option')?.textContent.trim() === '없음';
-    if (name && !hasNone) dd.insertAdjacentHTML('afterbegin', noneOpt);
-    else if (!name && hasNone) dd.querySelector('.qa-cat-option')?.remove();
   }
   document.querySelector('.today-quick-add-input')?.focus();
 }
@@ -2682,10 +2682,6 @@ function renderTasks() {
 
   const todayList = document.getElementById('today-list');
   const _qaCatColor = _quickAddCategory ? catColor(categoryOptions.find(o => o.name === _quickAddCategory)?.color || 'default') : '';
-  const _qaCatOptions = [
-    _quickAddCategory ? `<div class="qa-cat-option" onclick="selectQuickAddCat('',event)"><span class="qa-cat-dot" style="background:var(--grey300)"></span>없음</div>` : '',
-    ...categoryOptions.map(o => `<div class="qa-cat-option" onclick="selectQuickAddCat('${o.name.replace(/'/g,"\\'")}',event)"><span class="qa-cat-dot" style="background:${catColor(o.color)}"></span>${o.name}</div>`)
-  ].join('');
   const quickAddRow = `<div class="today-quick-add" onclick="if(!event.target.closest('.qa-cat-wrap'))this.querySelector('input').focus()">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
     <input class="today-quick-add-input" type="text" placeholder="빠르게 추가..."
@@ -2695,7 +2691,7 @@ function renderTasks() {
         ${_quickAddCategory ? `<span class="qa-cat-dot" style="background:${_qaCatColor}"></span>${_quickAddCategory}` : '카테고리'}
         <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
-      <div class="qa-cat-dropdown" id="qa-cat-dropdown">${_qaCatOptions}</div>
+      <div class="qa-cat-dropdown" id="qa-cat-dropdown"></div>
     </div>
   </div>`;
   todayList.innerHTML = (todayTasks.length
