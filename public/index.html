@@ -570,6 +570,7 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
   .badge-overdue { color: var(--red500); font-weight: 600; }
   .badge-location { color: var(--text3); font-size: 12px; text-decoration: none; }
   .badge-location:hover { color: var(--blue500); }
+  .task-meta-row { display: contents; }
 
   /* 위치 선택 표시 */
   .location-selected {
@@ -1034,9 +1035,10 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
     .today-plan-btn svg { width: 20px; height: 20px; }
     .topbar-search-btn { border: none !important; background: none !important; color: var(--text2); }
 
-    /* 마감일 할 일 이름 아래 정렬 */
+    /* 마감일·위치 할 일 이름 아래 한 줄 정렬 */
     .task-title-block { align-items: center; gap: 4px; }
-    .badge-date { flex: 0 0 100%; order: 10; padding: 0; }
+    .task-meta-row { flex: 0 0 100%; order: 10; display: flex; align-items: center; gap: 6px; padding: 0; }
+    .badge-date { padding: 0; }
 
     /* 모바일: 캘린더 풀블리드 */
     .cal-wrap { padding: 16px 0 0; border-radius: 0; box-shadow: none; margin: 0 -20px 0; }
@@ -2516,8 +2518,10 @@ function taskItemHTML(t, isToday, showCheckbox = false, showAsDone = t.done) {
           ${isToday && carryOverIds.has(t.id) ? `<img class="t-emoji task-flag" src="/emoji/u1F4AB.svg" alt="이월" title="이전에 완료 못한 일">` : ''}
           <span class="task-title ${showAsDone ? 'done' : ''}">${tfEmoji(t.title)}</span>
           ${t.category ? `<span class="badge badge-cat">${tfEmoji(t.category)}</span>` : ''}
+          <div class="task-meta-row">
           ${t.dueDate && !completedOnTime ? `<span class="badge badge-date${overdue?' badge-overdue':''}"><img class="t-emoji" src="/emoji/u1F4C5.svg" alt="📅"> ${fmt(t.dueDate)}${overdue?' 초과':''}</span>` : ''}
           ${t.location ? (() => { const { name, url } = parseLocation(t.location); return `<a class="badge badge-location" href="${url || 'https://map.kakao.com/?q=' + encodeURIComponent(name)}" target="_blank" onclick="event.stopPropagation()">📍 ${name}</a>`; })() : ''}
+          </div>
         </div>
       </div>
       ${t.note ? `<div class="task-note">${linkify(tfEmoji(t.note))}</div>` : ''}
