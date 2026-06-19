@@ -1474,7 +1474,7 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
         </div>
         <div class="form-group form-full">
           <label class="form-label">할 일 이름 *</label>
-          <input type="text" id="f-title" style="font-family:'TossFace',inherit" placeholder="할 일 이름을 입력하세요" />
+          <input type="text" id="f-title" style="font-family:'TossFace',inherit" placeholder="할 일 이름을 입력하세요" onkeydown="if(event.key==='Enter'&&!event.isComposing&&!document.getElementById('btn-save').disabled)saveTask()" />
         </div>
         <div class="form-group">
           <label class="form-label">분류</label>
