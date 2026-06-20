@@ -11,9 +11,10 @@ async function fetchTasks() {
     const req = new Request(`${BASE_URL}/api/today`);
     req.headers = { Authorization: `Basic ${AUTH}` };
     req.timeoutInterval = 10;
-    return await req.loadJSON();
-  } catch {
-    return { date: "", tasks: [] };
+    const json = await req.loadJSON();
+    return json;
+  } catch(e) {
+    return { date: "", tasks: [], _error: e.message || "fetch failed" };
   }
 }
 
@@ -21,6 +22,7 @@ const data    = await fetchTasks();
 const all     = data.tasks || [];
 const pending = all.filter(t => !t.done);
 const done    = all.filter(t => t.done);
+const _debug  = data._error || (data.error ? `API: ${data.error}` : null);
 const family  = config.widgetFamily;
 
 // 색상 — 흰 배경 + 그레이톤
@@ -128,7 +130,7 @@ if (family === "accessoryRectangular") {
 } else {
   const maxItems = 3;
 
-  widget.setPadding(20, 16, 14, 16);
+  widget.setPadding(18, 16, 14, 16);
 
   if (all.length === 0) {
     // ── 빈 상태 ──
@@ -153,6 +155,14 @@ if (family === "accessoryRectangular") {
     msg.font = Font.boldSystemFont(15);
     msg.textColor = C_TITLE;
     msg.centerAlignText();
+    if (_debug) {
+      widget.addSpacer(6);
+      const dbg = widget.addText(_debug);
+      dbg.font = Font.systemFont(10);
+      dbg.textColor = new Color("#ff3b30");
+      dbg.centerAlignText();
+      dbg.lineLimit = 2;
+    }
     widget.addSpacer(14);
     const btnRow = widget.addStack();
     btnRow.layoutHorizontally();

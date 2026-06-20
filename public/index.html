@@ -1805,7 +1805,7 @@ function selectTaskType(type) {
 
 async function checkRecurringTasks() {
   if (!DB_ID || recurringTasks.length === 0) return;
-  const dayName = ['일','월','화','수','목','금','토'][new Date().getDay()];
+  const dayName = ['일','월','화','수','목','금','토'][new Date(Date.now() - DAY_CUTOFF_HOURS * 60 * 60 * 1000).getDay()];
   const dateStr = todayKey();
   const lastRun = _recurringLast;
   let changed = false;
@@ -1828,11 +1828,12 @@ async function checkRecurringTasks() {
             '우선순위': { select: { name: toNotionPriority(rt.priority || '일반') } },
             '상태':     { status: { name: 'Not started' } },
             '카테고리': rt.category ? { select: { name: rt.category } } : { select: null },
-            '메모':     { rich_text: rt.note ? [{ text: { content: rt.note } }] : [] }
+            '메모':     { rich_text: rt.note ? [{ text: { content: rt.note } }] : [] },
+            '마감일':   { date: { start: dateStr } },
           }
         });
         tasks.unshift({ id: result.id, title: rt.title, status: '할 일',
-          priority: rt.priority || '보통', dueDate: null,
+          priority: rt.priority || '보통', dueDate: dateStr,
           category: rt.category || '', note: rt.note || '',
           done: false, order: null, completedAt: null });
         taskId = result.id;
