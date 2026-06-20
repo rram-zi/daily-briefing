@@ -1809,15 +1809,17 @@ async function checkRecurringTasks() {
   let changed = false;
 
   // 오늘 요일에 해당하지 않는 반복 할 일이 todayIds에 잘못 들어있으면 제거
+  // todayDate === dateStr 인 것만 대상 (사용자가 수동으로 추가한 경우는 건드리지 않음)
   for (const rt of recurringTasks) {
     if (rt.days.includes(dayName)) continue;
-    if (lastRun[rt.id] !== dateStr) continue;
-    const wrongTask = tasks.find(t => !t.done && t.title === rt.title && todayIds.includes(t.id));
-    if (wrongTask) {
-      todayIds = todayIds.filter(id => id !== wrongTask.id);
-      delete lastRun[rt.id];
-      changed = true;
-    }
+    const wrongTask = tasks.find(t => !t.done && t.title === rt.title && todayIds.includes(t.id) && t.todayDate === dateStr);
+    if (!wrongTask) continue;
+    todayIds = todayIds.filter(id => id !== wrongTask.id);
+    wrongTask.todayDate = null;
+    // Notion 오늘날짜 필드도 초기화해야 새로고침 시 재복원 안 됨
+    notionFetch(`pages/${wrongTask.id}`, 'PATCH', { properties: { '오늘날짜': { date: null } } }).catch(() => {});
+    if (lastRun[rt.id] === dateStr) delete lastRun[rt.id];
+    changed = true;
   }
 
   for (const rt of recurringTasks) {
