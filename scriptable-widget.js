@@ -245,6 +245,9 @@ if (family === "accessoryRectangular") {
   }
 }
 
+// 5분 후 갱신 요청 (iOS가 허용하는 범위 내에서 최대한 빠르게)
+widget.refreshAfterDate = new Date(Date.now() + 5 * 60 * 1000);
+
 Script.setWidget(widget);
 if (!config.runningInWidget) widget.presentMedium();
 Script.complete();
