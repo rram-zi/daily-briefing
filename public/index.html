@@ -3689,7 +3689,7 @@ function closeNotifModal() {
 }
 
 function buildReportTaskList(ts) {
-  const fmtD = d => { const dt = new Date(d + 'T12:00:00'); return `${dt.getMonth()+1}.${dt.getDate()}`; };
+  const fmtD = d => { const dt = new Date(d + 'T12:00:00'); return `${dt.getMonth()+1}/${dt.getDate()}`; };
   const titleMap = {};
   for (const t of ts) {
     if (!titleMap[t.title]) titleMap[t.title] = { title: t.title, dates: [] };
@@ -3809,7 +3809,7 @@ async function copyWeeklyReport() {
     return b[1].length - a[1].length;
   });
 
-  const fmtD = d => { const dt = new Date(d + 'T12:00:00'); return `${dt.getMonth()+1}.${dt.getDate()}`; };
+  const fmtD = d => { const dt = new Date(d + 'T12:00:00'); return `${dt.getMonth()+1}/${dt.getDate()}`; };
   const lines = [`📅 ${label} 주간 레포트`, `총 ${weekTasks.length}개 완료`, ''];
   for (const [cat, ts] of sorted) {
     lines.push(`${cat || '카테고리 없음'} (${ts.length}개)`);
@@ -3914,7 +3914,7 @@ async function copyMonthlyReport() {
     return b[1].length - a[1].length;
   });
 
-  const fmtD = d => { const dt = new Date(d + 'T12:00:00'); return `${dt.getMonth()+1}.${dt.getDate()}`; };
+  const fmtD = d => { const dt = new Date(d + 'T12:00:00'); return `${dt.getMonth()+1}/${dt.getDate()}`; };
   const lines = [`📅 ${label} 월간 레포트`, `총 ${monthTasks.length}개 완료`, ''];
   for (const [cat, ts] of sorted) {
     lines.push(`${cat || '카테고리 없음'} (${ts.length}개)`);
