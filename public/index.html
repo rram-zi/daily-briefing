@@ -3237,20 +3237,42 @@ function buildDoneMap() {
   return map;
 }
 
+function nextRecurringDate(rt, fromDate) {
+  const d = new Date(fromDate + 'T12:00:00');
+  for (let i = 0; i <= 7; i++) {
+    if (rt.days.includes(['일','월','화','수','목','금','토'][d.getDay()])) return localDateStr(d);
+    d.setDate(d.getDate() + 1);
+  }
+  return null;
+}
+
 function buildScheduledMap() {
   const today = todayKey();
-  const titleSeen = {};
+  const recurringTitles = new Set(recurringTasks.map(r => r.title));
+  const recurringTitleSeen = {};
   const map = {};
-  // 미완료 + 진행 예정일 있는 태스크를 날짜 오름차순 정렬 후 title별 첫 번째만 표시
+  // 미완료 + 진행 예정일 있는 태스크 날짜 오름차순
+  // 반복 일정은 title별 첫 번째만, 개별 일정은 같은 이름이어도 모두 표시
   const future = tasks
     .filter(t => !t.done && t.dueDate && t.dueDate >= today)
     .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
   future.forEach(t => {
-    if (titleSeen[t.title]) return;
-    titleSeen[t.title] = true;
+    if (recurringTitles.has(t.title)) {
+      if (recurringTitleSeen[t.title]) return;
+      recurringTitleSeen[t.title] = true;
+    }
     if (!map[t.dueDate]) map[t.dueDate] = [];
     map[t.dueDate].push(t);
   });
+  // 아직 Notion 페이지가 없는 반복 일정의 다음 예정일을 가상으로 추가
+  for (const rt of recurringTasks) {
+    if (recurringTitleSeen[rt.title]) continue;
+    const nextDate = nextRecurringDate(rt, today);
+    if (!nextDate) continue;
+    if (!map[nextDate]) map[nextDate] = [];
+    map[nextDate].push({ id: '_rec_' + rt.id, title: rt.title, priority: rt.priority || '일반', category: rt.category || '', note: rt.note || '', done: false, dueDate: nextDate });
+    recurringTitleSeen[rt.title] = true;
+  }
   return map;
 }
 
