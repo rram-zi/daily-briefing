@@ -36,7 +36,9 @@ const ACTION_ADD  = `scriptable:///run?scriptName=SunToDo&action=add`;
 const ACTION_PLAN = `${BASE_URL}?action=plan`;
 
 function completeUrl(task) {
-  return `scriptable:///run?scriptName=SunToDo&action=complete&id=${encodeURIComponent(task.id)}&title=${encodeURIComponent(task.title)}`;
+  const id = encodeURIComponent(task.id);
+  const title = encodeURIComponent(task.title);
+  return "scriptable:///run?scriptName=SunToDo&action=complete&id=" + id + "&title=" + title;
 }
 
 // 둥글린 사각형 체크박스 SF Symbol

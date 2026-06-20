@@ -1,10 +1,15 @@
 function isAuthed(req) {
+  // Basic Auth 헤더
   const b64 = (req.headers['authorization'] || '').replace(/^Basic /, '');
-  if (!b64) return false;
-  const decoded = Buffer.from(b64, 'base64').toString('utf8');
-  const idx = decoded.indexOf(':');
-  return decoded.slice(0, idx) === process.env.APP_USERNAME &&
-         decoded.slice(idx + 1) === process.env.APP_PASSWORD;
+  if (b64) {
+    const decoded = Buffer.from(b64, 'base64').toString('utf8');
+    const idx = decoded.indexOf(':');
+    if (decoded.slice(0, idx) === process.env.APP_USERNAME &&
+        decoded.slice(idx + 1) === process.env.APP_PASSWORD) return true;
+  }
+  // 쿼리 파라미터 key= (iOS 단축어용)
+  const key = req.query?.key || '';
+  return key === process.env.APP_PASSWORD;
 }
 
 function todayKST() {
@@ -29,6 +34,28 @@ export default async function handler(req, res) {
   if (!token || !dbId) return res.status(500).json({ error: 'Server not configured' });
 
   const today = todayKST();
+
+  // GET ?action=add&title=... — iOS 단축어용 간편 추가
+  if (req.method === 'GET' && req.query?.action === 'add') {
+    const title = (req.query?.title || '').trim();
+    if (!title) return res.status(400).json({ error: 'title required' });
+    const response = await fetch('https://api.notion.com/v1/pages', {
+      method: 'POST',
+      headers: NOTION_HEADERS(token),
+      body: JSON.stringify({
+        parent: { database_id: dbId },
+        properties: {
+          '이름':     { title:  [{ text: { content: title } }] },
+          '마감일':   { date:   { start: today } },
+          '우선순위': { select: { name: '보통' } },
+          '상태':     { status: { name: 'Not started' } },
+          '오늘날짜': { date:   { start: today } },
+        },
+      }),
+    });
+    const page = await response.json();
+    return res.status(response.ok ? 200 : 500).json({ ok: response.ok, id: page.id });
+  }
 
   // GET — 오늘의 할 일 목록
   if (req.method === 'GET') {

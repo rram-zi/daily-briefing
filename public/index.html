@@ -2212,6 +2212,16 @@ async function confirmTodaySelection() {
       loadTasks();
     }
   }, 60000);
+
+  // 앱으로 돌아왔을 때 자동 새로고침 (위젯/외부에서 추가된 할 일 반영)
+  let _lastVisibleAt = Date.now();
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      _lastVisibleAt = Date.now();
+    } else if (Date.now() - _lastVisibleAt > 5 * 60 * 1000) {
+      loadTasks();
+    }
+  });
 })();
 
 const NOTION_COLORS = {
