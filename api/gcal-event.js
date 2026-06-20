@@ -7,7 +7,7 @@ function isAuthed(req) {
          decoded.slice(idx + 1) === process.env.APP_PASSWORD;
 }
 
-async function notionTaskExists(title, date) {
+async function notionTaskExists(eventId) {
   const res = await fetch(
     `https://api.notion.com/v1/databases/${process.env.NOTION_DB_ID}/query`,
     {
@@ -18,13 +18,7 @@ async function notionTaskExists(title, date) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        filter: {
-          and: [
-            { property: '소스', rich_text: { equals: '구글캘린더' } },
-            { property: '마감일', date: { equals: date } },
-            { property: '이름', title: { equals: title } },
-          ],
-        },
+        filter: { property: '구글캘린더ID', rich_text: { equals: eventId } },
         page_size: 1,
       }),
     }
@@ -46,17 +40,18 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Missing required fields: eventId, title, date' });
   }
 
-  // Notion에서 직접 중복 확인 (제목 + 날짜 + 소스)
-  if (await notionTaskExists(title, date)) {
+  // eventId 기준 중복 확인
+  if (await notionTaskExists(eventId)) {
     return res.status(200).json({ ok: true, skipped: true });
   }
 
   const properties = {
-    '이름':     { title:  [{ text: { content: title } }] },
-    '마감일':   { date:   { start: date } },
-    '우선순위': { select: { name: '보통' } },
-    '상태':     { status: { name: 'Not started' } },
-    '소스':     { rich_text: [{ text: { content: '구글캘린더' } }] },
+    '이름':         { title:     [{ text: { content: title } }] },
+    '마감일':       { date:      { start: date } },
+    '우선순위':     { select:    { name: '보통' } },
+    '상태':         { status:    { name: 'Not started' } },
+    '소스':         { rich_text: [{ text: { content: '구글캘린더' } }] },
+    '구글캘린더ID': { rich_text: [{ text: { content: eventId } }] },
   };
   if (description) {
     properties['메모'] = { rich_text: [{ text: { content: description.slice(0, 2000) } }] };
