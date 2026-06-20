@@ -3289,7 +3289,7 @@ function buildCalItemScheduled(t) {
 function openDayPopup(dateStr) {
   const q = historySearch.toLowerCase();
   const dayTasks = tasks.filter(t => t.done && t.completedAt === dateStr && (!q || t.title.toLowerCase().includes(q)));
-  const scheduledTasks = tasks.filter(t => !t.done && t.dueDate === dateStr && (!q || t.title.toLowerCase().includes(q)));
+  const scheduledTasks = (buildScheduledMap()[dateStr] || []).filter(t => !q || t.title.toLowerCase().includes(q));
   if (!dayTasks.length && !scheduledTasks.length) return;
   const d = new Date(dateStr + 'T12:00:00');
   const days = ['일','월','화','수','목','금','토'];
@@ -3304,7 +3304,9 @@ function openDayPopup(dateStr) {
       ? `<div class="day-popup-profile">${tfEmoji(catEmoji)}</div>`
       : `<div class="day-popup-profile"><span class="day-popup-profile-default" style="${isScheduled ? 'color:var(--grey300)' : ''}">
           ${isScheduled ? '○' : '✓'}</span></div>`;
-    return `<div class="day-popup-task" style="${isScheduled ? 'opacity:0.6' : ''}" onclick="closeDayPopup();openTaskDetail('${t.id}')">
+    const isVirtual = t.id.startsWith('_rec_');
+    const onclick = isVirtual ? 'closeDayPopup()' : `closeDayPopup();openTaskDetail('${t.id}')`;
+    return `<div class="day-popup-task" style="${isScheduled ? 'opacity:0.6' : ''}" onclick="${onclick}">
       ${profile}
       <div class="day-popup-task-title">${tfEmoji(t.title)}</div>
     </div>`;
