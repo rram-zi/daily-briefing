@@ -883,6 +883,8 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
   .cal-day.is-holiday.is-today .cal-day-num { background: var(--blue500); color: #fff; }
   .cal-day.has-tasks { cursor: pointer; }
   .cal-day.has-tasks:hover { background: var(--grey100); }
+  .cal-day-item-scheduled .cal-item-title { color: var(--grey300); }
+  .cal-day-item-scheduled .cal-item-icon .t-emoji { opacity: 0.4; }
   .cal-day-item {
     display: flex; align-items: center; gap: 3px;
     width: 100%; min-width: 0; height: 18px; margin-bottom: 2px; flex-shrink: 0;
@@ -1573,7 +1575,7 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
           </div>
         </div>
         <div class="form-group" id="f-date-row">
-          <label class="form-label">마감일</label>
+          <label class="form-label">진행 예정일</label>
           <input type="date" id="f-date" />
         </div>
         <div class="form-group form-full" id="f-completed-at-row" style="display:none">
@@ -2558,7 +2560,7 @@ function renderBriefing() {
   if (carryOver.length) lines.push({ i:ei('u1F4AB.svg'), t:`<strong>완료하지 못한 할일 ${carryOver.length}개</strong> — ${carryOver.slice(0,3).map(t=>tfEmoji(t.title)).join(', ')}${carryOver.length>3?` 외 ${carryOver.length-3}개`:''}` });
   if (overdue.length)  lines.push({ i:ei('u26A0.svg'),  t:`<strong>기한 초과 ${overdue.length}개</strong> — ${overdue.slice(0,3).map(t=>tfEmoji(t.title)).join(', ')}${overdue.length>3?` 외 ${overdue.length-3}개`:''}` });
   if (urgent.length)   lines.push({ i:ei('u1F6A8.svg'), t:`<strong>긴급 할 일 ${urgent.length}개</strong> — ${urgent.slice(0,3).map(t=>tfEmoji(t.title)).join(', ')}` });
-  if (todayDue.length) lines.push({ i:ei('u1F4C5.svg'), t:`<strong>오늘 마감 ${todayDue.length}개</strong> — ${todayDue.map(t=>tfEmoji(t.title)).join(', ')}` });
+  if (todayDue.length) lines.push({ i:ei('u1F4C5.svg'), t:`<strong>오늘 예정 ${todayDue.length}개</strong> — ${todayDue.map(t=>tfEmoji(t.title)).join(', ')}` });
   if (done.length && lines.length < 3) lines.push({ i:ei('u2705.svg'), t:`오늘 <strong>${done.length}개</strong> 완료했어요. 수고했어요!` });
   if (!lines.length)   lines.push({ i:ei('u1F33F.svg'), t:'오늘 긴급하거나 기한이 지난 할 일이 없어요. 좋은 하루 되세요!' });
   document.getElementById('briefing-lines').innerHTML =
@@ -2851,9 +2853,11 @@ function openModal(taskId = null) {
   }
 
   // 완료일 필드: 완료 상태인 기존 할 일 편집 시에만 노출
+  // 진행 예정일은 미완료 할 일에만 노출
   const isDone = task && task.done;
   document.getElementById('f-completed-at-row').style.display = isDone ? '' : 'none';
   document.getElementById('f-completed-at').value = isDone ? (task.completedAt || '') : '';
+  document.getElementById('f-date-row').style.display = isDone ? 'none' : '';
 
   // 편집 전용 컨트롤 표시
   const isEdit = taskId !== null;
@@ -3044,7 +3048,7 @@ async function saveTask() {
     '이름':     { title:  [{ text: { content: title } }] },
     '우선순위': { select: { name: toNotionPriority(priority) } },
     '상태':     { status: { name: status } },
-    '마감일':   dueDate  ? { date: { start: dueDate } } : { date: null },
+    '마감일':   (status === 'Done' || !dueDate) ? { date: null } : { date: { start: dueDate } },
     '카테고리': category ? { select: { name: category } } : { select: null },
     '메모':     { rich_text: note ? [{ text: { content: note } }] : [] },
     '위치': { rich_text: location ? [{ text: { content: location } }] : [] },
@@ -3102,8 +3106,9 @@ async function toggleDone(id, done) {
   try {
     await notionFetch(`pages/${id}`, 'PATCH', {
       properties: {
-        '상태':  { status: { name: done ? 'Done' : 'Not started' } },
-        '완료일': done ? { date: { start: today } } : { date: null }
+        '상태':   { status: { name: done ? 'Done' : 'Not started' } },
+        '완료일': done ? { date: { start: today } } : { date: null },
+        '마감일': done ? { date: null } : undefined,
       }
     });
     const t = tasks.find(t => t.id === id);
@@ -3111,6 +3116,7 @@ async function toggleDone(id, done) {
       t.done = done;
       t.status = done ? '완료' : '할 일';
       t.completedAt = done ? today : null;
+      if (done) t.dueDate = null;
     }
     updateStats(); renderTasks(); renderBriefing();
     if (viewMode === 'history') renderHistory();
@@ -3219,34 +3225,65 @@ function buildDoneMap() {
   return map;
 }
 
+function buildScheduledMap() {
+  const today = todayKey();
+  const titleSeen = {};
+  const map = {};
+  // 미완료 + 진행 예정일 있는 태스크를 날짜 오름차순 정렬 후 title별 첫 번째만 표시
+  const future = tasks
+    .filter(t => !t.done && t.dueDate && t.dueDate >= today)
+    .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+  future.forEach(t => {
+    if (titleSeen[t.title]) return;
+    titleSeen[t.title] = true;
+    if (!map[t.dueDate]) map[t.dueDate] = [];
+    map[t.dueDate].push(t);
+  });
+  return map;
+}
+
 function buildCalItem(t) {
   const catEmoji = t.category ? [...t.category][0] : '';
   const icon = catEmoji ? `<span class="cal-item-icon">${tfEmoji(catEmoji)}</span>` : '';
   return `<div class="cal-day-item">${icon}<span class="cal-item-title">${t.title}</span></div>`;
 }
 
+function buildCalItemScheduled(t) {
+  const catEmoji = t.category ? [...t.category][0] : '';
+  const icon = catEmoji ? `<span class="cal-item-icon">${tfEmoji(catEmoji)}</span>` : '';
+  return `<div class="cal-day-item cal-day-item-scheduled">${icon}<span class="cal-item-title">${t.title}</span></div>`;
+}
+
 function openDayPopup(dateStr) {
   const q = historySearch.toLowerCase();
   const dayTasks = tasks.filter(t => t.done && t.completedAt === dateStr && (!q || t.title.toLowerCase().includes(q)));
-  if (!dayTasks.length) return;
+  const scheduledTasks = tasks.filter(t => !t.done && t.dueDate === dateStr && (!q || t.title.toLowerCase().includes(q)));
+  if (!dayTasks.length && !scheduledTasks.length) return;
   const d = new Date(dateStr + 'T12:00:00');
   const days = ['일','월','화','수','목','금','토'];
   document.getElementById('day-popup-title').textContent = `${d.getMonth()+1}월 ${d.getDate()}일 (${days[d.getDay()]})`;
-  document.getElementById('day-popup-date').textContent = `완료한 할 일 ${dayTasks.length}개`;
-  document.getElementById('day-popup-body').innerHTML = dayTasks.map(t => {
+  const labelParts = [];
+  if (dayTasks.length) labelParts.push(`완료 ${dayTasks.length}개`);
+  if (scheduledTasks.length) labelParts.push(`예정 ${scheduledTasks.length}개`);
+  document.getElementById('day-popup-date').textContent = labelParts.join(' · ');
+  const renderItem = (t, isScheduled) => {
     const catEmoji = t.category ? [...t.category][0] : '';
     const profile = catEmoji
       ? `<div class="day-popup-profile">${tfEmoji(catEmoji)}</div>`
-      : `<div class="day-popup-profile"><span class="day-popup-profile-default">✓</span></div>`;
+      : `<div class="day-popup-profile"><span class="day-popup-profile-default" style="${isScheduled ? 'color:var(--grey300)' : ''}">
+          ${isScheduled ? '○' : '✓'}</span></div>`;
     const cat = t.category ? `<div class="day-popup-task-cat">${t.category}</div>` : '';
-    return `<div class="day-popup-task" onclick="closeDayPopup();openTaskDetail('${t.id}')">
+    return `<div class="day-popup-task" style="${isScheduled ? 'opacity:0.6' : ''}" onclick="closeDayPopup();openTaskDetail('${t.id}')">
       ${profile}
       <div class="day-popup-info">
         <div class="day-popup-task-title">${tfEmoji(t.title)}</div>
         ${cat}
       </div>
     </div>`;
-  }).join('');
+  };
+  document.getElementById('day-popup-body').innerHTML =
+    dayTasks.map(t => renderItem(t, false)).join('') +
+    scheduledTasks.map(t => renderItem(t, true)).join('');
   document.getElementById('day-popup-backdrop').classList.add('open');
   lockScroll();
 }
@@ -3275,15 +3312,13 @@ function setCalView(view) {
 }
 
 function isAtCurrentPeriod() {
-  const now = new Date(Date.now() - DAY_CUTOFF_HOURS * 60 * 60 * 1000);
+  // 1년 이후는 탐색 불가
+  const limit = new Date();
+  limit.setFullYear(limit.getFullYear() + 1);
   if (historyView === 'month') {
-    return historyMonth.getFullYear() === now.getFullYear() && historyMonth.getMonth() === now.getMonth();
+    return historyMonth >= new Date(limit.getFullYear(), limit.getMonth(), 1);
   } else {
-    const base = new Date(historyWeek);
-    base.setDate(base.getDate() - base.getDay());
-    const nowBase = new Date(now);
-    nowBase.setDate(nowBase.getDate() - nowBase.getDay());
-    return base >= nowBase;
+    return historyWeek >= limit;
   }
 }
 
@@ -3316,6 +3351,7 @@ function renderHistoryMonth() {
   document.getElementById('cal-month-label').textContent = `${y}년 ${m + 1}월`;
 
   const doneMap = buildDoneMap();
+  const scheduledMap = buildScheduledMap();
   const today = todayKey();
   const q = historySearch.toLowerCase();
   const firstDay    = new Date(y, m, 1).getDay();
@@ -3332,9 +3368,10 @@ function renderHistoryMonth() {
     if (!c.cur) return `<div class="cal-day other-month"><span class="cal-day-num">${c.day}</span></div>`;
     const dateStr  = `${y}-${String(m+1).padStart(2,'0')}-${String(c.day).padStart(2,'0')}`;
     const dayTasks = (doneMap[dateStr] || []).filter(t => !q || t.title.toLowerCase().includes(q));
+    const scheduledTasks = (scheduledMap[dateStr] || []).filter(t => !q || t.title.toLowerCase().includes(q));
     const holiday = isHoliday(dateStr);
-    const items = dayTasks.map(buildCalItem).join('');
-    const hasTasks = dayTasks.length > 0;
+    const items = dayTasks.map(buildCalItem).join('') + scheduledTasks.map(buildCalItemScheduled).join('');
+    const hasTasks = dayTasks.length > 0 || scheduledTasks.length > 0;
     const cls = [dateStr === today ? 'is-today' : '', holiday ? 'is-holiday' : '', hasTasks ? 'has-tasks' : ''].filter(Boolean).join(' ');
     return `<div class="cal-day ${cls}"${hasTasks ? ` onclick="openDayPopup('${dateStr}')"` : ''}><span class="cal-day-num">${c.day}</span>${items}</div>`;
   }).join('');
@@ -3355,6 +3392,7 @@ function renderHistoryWeek() {
     `${base.getFullYear()}년 ${fmtShort(base)} ~ ${fmtShort(end)}`;
 
   const doneMap = buildDoneMap();
+  const scheduledMap = buildScheduledMap();
   const today = todayKey();
   const q = historySearch.toLowerCase();
 
@@ -3363,9 +3401,10 @@ function renderHistoryWeek() {
     day.setDate(base.getDate() + i);
     const dateStr = localDateStr(day);
     const dayTasks = (doneMap[dateStr] || []).filter(t => !q || t.title.toLowerCase().includes(q));
+    const scheduledTasks = (scheduledMap[dateStr] || []).filter(t => !q || t.title.toLowerCase().includes(q));
     const holiday = isHoliday(dateStr);
-    const items = dayTasks.map(buildCalItem).join('');
-    const hasTasks = dayTasks.length > 0;
+    const items = dayTasks.map(buildCalItem).join('') + scheduledTasks.map(buildCalItemScheduled).join('');
+    const hasTasks = dayTasks.length > 0 || scheduledTasks.length > 0;
     const cls = [dateStr === today ? 'is-today' : '', holiday ? 'is-holiday' : '', hasTasks ? 'has-tasks' : ''].filter(Boolean).join(' ');
     return `<div class="cal-day ${cls}"${hasTasks ? ` onclick="openDayPopup('${dateStr}')"` : ''}><span class="cal-day-num">${day.getDate()}</span>${items}</div>`;
   }).join('');
