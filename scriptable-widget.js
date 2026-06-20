@@ -129,10 +129,22 @@ if (family === "accessoryRectangular") {
     widget.url = ACTION_ADD;
     widget.addSpacer();
 
-    // 앱 아이콘 — 배경 없이 이모지만
-    const ico = widget.addText("🌞");
-    ico.font = Font.systemFont(40);
-    ico.centerAlignText();
+    // 앱 아이콘 — Tossface 🌞 PNG
+    try {
+      const iconReq = new Request(`${BASE_URL}/apple-touch-icon.png`);
+      const iconImg = await iconReq.loadImage();
+      const iconRow = widget.addStack();
+      iconRow.layoutHorizontally();
+      iconRow.addSpacer();
+      const imgEl = iconRow.addImage(iconImg);
+      imgEl.imageSize = new Size(48, 48);
+      imgEl.cornerRadius = 11;
+      iconRow.addSpacer();
+    } catch {
+      const ico = widget.addText("🌞");
+      ico.font = Font.systemFont(40);
+      ico.centerAlignText();
+    }
 
     widget.addSpacer(10);
 
