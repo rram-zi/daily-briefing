@@ -3305,8 +3305,9 @@ function openDayPopup(dateStr) {
       : `<div class="day-popup-profile"><span class="day-popup-profile-default" style="${isScheduled ? 'color:var(--grey300)' : ''}">
           ${isScheduled ? '○' : '✓'}</span></div>`;
     const isVirtual = t.id.startsWith('_rec_');
-    const onclick = isVirtual ? 'closeDayPopup()' : `closeDayPopup();openTaskDetail('${t.id}')`;
-    return `<div class="day-popup-task" style="${isScheduled ? 'opacity:0.6' : ''}" onclick="${onclick}">
+    const rowStyle = [isScheduled ? 'opacity:0.6' : '', isVirtual ? 'cursor:default' : ''].filter(Boolean).join(';');
+    const clickHandler = isVirtual ? '' : `onclick="closeDayPopup();openTaskDetail('${t.id}')"`;
+    return `<div class="day-popup-task" style="${rowStyle}" ${clickHandler}>
       ${profile}
       <div class="day-popup-task-title">${tfEmoji(t.title)}</div>
     </div>`;
