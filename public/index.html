@@ -3696,7 +3696,7 @@ function buildReportTaskList(ts) {
     if (t.completedAt) titleMap[t.title].dates.push(t.completedAt);
   }
   return Object.values(titleMap)
-    .sort((a, b) => ([...b.dates].sort().pop() || '').localeCompare([...a.dates].sort().pop() || ''))
+    .sort((a, b) => ([...a.dates].sort()[0] || '').localeCompare([...b.dates].sort()[0] || ''))
     .map(({ title, dates }) => {
       const sorted = [...dates].sort().reverse();
       const dateStr = sorted.length === 0 ? '' :
