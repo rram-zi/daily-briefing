@@ -1810,6 +1810,18 @@ async function checkRecurringTasks() {
   const lastRun = _recurringLast;
   let changed = false;
 
+  // 오늘 요일에 해당하지 않는 반복 할 일이 todayIds에 잘못 들어있으면 제거
+  for (const rt of recurringTasks) {
+    if (rt.days.includes(dayName)) continue;
+    if (lastRun[rt.id] !== dateStr) continue;
+    const wrongTask = tasks.find(t => !t.done && t.title === rt.title && todayIds.includes(t.id));
+    if (wrongTask) {
+      todayIds = todayIds.filter(id => id !== wrongTask.id);
+      delete lastRun[rt.id];
+      changed = true;
+    }
+  }
+
   for (const rt of recurringTasks) {
     if (!rt.days.includes(dayName)) continue;
     if (lastRun[rt.id] === dateStr) continue;
@@ -2550,8 +2562,7 @@ function dismissBriefing() {
 function renderBriefing() {
   if (isBriefingDismissed()) return;
   const todayStr = todayKey();
-  const today    = new Date().toDateString();
-  const todayDue = tasks.filter(t => t.dueDate && new Date(t.dueDate).toDateString() === today && !t.done);
+  const todayDue = tasks.filter(t => t.dueDate === todayStr && !t.done);
   const overdue  = tasks.filter(t => isOverdue(t.dueDate) && !t.done);
   const urgent   = tasks.filter(t => t.priority === '긴급' && !t.done);
   const done     = tasks.filter(t => t.done && t.completedAt === todayStr);
@@ -4027,7 +4038,7 @@ function setStatus(type, text) {
 }
 function isOverdue(d) {
   if (!d) return false;
-  const dt = new Date(d); const today = new Date(); today.setHours(0,0,0,0); return dt < today;
+  return d < todayKey();
 }
 function fmt(d) { const dt = new Date(d); return `${dt.getMonth()+1}/${dt.getDate()}`; }
 function fmtKo(d) { const dt = new Date(d); return `${dt.getMonth()+1}월 ${dt.getDate()}일`; }
