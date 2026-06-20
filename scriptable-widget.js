@@ -129,27 +129,21 @@ if (family === "accessoryRectangular") {
     widget.url = ACTION_ADD;
     widget.addSpacer();
 
-    // 앱 아이콘 (SF Symbol)
-    const iconRow = widget.addStack();
-    iconRow.layoutHorizontally();
-    iconRow.addSpacer();
-    const sym = SFSymbol.named("checkmark.circle.fill");
-    sym.applyRegularWeight();
-    const iconImg = iconRow.addImage(sym.image);
-    iconImg.imageSize = new Size(40, 40);
-    iconImg.tintColor = new Color("#34c759");
-    iconRow.addSpacer();
+    // 앱 아이콘 — 배경 없이 이모지만
+    const ico = widget.addText("🌞");
+    ico.font = Font.systemFont(40);
+    ico.centerAlignText();
 
     widget.addSpacer(10);
 
-    const msg = widget.addText("오늘 할 일을\n추가해보세요!");
-    msg.font = Font.boldSystemFont(isLarge ? 18 : 16);
+    const msg = widget.addText("오늘 할 일을 계획해보세요");
+    msg.font = Font.boldSystemFont(isLarge ? 17 : 15);
     msg.textColor = C_TITLE;
     msg.centerAlignText();
 
     widget.addSpacer(14);
 
-    // 버튼
+    // 계획하기 버튼
     const btnRow = widget.addStack();
     btnRow.layoutHorizontally();
     btnRow.addSpacer();
@@ -157,8 +151,8 @@ if (family === "accessoryRectangular") {
     btn.backgroundColor = C_BTN_BG;
     btn.cornerRadius = 14;
     btn.setPadding(8, 20, 8, 20);
-    btn.url = ACTION_ADD;
-    const btnTxt = btn.addText("+ 할 일 추가하기");
+    btn.url = `${BASE_URL}?action=plan`;
+    const btnTxt = btn.addText("계획하기");
     btnTxt.font = Font.mediumSystemFont(14);
     btnTxt.textColor = C_TITLE;
     btnRow.addSpacer();
@@ -181,8 +175,8 @@ if (family === "accessoryRectangular") {
     btn.backgroundColor = C_BTN_BG;
     btn.cornerRadius = 14;
     btn.setPadding(8, 20, 8, 20);
-    btn.url = ACTION_ADD;
-    const btnTxt = btn.addText("+ 할 일 추가하기");
+    btn.url = `${BASE_URL}?action=plan`;
+    const btnTxt = btn.addText("계획하기");
     btnTxt.font = Font.mediumSystemFont(14);
     btnTxt.textColor = C_TITLE;
     btnRow.addSpacer();

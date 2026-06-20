@@ -2454,7 +2454,7 @@ async function loadTasks() {
     if (recurringTasks.length > 0) renderTasks(); // recurringTasks 로드 후 isRecurring 분류 재적용
     await checkRecurringTasks();
     autoAddCalendarTasks();
-    if (_startAction === 'morning') { _startAction = ''; openTodayModal(); }
+    if (_startAction === 'morning' || _startAction === 'plan') { _startAction = ''; openTodayModal(); }
     else if (_startAction === 'deadline') { _startAction = ''; scrollToToday(); }
     else if (_startAction === 'weekly-report') { _startAction = ''; openWeeklyReportModal(); }
     else if (!todayConfirmed || todayIds.length === 0) openTodayModal();
