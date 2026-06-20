@@ -27,12 +27,8 @@ async function apiRequest(method, body) {
 if (action === "complete") {
   // 특정 ID가 있으면 바로 완료, 없으면 목록에서 선택
   if (taskId) {
+    // 조용히 완료 처리 — Scriptable이 바로 닫힘
     await apiRequest("PATCH", { id: taskId });
-    const a = new Alert();
-    a.title = "✅ 완료!";
-    a.message = taskTitle || "할 일이 완료 처리됐어요.";
-    a.addAction("확인");
-    await a.present();
   } else {
     const res = await (async () => {
       const req = new Request(`${BASE_URL}/api/today`);
