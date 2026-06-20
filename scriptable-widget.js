@@ -23,15 +23,26 @@ const pending = all.filter(t => !t.done);
 const done    = all.filter(t => t.done);
 const family  = config.widgetFamily;
 
-const C_WHITE  = Color.white();
-const C_MUTED  = new Color("#ffffff", 0.5);
-const C_CHECK  = new Color("#30d158");
-const C_BG     = new Color("#1c1c1e", 0.78);
+// 색상 — 흰 배경 + 그레이톤
+const C_BG     = Color.white();
+const C_TITLE  = new Color("#1c1c1e");
+const C_TEXT   = new Color("#3a3a3c");
+const C_MUTED  = new Color("#8e8e93");
+const C_CB     = new Color("#c7c7cc");   // 체크박스 컬러
+const C_BTN_BG = new Color("#f2f2f7");
+const C_GREEN  = new Color("#34c759");
 
 const ACTION_ADD = `scriptable:///run?scriptName=SunToDo&action=add`;
 
 function completeUrl(task) {
   return `scriptable:///run?scriptName=SunToDo&action=complete&id=${encodeURIComponent(task.id)}&title=${encodeURIComponent(task.title)}`;
+}
+
+// 둥글린 사각형 체크박스 SF Symbol
+function checkboxSymbol() {
+  const sym = SFSymbol.named("square");
+  sym.applyRegularWeight();
+  return sym.image;
 }
 
 const widget = new ListWidget();
@@ -43,15 +54,13 @@ if (family === "accessoryRectangular") {
   const col = widget.addStack();
   col.layoutVertically();
   col.spacing = 3;
-
-  const hdr = col.addText(pending.length === 0 ? "🎉 모두 완료!" : `오늘 할 일 ${pending.length}개 남음`);
+  const hdr = col.addText(pending.length === 0 ? "🎉 오늘 완료!" : `오늘 할 일 ${pending.length}개`);
   hdr.font = Font.boldSystemFont(11);
-  hdr.textColor = pending.length === 0 ? C_CHECK : C_WHITE;
-
+  hdr.textColor = pending.length === 0 ? C_GREEN : C_TITLE;
   for (const t of pending.slice(0, 3)) {
-    const el = col.addText(`○  ${t.title}`);
+    const el = col.addText(`□  ${t.title}`);
     el.font = Font.systemFont(11);
-    el.textColor = C_WHITE;
+    el.textColor = C_TEXT;
     el.lineLimit = 1;
     el.url = completeUrl(t);
   }
@@ -67,7 +76,7 @@ if (family === "accessoryRectangular") {
   widget.addSpacer();
   const n = widget.addText(`${pending.length}`);
   n.font = Font.boldSystemFont(28);
-  n.textColor = C_WHITE;
+  n.textColor = C_TITLE;
   n.centerAlignText();
   const l = widget.addText("남은 할 일");
   l.font = Font.systemFont(10);
@@ -77,30 +86,35 @@ if (family === "accessoryRectangular") {
 
 // ── 홈 화면 small ──
 } else if (family === "small") {
-  widget.setPadding(14, 14, 14, 14);
-  widget.url = ACTION_ADD;
+  widget.setPadding(16, 16, 16, 16);
 
-  const bigNum = widget.addText(`${pending.length}`);
-  bigNum.font = Font.boldSystemFont(52);
-  bigNum.textColor = C_WHITE;
-  bigNum.minimumScaleFactor = 0.5;
-
-  const sub = widget.addText("남은 할 일");
-  sub.font = Font.systemFont(13);
-  sub.textColor = C_MUTED;
-
-  widget.addSpacer();
-
-  if (pending.length > 0) {
-    const next = widget.addText(`○  ${pending[0].title}`);
+  if (pending.length === 0) {
+    // 빈 상태
+    widget.url = ACTION_ADD;
+    widget.addSpacer();
+    const ico = widget.addText("☀️");
+    ico.font = Font.systemFont(32);
+    ico.centerAlignText();
+    widget.addSpacer(6);
+    const msg = widget.addText("오늘 할 일을\n추가해보세요");
+    msg.font = Font.boldSystemFont(13);
+    msg.textColor = C_TITLE;
+    msg.centerAlignText();
+    widget.addSpacer();
+  } else {
+    const bigNum = widget.addText(`${pending.length}`);
+    bigNum.font = Font.boldSystemFont(52);
+    bigNum.textColor = C_TITLE;
+    bigNum.minimumScaleFactor = 0.5;
+    const sub = widget.addText("남은 할 일");
+    sub.font = Font.systemFont(13);
+    sub.textColor = C_MUTED;
+    widget.addSpacer();
+    const next = widget.addText(pending[0].title);
     next.font = Font.systemFont(13);
-    next.textColor = C_WHITE;
+    next.textColor = C_TEXT;
     next.lineLimit = 2;
     next.url = completeUrl(pending[0]);
-  } else {
-    const fin = widget.addText("🎉 오늘도 수고했어요!");
-    fin.font = Font.mediumSystemFont(12);
-    fin.textColor = C_CHECK;
   }
 
 // ── 홈 화면 medium / large ──
@@ -110,54 +124,98 @@ if (family === "accessoryRectangular") {
 
   widget.setPadding(16, 16, 14, 16);
 
-  // 헤더
-  const hRow = widget.addStack();
-  hRow.layoutHorizontally();
-
-  const titleEl = hRow.addText("오늘의 할 일");
-  titleEl.font = Font.boldSystemFont(15);
-  titleEl.textColor = C_WHITE;
-  hRow.addSpacer();
-
-  if (all.length > 0) {
-    const cntEl = hRow.addText(`${done.length}/${all.length} 완료`);
-    cntEl.font = Font.systemFont(13);
-    cntEl.textColor = C_MUTED;
-  }
-
-  widget.addSpacer(10);
-
-  if (all.length === 0) {
+  if (pending.length === 0 && all.length === 0) {
+    // ── 빈 상태: 아이콘 + 문구 + 버튼 ──
     widget.url = ACTION_ADD;
-    const e = widget.addText("앱에서 오늘 할 일을 설정해주세요");
-    e.font = Font.systemFont(14);
-    e.textColor = C_MUTED;
+    widget.addSpacer();
+
+    // 앱 아이콘 (SF Symbol)
+    const iconRow = widget.addStack();
+    iconRow.layoutHorizontally();
+    iconRow.addSpacer();
+    const sym = SFSymbol.named("checkmark.circle.fill");
+    sym.applyRegularWeight();
+    const iconImg = iconRow.addImage(sym.image);
+    iconImg.imageSize = new Size(40, 40);
+    iconImg.tintColor = new Color("#34c759");
+    iconRow.addSpacer();
+
+    widget.addSpacer(10);
+
+    const msg = widget.addText("오늘 할 일을\n추가해보세요!");
+    msg.font = Font.boldSystemFont(isLarge ? 18 : 16);
+    msg.textColor = C_TITLE;
+    msg.centerAlignText();
+
+    widget.addSpacer(14);
+
+    // 버튼
+    const btnRow = widget.addStack();
+    btnRow.layoutHorizontally();
+    btnRow.addSpacer();
+    const btn = btnRow.addStack();
+    btn.backgroundColor = C_BTN_BG;
+    btn.cornerRadius = 14;
+    btn.setPadding(8, 20, 8, 20);
+    btn.url = ACTION_ADD;
+    const btnTxt = btn.addText("+ 할 일 추가하기");
+    btnTxt.font = Font.mediumSystemFont(14);
+    btnTxt.textColor = C_TITLE;
+    btnRow.addSpacer();
+
+    widget.addSpacer();
 
   } else if (pending.length === 0) {
+    // 모두 완료
     widget.url = ACTION_ADD;
     widget.addSpacer();
     const d = widget.addText("🎉 오늘 할 일을\n모두 완료했어요!");
-    d.font = Font.mediumSystemFont(15);
-    d.textColor = C_CHECK;
+    d.font = Font.boldSystemFont(isLarge ? 18 : 16);
+    d.textColor = C_TITLE;
+    d.centerAlignText();
+    widget.addSpacer(14);
+    const btnRow = widget.addStack();
+    btnRow.layoutHorizontally();
+    btnRow.addSpacer();
+    const btn = btnRow.addStack();
+    btn.backgroundColor = C_BTN_BG;
+    btn.cornerRadius = 14;
+    btn.setPadding(8, 20, 8, 20);
+    btn.url = ACTION_ADD;
+    const btnTxt = btn.addText("+ 할 일 추가하기");
+    btnTxt.font = Font.mediumSystemFont(14);
+    btnTxt.textColor = C_TITLE;
+    btnRow.addSpacer();
     widget.addSpacer();
 
   } else {
+    // 헤더
+    const hRow = widget.addStack();
+    hRow.layoutHorizontally();
+    const titleEl = hRow.addText("오늘의 할 일");
+    titleEl.font = Font.boldSystemFont(15);
+    titleEl.textColor = C_TITLE;
+    hRow.addSpacer();
+    const cntEl = hRow.addText(`${done.length}/${all.length} 완료`);
+    cntEl.font = Font.systemFont(13);
+    cntEl.textColor = C_MUTED;
+
+    widget.addSpacer(12);
+
     for (const task of pending.slice(0, maxItems)) {
-      // 체크박스 행
       const row = widget.addStack();
       row.layoutHorizontally();
       row.spacing = 10;
 
-      // 체크박스 (탭 가능)
-      const cb = row.addText("○");
-      cb.font = Font.systemFont(18);
-      cb.textColor = C_WHITE;
-      cb.url = completeUrl(task);
+      // 둥글린 사각형 체크박스
+      const cbImg = row.addImage(checkboxSymbol());
+      cbImg.imageSize = new Size(20, 20);
+      cbImg.tintColor = C_CB;
+      cbImg.url = completeUrl(task);
 
-      // 할 일 제목 (탭 가능)
       const tEl = row.addText(task.title);
       tEl.font = Font.systemFont(15);
-      tEl.textColor = C_WHITE;
+      tEl.textColor = C_TEXT;
       tEl.lineLimit = 1;
       tEl.url = completeUrl(task);
 
@@ -173,7 +231,6 @@ if (family === "accessoryRectangular") {
 
     widget.addSpacer();
 
-    // 빠른 추가
     const addEl = widget.addText("＋  빠른 추가");
     addEl.font = Font.systemFont(13);
     addEl.textColor = C_MUTED;
