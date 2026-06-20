@@ -3696,11 +3696,11 @@ function buildReportTaskList(ts) {
     if (t.completedAt) titleMap[t.title].dates.push(t.completedAt);
   }
   return Object.values(titleMap)
-    .sort((a, b) => ([...a.dates].sort()[0] || '').localeCompare([...b.dates].sort()[0] || ''))
+    .sort((a, b) => ([...b.dates].sort().pop() || '').localeCompare([...a.dates].sort().pop() || ''))
     .map(({ title, dates }) => {
       const sorted = [...dates].sort().reverse();
       const dateStr = sorted.length === 0 ? '' :
-        sorted.length === 1 ? fmtD(sorted[0]) : `${fmtD(sorted[0])} 외 ${sorted.length - 1}`;
+        sorted.length === 1 ? fmtD(sorted[0]) : `${fmtD(sorted[0])} 완료 외 ${sorted.length - 1}`;
       return `<div class="weekly-task-item">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--blue500)" stroke-width="2.5"><polyline points="20,6 9,17 4,12"/></svg>
         <span class="weekly-task-title">${tfEmoji(title)}</span>
@@ -3817,7 +3817,7 @@ async function copyWeeklyReport() {
     for (const t of ts) { if (!titleMap[t.title]) titleMap[t.title] = []; if (t.completedAt) titleMap[t.title].push(t.completedAt); }
     for (const [title, dates] of Object.entries(titleMap)) {
       const sorted2 = [...dates].sort().reverse();
-      const dateStr = sorted2.length === 0 ? '' : sorted2.length === 1 ? fmtD(sorted2[0]) : `${fmtD(sorted2[0])} 외 ${sorted2.length - 1}`;
+      const dateStr = sorted2.length === 0 ? '' : sorted2.length === 1 ? fmtD(sorted2[0]) : `${fmtD(sorted2[0])} 완료 외 ${sorted2.length - 1}`;
       lines.push(`- ${title}${dateStr ? `  ${dateStr}` : ''}`);
     }
     lines.push('');
@@ -3922,7 +3922,7 @@ async function copyMonthlyReport() {
     for (const t of ts) { if (!titleMap[t.title]) titleMap[t.title] = []; if (t.completedAt) titleMap[t.title].push(t.completedAt); }
     for (const [title, dates] of Object.entries(titleMap)) {
       const sorted2 = [...dates].sort().reverse();
-      const dateStr = sorted2.length === 0 ? '' : sorted2.length === 1 ? fmtD(sorted2[0]) : `${fmtD(sorted2[0])} 외 ${sorted2.length - 1}`;
+      const dateStr = sorted2.length === 0 ? '' : sorted2.length === 1 ? fmtD(sorted2[0]) : `${fmtD(sorted2[0])} 완료 외 ${sorted2.length - 1}`;
       lines.push(`- ${title}${dateStr ? `  ${dateStr}` : ''}`);
     }
     lines.push('');
