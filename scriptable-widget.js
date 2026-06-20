@@ -32,7 +32,8 @@ const C_CB     = new Color("#c7c7cc");   // 체크박스 컬러
 const C_BTN_BG = new Color("#f2f2f7");
 const C_GREEN  = new Color("#34c759");
 
-const ACTION_ADD = `scriptable:///run?scriptName=SunToDo&action=add`;
+const ACTION_ADD  = `scriptable:///run?scriptName=SunToDo&action=add`;
+const ACTION_PLAN = `${BASE_URL}?action=plan`;
 
 function completeUrl(task) {
   return `scriptable:///run?scriptName=SunToDo&action=complete&id=${encodeURIComponent(task.id)}&title=${encodeURIComponent(task.title)}`;
@@ -50,7 +51,7 @@ widget.backgroundColor = C_BG;
 
 // ── 잠금화면 직사각형 ──
 if (family === "accessoryRectangular") {
-  widget.url = ACTION_ADD;
+  widget.url = ACTION_PLAN;
   const col = widget.addStack();
   col.layoutVertically();
   col.spacing = 3;
@@ -72,7 +73,7 @@ if (family === "accessoryRectangular") {
 
 // ── 잠금화면 원형 ──
 } else if (family === "accessoryCircular") {
-  widget.url = ACTION_ADD;
+  widget.url = ACTION_PLAN;
   widget.addSpacer();
   const n = widget.addText(`${pending.length}`);
   n.font = Font.boldSystemFont(28);
@@ -90,7 +91,7 @@ if (family === "accessoryRectangular") {
 
   if (pending.length === 0) {
     // 빈 상태
-    widget.url = ACTION_ADD;
+    widget.url = ACTION_PLAN;
     widget.addSpacer();
     const ico = widget.addText("☀️");
     ico.font = Font.systemFont(32);
@@ -126,7 +127,7 @@ if (family === "accessoryRectangular") {
 
   if (pending.length === 0 && all.length === 0) {
     // ── 빈 상태: 아이콘 + 문구 + 버튼 ──
-    widget.url = ACTION_ADD;
+    widget.url = `${BASE_URL}?action=plan`;
     widget.addSpacer();
 
     // 앱 아이콘 — Tossface 🌞 PNG
@@ -173,7 +174,7 @@ if (family === "accessoryRectangular") {
 
   } else if (pending.length === 0) {
     // 모두 완료
-    widget.url = ACTION_ADD;
+    widget.url = ACTION_PLAN;
     widget.addSpacer();
     const d = widget.addText("🎉 오늘 할 일을\n모두 완료했어요!");
     d.font = Font.boldSystemFont(isLarge ? 18 : 16);
@@ -240,7 +241,7 @@ if (family === "accessoryRectangular") {
     const addEl = widget.addText("＋  빠른 추가");
     addEl.font = Font.systemFont(13);
     addEl.textColor = C_MUTED;
-    addEl.url = ACTION_ADD;
+    addEl.url = ACTION_PLAN;
   }
 }
 
