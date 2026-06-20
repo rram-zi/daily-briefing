@@ -16,6 +16,12 @@ function todayKST() {
   return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
 }
 
+function yesterdayKST() {
+  const d = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+  d.setDate(d.getDate() - 1);
+  return d.toLocaleDateString('en-CA');
+}
+
 const NOTION_HEADERS = (token) => ({
   Authorization: `Bearer ${token}`,
   'Notion-Version': '2022-06-28',
@@ -59,11 +65,23 @@ export default async function handler(req, res) {
 
   // GET — 오늘의 할 일 목록
   if (req.method === 'GET') {
+    const yesterday = yesterdayKST();
     const response = await fetch(`https://api.notion.com/v1/databases/${dbId}/query`, {
       method: 'POST',
       headers: NOTION_HEADERS(token),
       body: JSON.stringify({
-        filter: { property: '오늘날짜', date: { equals: today } },
+        // 오늘 + 어제(이월 미패치) 모두 포함, 완료된 건 오늘치만
+        filter: {
+          or: [
+            { property: '오늘날짜', date: { equals: today } },
+            {
+              and: [
+                { property: '오늘날짜', date: { equals: yesterday } },
+                { property: '상태', status: { does_not_equal: 'Done' } },
+              ],
+            },
+          ],
+        },
         sorts: [{ property: '순서', direction: 'ascending' }],
       }),
     });
