@@ -909,9 +909,7 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
   }
   .day-popup-profile .t-emoji { width: 18px; height: 18px; }
   .day-popup-profile-default { font-size: 15px; color: var(--text3); line-height: 1; }
-  .day-popup-info { flex: 1; min-width: 0; }
-  .day-popup-task-title { font-size: 14px; font-weight: 500; color: var(--text1); }
-  .day-popup-task-cat { font-size: 12px; color: var(--text3); margin-top: 1px; }
+  .day-popup-task-title { font-size: 14px; font-weight: 500; color: var(--text1); flex: 1; min-width: 0; }
   .cal-view-toggle {
     display: flex; background: var(--grey100); border-radius: 8px; padding: 2px; gap: 2px;
   }
@@ -3306,13 +3304,9 @@ function openDayPopup(dateStr) {
       ? `<div class="day-popup-profile">${tfEmoji(catEmoji)}</div>`
       : `<div class="day-popup-profile"><span class="day-popup-profile-default" style="${isScheduled ? 'color:var(--grey300)' : ''}">
           ${isScheduled ? '○' : '✓'}</span></div>`;
-    const cat = t.category ? `<div class="day-popup-task-cat">${t.category}</div>` : '';
     return `<div class="day-popup-task" style="${isScheduled ? 'opacity:0.6' : ''}" onclick="closeDayPopup();openTaskDetail('${t.id}')">
       ${profile}
-      <div class="day-popup-info">
-        <div class="day-popup-task-title">${tfEmoji(t.title)}</div>
-        ${cat}
-      </div>
+      <div class="day-popup-task-title">${tfEmoji(t.title)}</div>
     </div>`;
   };
   document.getElementById('day-popup-body').innerHTML =
