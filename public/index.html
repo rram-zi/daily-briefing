@@ -1037,6 +1037,8 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
   .detail-footer { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
   .detail-completed-date { font-size: 12px; color: var(--text3); cursor: pointer; transition: color 0.12s; }
   .detail-completed-date:hover { color: var(--blue500); }
+  .date-pick-btn { display: flex; align-items: center; gap: 8px; width: 100%; padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--grey50); color: var(--text2); font-size: 14px; font-family: inherit; cursor: pointer; text-align: left; transition: border-color 0.12s; }
+  .date-pick-btn:hover { border-color: var(--blue500); color: var(--blue500); }
   .detail-completed-label { font-size: 12px; color: var(--text3); }
 
   ::-webkit-scrollbar { width: 4px; }
@@ -1641,7 +1643,12 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
         </div>
         <div class="form-group form-full" id="f-completed-at-row" style="display:none">
           <label class="form-label">완료일</label>
-          <input type="date" id="f-completed-at" style="width:100%" />
+          <input type="date" id="f-completed-at" style="display:none" />
+          <button type="button" id="f-completed-at-btn" class="date-pick-btn"
+            onclick="openDatePickerModal(null, document.getElementById('f-completed-at').value, null, 'form')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span id="f-completed-at-label">날짜 선택</span>
+          </button>
         </div>
         <div class="form-group form-full">
           <label class="form-label">카테고리</label>
@@ -2936,6 +2943,7 @@ function openModal(taskId = null) {
   const isDone = task && task.done;
   document.getElementById('f-completed-at-row').style.display = isDone ? '' : 'none';
   document.getElementById('f-completed-at').value = isDone ? (task.completedAt || '') : '';
+  document.getElementById('f-completed-at-label').textContent = isDone && task.completedAt ? fmt(task.completedAt) : '날짜 선택';
   document.getElementById('f-date-row').style.display = isDone ? 'none' : '';
 
   // 편집 전용 컨트롤 표시
@@ -3858,14 +3866,14 @@ function openRtCalModal(rtId) {
   _openRtCal(rt.title, now);
 }
 
-// 일반 할 일 — 단일 선택
-function openDatePickerModal(taskId, currentDate, title) {
-  _rtCalMode = 'single';
+// 일반 할 일 — 단일 선택 (mode: 'single'=task detail, 'form'=edit modal)
+function openDatePickerModal(taskId, currentDate, title, mode) {
+  _rtCalMode = mode || 'single';
   _rtCalTaskId = taskId;
   _rtCalRtId = null;
   _rtCalDates = currentDate ? new Set([currentDate]) : new Set();
   const base = currentDate ? new Date(currentDate + 'T12:00:00') : new Date(Date.now() - DAY_CUTOFF_HOURS * 60 * 60 * 1000);
-  _openRtCal(title, base);
+  _openRtCal(title || '', base);
 }
 
 function closeRtCalModal() {
@@ -3934,14 +3942,19 @@ function renderRtCalGrid() {
 }
 
 async function saveRtCalDates() {
-  if (_rtCalMode === 'single') {
+  if (_rtCalMode === 'form') {
+    // edit 모달 완료일 필드 업데이트
+    const newDate = [..._rtCalDates][0] || '';
+    document.getElementById('f-completed-at').value = newDate;
+    document.getElementById('f-completed-at-label').textContent = newDate ? fmt(newDate) : '날짜 선택';
+    closeRtCalModal();
+  } else if (_rtCalMode === 'single') {
     const newDate = [..._rtCalDates][0] || null;
     if (!newDate) { closeRtCalModal(); return; }
     closeRtCalModal();
     await updateCompletionDate(_rtCalTaskId, newDate);
-    // detail footer 날짜 텍스트 즉시 갱신
     const footerDate = document.getElementById('detail-completedAt-label');
-    if (footerDate) footerDate.textContent = fmt(newDate);
+    if (footerDate) footerDate.textContent = fmt(newDate) + ' 완료 ✎';
   } else {
     const rt = recurringTasks.find(r => r.id === _rtCalRtId);
     if (!rt) return;
