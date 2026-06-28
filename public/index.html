@@ -1803,72 +1803,55 @@ function selectTaskType(type) {
   document.getElementById('f-date-row').style.display   = isRepeat ? 'none' : '';
 }
 
-async function checkRecurringTasks() {
-  if (!DB_ID || recurringTasks.length === 0) return;
+function syncRecurringVirtualTasks() {
+  tasks = tasks.filter(t => !t.id.startsWith('_rt_'));
+  const today = todayKey();
   const dayName = ['일','월','화','수','목','금','토'][new Date(Date.now() - DAY_CUTOFF_HOURS * 60 * 60 * 1000).getDay()];
-  const dateStr = todayKey();
-  const lastRun = _recurringLast;
-  let changed = false;
-
-  // 오늘 요일에 해당하지 않는 반복 할 일이 todayIds에 잘못 들어있으면 제거
-  // todayDate === dateStr 인 것만 대상 (사용자가 수동으로 추가한 경우는 건드리지 않음)
-  for (const rt of recurringTasks) {
-    if (rt.days.includes(dayName)) continue;
-    const wrongTask = tasks.find(t => !t.done && t.title === rt.title && todayIds.includes(t.id) && t.todayDate === dateStr);
-    if (!wrongTask) continue;
-    todayIds = todayIds.filter(id => id !== wrongTask.id);
-    wrongTask.todayDate = null;
-    // Notion 오늘날짜 필드도 초기화해야 새로고침 시 재복원 안 됨
-    notionFetch(`pages/${wrongTask.id}`, 'PATCH', { properties: { '오늘날짜': { date: null } } }).catch(() => {});
-    if (lastRun[rt.id] === dateStr) delete lastRun[rt.id];
-    changed = true;
-  }
-
   for (const rt of recurringTasks) {
     if (!rt.days.includes(dayName)) continue;
-    if (lastRun[rt.id] === dateStr) continue;
-
-    let taskId = null;
-    const existing = tasks.find(t => !t.done && t.title === rt.title);
-    if (!existing) {
-      // 이전 완료 인스턴스가 todayIds에 남아있으면 제거 (중복 방지)
-      const oldDone = tasks.find(t => t.done && t.title === rt.title && todayIds.includes(t.id));
-      if (oldDone) { todayIds = todayIds.filter(id => id !== oldDone.id); saveTodayIds(); }
-      try {
-        const result = await notionFetch('pages', 'POST', {
-          parent: { database_id: DB_ID },
-          properties: {
-            '이름':     { title: [{ text: { content: rt.title } }] },
-            '우선순위': { select: { name: toNotionPriority(rt.priority || '일반') } },
-            '상태':     { status: { name: 'Not started' } },
-            '카테고리': rt.category ? { select: { name: rt.category } } : { select: null },
-            '메모':     { rich_text: rt.note ? [{ text: { content: rt.note } }] : [] },
-            '마감일':   { date: { start: dateStr } },
-          }
-        });
-        tasks.unshift({ id: result.id, title: rt.title, status: '할 일',
-          priority: rt.priority || '보통', dueDate: dateStr,
-          category: rt.category || '', note: rt.note || '',
-          done: false, order: null, completedAt: null });
-        taskId = result.id;
-      } catch(e) { continue; }
-    } else {
-      taskId = existing.id;
-    }
-
-    if (taskId && !todayIds.includes(taskId)) {
-      todayIds.push(taskId);
-      todayConfirmed = true;
-      saveTodayIds();
-      notionFetch(`pages/${taskId}`, 'PATCH', { properties: { '오늘날짜': { date: { start: dateStr } } } }).catch(() => {});
-      const t = tasks.find(t => t.id === taskId);
-      if (t) t.todayDate = dateStr;
-    }
-    lastRun[rt.id] = dateStr;
-    changed = true;
+    const isDone = (rt.completedDates || []).includes(today);
+    tasks.unshift({
+      id: '_rt_' + rt.id,
+      title: rt.title,
+      priority: rt.priority || '일반',
+      category: rt.category || '',
+      note: rt.note || '',
+      done: isDone,
+      completedAt: isDone ? today : null,
+      dueDate: today,
+      todayDate: null,
+      status: isDone ? '완료' : '할 일',
+      order: null,
+      _rtId: rt.id,
+    });
   }
+}
 
-  if (changed) { saveRecurringLast(); updateStats(); renderTasks(); renderTodaySection(); }
+function checkRecurringTasks() {
+  if (recurringTasks.length === 0) return;
+  syncRecurringVirtualTasks();
+  const dayName = ['일','월','화','수','목','금','토'][new Date(Date.now() - DAY_CUTOFF_HOURS * 60 * 60 * 1000).getDay()];
+  let changed = false;
+  // 삭제된 템플릿의 _rt_* ID 정리
+  const validRtIds = new Set(recurringTasks.map(rt => '_rt_' + rt.id));
+  const before = todayIds.length;
+  todayIds = todayIds.filter(id => !id.startsWith('_rt_') || validRtIds.has(id));
+  if (todayIds.length !== before) changed = true;
+  // 오늘 요일에 맞는 반복 일정 추가/제거
+  for (const rt of recurringTasks) {
+    const vtId = '_rt_' + rt.id;
+    const shouldBeToday = rt.days.includes(dayName);
+    const isInToday = todayIds.includes(vtId);
+    if (shouldBeToday && !isInToday) {
+      todayIds.push(vtId);
+      todayConfirmed = true;
+      changed = true;
+    } else if (!shouldBeToday && isInToday) {
+      todayIds = todayIds.filter(id => id !== vtId);
+      changed = true;
+    }
+  }
+  if (changed) { saveTodayIds(); updateStats(); renderTasks(); renderTodaySection(); }
 }
 
 function autoAddCalendarTasks() {
@@ -1973,7 +1956,8 @@ function loadTodayIds() {
   }
 }
 function saveTodayIds() {
-  localStorage.setItem('today_tasks', JSON.stringify({ date: todayKey(), ids: todayIds, confirmed: todayConfirmed }));
+  const idsToSave = todayIds.filter(id => !id.startsWith('_rt_'));
+  localStorage.setItem('today_tasks', JSON.stringify({ date: todayKey(), ids: idsToSave, confirmed: todayConfirmed }));
 }
 
 
@@ -1982,17 +1966,20 @@ function addToToday(id) {
   todayConfirmed = true;
   saveTodayIds();
   renderTodaySection(); renderTasks();
-  notionFetch(`pages/${id}`, 'PATCH', { properties: { '오늘날짜': { date: { start: todayKey() } } } });
+  if (!id.startsWith('_rt_')) {
+    notionFetch(`pages/${id}`, 'PATCH', { properties: { '오늘날짜': { date: { start: todayKey() } } } });
+  }
 }
 function removeFromToday(id) {
   todayIds = todayIds.filter(i => i !== id);
   if (todayIds.length === 0) todayConfirmed = false;
   saveTodayIds();
   renderTodaySection(); renderTasks();
-  // 이월 PATCH 완료 후 삭제 PATCH — 순서 역전 방지
-  _carryoverPatchPromise.then(() => {
-    notionFetch(`pages/${id}`, 'PATCH', { properties: { '오늘날짜': { date: null } } });
-  });
+  if (!id.startsWith('_rt_')) {
+    _carryoverPatchPromise.then(() => {
+      notionFetch(`pages/${id}`, 'PATCH', { properties: { '오늘날짜': { date: null } } });
+    });
+  }
 }
 
 function renderTodaySection() {
@@ -2026,15 +2013,20 @@ function openTodayModal() {
   todayModalSearchQuery = '';
   const isRec = t => recurringTasks.some(r => r.title === t.title);
   const hasActive = t => tasks.some(o => o.id !== t.id && o.title === t.title && !o.done);
+  // 오늘 가상 반복 할 일이 있는 제목 → 구 Notion 페이지 제외
+  const virtualRtTitles = new Set(tasks.filter(t => t.id.startsWith('_rt_')).map(t => t.title));
   const rawAvailable = tasks.filter(t => {
+    if (!t.id.startsWith('_rt_') && virtualRtTitles.has(t.title)) return false;
     if (t.done && isRec(t) && hasActive(t)) return false;
     return !t.done || isRec(t);
   });
-  // 제목 기준 중복 제거: 미완료 우선, 그 다음 최근 완료 순
+  // 제목 기준 중복 제거: 가상 반복(_rt_*) 우선, 그 다음 미완료 우선
   const titleMap = new Map();
   rawAvailable.forEach(t => {
     if (!titleMap.has(t.title)) { titleMap.set(t.title, t); return; }
     const cur = titleMap.get(t.title);
+    if (t.id.startsWith('_rt_')) { titleMap.set(t.title, t); return; }
+    if (cur.id.startsWith('_rt_')) return;
     if (cur.done && !t.done) titleMap.set(t.title, t);
     else if (cur.done && t.done && (t.completedAt || '') > (cur.completedAt || '')) titleMap.set(t.title, t);
   });
@@ -2136,8 +2128,8 @@ async function confirmTodaySelection() {
   saveTodayIds();
   closeTodayModal();
   renderTodaySection(); renderTasks();
-  const toAdd    = todaySelectTemp.filter(id => !notionSet.has(id));
-  const toRemove = [...notionSet].filter(id => !nextSet.has(id));
+  const toAdd    = todaySelectTemp.filter(id => !notionSet.has(id) && !id.startsWith('_rt_'));
+  const toRemove = [...notionSet].filter(id => !nextSet.has(id) && !id.startsWith('_rt_'));
   if (toRemove.length > 0) {
     try {
       // 새로고침 후 재추가 방지
@@ -2758,6 +2750,7 @@ function renderTasks() {
   document.getElementById('fc-done').textContent = `완료(${baseVisible.filter(t => t.done).length})`;
 
   const allOtherTasks = baseVisible.filter(t => {
+    if (t.id.startsWith('_rt_')) return false;
     if (currentFilter === 'done' && !t.done) return false;
     if (currentFilter === 'todo' && t.done && !isRecurring(t)) return false;
     if (currentCategories !== null && t.category && !currentCategories.has(t.category)) return false;
@@ -2988,7 +2981,10 @@ function clearLocation() {
 
 function endRecurring() {
   if (!editingRecurringId) return;
-  if (!confirm('반복 일정을 종료할까요? 이미 생성된 할 일은 유지됩니다.')) return;
+  if (!confirm('반복 일정을 종료할까요?')) return;
+  const vtId = '_rt_' + editingRecurringId;
+  todayIds = todayIds.filter(id => id !== vtId);
+  tasks = tasks.filter(t => t.id !== vtId);
   recurringTasks = recurringTasks.filter(r => r.id !== editingRecurringId);
   saveRecurring();
   editingRecurringId = null;
@@ -3022,7 +3018,7 @@ async function saveTask() {
     recurringTasks.push(rt);
     saveRecurring();
     closeModal();
-    await checkRecurringTasks();
+    checkRecurringTasks();
     setStatus('ok', `반복 할 일 "${title}" 이(가) 저장됐습니다 (${days.join(', ')} 반복)`);
     return;
   }
@@ -3123,6 +3119,20 @@ async function saveTask() {
 
 async function toggleDone(id, done) {
   const today = todayKey();
+  if (id.startsWith('_rt_')) {
+    const rt = recurringTasks.find(r => r.id === id.slice(4));
+    if (!rt) return;
+    if (!rt.completedDates) rt.completedDates = [];
+    if (done) { if (!rt.completedDates.includes(today)) rt.completedDates.push(today); }
+    else { rt.completedDates = rt.completedDates.filter(d => d !== today); }
+    saveRecurring();
+    const vt = tasks.find(t => t.id === id);
+    if (vt) { vt.done = done; vt.completedAt = done ? today : null; vt.status = done ? '완료' : '할 일'; }
+    updateStats(); renderTasks(); renderBriefing();
+    if (viewMode === 'history') renderHistory();
+    setStatus('ok', '업데이트 완료');
+    return;
+  }
   setStatus('loading', '상태 업데이트 중...');
   try {
     await notionFetch(`pages/${id}`, 'PATCH', {
@@ -3239,10 +3249,21 @@ function goToDate(dateStr) {
 
 function buildDoneMap() {
   const map = {};
-  tasks.filter(t => t.done && t.completedAt).forEach(t => {
+  tasks.filter(t => t.done && t.completedAt && !t.id.startsWith('_rt_')).forEach(t => {
     if (!map[t.completedAt]) map[t.completedAt] = [];
     map[t.completedAt].push(t);
   });
+  for (const rt of recurringTasks) {
+    for (const dateStr of (rt.completedDates || [])) {
+      if (!map[dateStr]) map[dateStr] = [];
+      map[dateStr].push({
+        id: '_rt_' + rt.id + '::' + dateStr,
+        title: rt.title, priority: rt.priority || '일반',
+        category: rt.category || '', note: rt.note || '',
+        done: true, completedAt: dateStr, _rtId: rt.id,
+      });
+    }
+  }
   return map;
 }
 
@@ -3263,7 +3284,7 @@ function buildScheduledMap() {
   // 미완료 + 진행 예정일 있는 태스크 날짜 오름차순
   // 반복 일정은 title별 첫 번째만, 개별 일정은 같은 이름이어도 모두 표시
   const future = tasks
-    .filter(t => !t.done && t.dueDate && t.dueDate >= today)
+    .filter(t => !t.done && t.dueDate && t.dueDate >= today && !t.id.startsWith('_rt_'))
     .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
   future.forEach(t => {
     if (recurringTitles.has(t.title)) {
@@ -3299,7 +3320,7 @@ function buildCalItemScheduled(t) {
 
 function openDayPopup(dateStr) {
   const q = historySearch.toLowerCase();
-  const dayTasks = tasks.filter(t => t.done && t.completedAt === dateStr && (!q || t.title.toLowerCase().includes(q)));
+  const dayTasks = (buildDoneMap()[dateStr] || []).filter(t => !q || t.title.toLowerCase().includes(q));
   const scheduledTasks = (buildScheduledMap()[dateStr] || []).filter(t => !q || t.title.toLowerCase().includes(q));
   if (!dayTasks.length && !scheduledTasks.length) return;
   const d = new Date(dateStr + 'T12:00:00');
@@ -3481,7 +3502,16 @@ function renderCalStats() {
 }
 
 function openTaskDetail(taskId) {
-  const t = tasks.find(t => t.id === taskId);
+  let t = tasks.find(t => t.id === taskId);
+  if (!t && taskId.startsWith('_rt_')) {
+    const rest = taskId.slice(4);
+    const colonIdx = rest.indexOf('::');
+    const rtId = colonIdx !== -1 ? rest.slice(0, colonIdx) : rest;
+    const dateStr = colonIdx !== -1 ? rest.slice(colonIdx + 2) : null;
+    const rt = recurringTasks.find(r => r.id === rtId);
+    if (!rt) return;
+    t = { id: taskId, title: rt.title, priority: rt.priority || '일반', category: rt.category || '', note: rt.note || '', done: true, completedAt: dateStr, location: '', dueDate: null };
+  }
   if (!t) return;
 
   // 헤더: 제목 + 카테고리
@@ -3695,6 +3725,22 @@ function closeNotifModal() {
   unlockScroll();
 }
 
+function getTasksForPeriod(startDate, endDate) {
+  const regular = tasks.filter(t =>
+    t.done && t.completedAt && !t.id.startsWith('_rt_') &&
+    t.completedAt >= startDate && t.completedAt <= endDate
+  );
+  const recurring = [];
+  for (const rt of recurringTasks) {
+    for (const dateStr of (rt.completedDates || [])) {
+      if (dateStr >= startDate && dateStr <= endDate) {
+        recurring.push({ id: '_rt_' + rt.id + '::' + dateStr, title: rt.title, category: rt.category || '', completedAt: dateStr, done: true });
+      }
+    }
+  }
+  return [...regular, ...recurring];
+}
+
 function buildReportTaskList(ts) {
   const fmtD = d => { const dt = new Date(d + 'T12:00:00'); return `${dt.getMonth()+1}/${dt.getDate()}`; };
   const titleMap = {};
@@ -3743,10 +3789,7 @@ function openWeeklyReportModal(refDate) {
   const { mondayStr, saturdayStr, label } = getWeekReportRange(refDate);
   document.getElementById('weekly-report-range').textContent = label;
 
-  const weekTasks = tasks.filter(t =>
-    t.done && t.completedAt &&
-    t.completedAt >= mondayStr && t.completedAt <= saturdayStr
-  );
+  const weekTasks = getTasksForPeriod(mondayStr, saturdayStr);
   const count = weekTasks.length;
 
   // 카테고리별 집계
@@ -3800,10 +3843,7 @@ function closeWeeklyReportModal() {
 
 async function copyWeeklyReport() {
   const { mondayStr, saturdayStr, label } = getWeekReportRange(_weeklyReportRef);
-  const weekTasks = tasks.filter(t =>
-    t.done && t.completedAt &&
-    t.completedAt >= mondayStr && t.completedAt <= saturdayStr
-  );
+  const weekTasks = getTasksForPeriod(mondayStr, saturdayStr);
 
   const catMap = {};
   for (const t of weekTasks) {
@@ -3849,9 +3889,8 @@ function openMonthlyReportModal() {
   const prefix = `${y}-${String(m + 1).padStart(2, '0')}`;
   document.getElementById('monthly-report-range').textContent = label;
 
-  const monthTasks = tasks.filter(t =>
-    t.done && t.completedAt && t.completedAt.startsWith(prefix)
-  );
+  const lastDay = new Date(y, m + 1, 0).getDate();
+  const monthTasks = getTasksForPeriod(`${prefix}-01`, `${prefix}-${String(lastDay).padStart(2,'0')}`);
   const count = monthTasks.length;
 
   const catMap = {};
@@ -3906,9 +3945,8 @@ async function copyMonthlyReport() {
   const y = historyMonth.getFullYear(), m = historyMonth.getMonth();
   const label = `${y}년 ${m + 1}월`;
   const prefix = `${y}-${String(m + 1).padStart(2, '0')}`;
-  const monthTasks = tasks.filter(t =>
-    t.done && t.completedAt && t.completedAt.startsWith(prefix)
-  );
+  const lastDay2 = new Date(y, m + 1, 0).getDate();
+  const monthTasks = getTasksForPeriod(`${prefix}-01`, `${prefix}-${String(lastDay2).padStart(2,'0')}`);
 
   const catMap = {};
   for (const t of monthTasks) {
