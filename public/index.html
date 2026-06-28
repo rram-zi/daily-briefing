@@ -3839,10 +3839,6 @@ function rtCalChangeMonth(delta) {
 }
 
 function rtCalToggleDate(dateStr) {
-  const rt = recurringTasks.find(r => r.id === _rtCalRtId);
-  if (!rt) return;
-  const dow = ['일','월','화','수','목','금','토'][new Date(dateStr + 'T12:00:00').getDay()];
-  if (!rt.days.includes(dow)) return;
   if (_rtCalDates.has(dateStr)) _rtCalDates.delete(dateStr);
   else _rtCalDates.add(dateStr);
   renderRtCalGrid();
@@ -3856,15 +3852,9 @@ function renderRtCalGrid() {
 
   document.getElementById('rt-cal-month-label').textContent = `${y}년 ${m + 1}월`;
 
-  const minY = now.getFullYear(), minM = now.getMonth() - _RT_CAL_MIN_MONTHS;
-  const minMonth = new Date(minY, minM, 1);
-  const maxMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const minMonth = new Date(now.getFullYear(), now.getMonth() - _RT_CAL_MIN_MONTHS, 1);
   document.getElementById('rt-cal-prev-btn').disabled = _rtCalMonth <= minMonth;
-  document.getElementById('rt-cal-next-btn').disabled = _rtCalMonth >= maxMonth;
-
-  const rt = recurringTasks.find(r => r.id === _rtCalRtId);
-  const recurDays = rt ? rt.days : [];
-  const dowNames = ['일','월','화','수','목','금','토'];
+  document.getElementById('rt-cal-next-btn').disabled = false;
 
   const firstDow = new Date(y, m, 1).getDay();
   const daysInMonth = new Date(y, m + 1, 0).getDate();
@@ -3875,20 +3865,15 @@ function renderRtCalGrid() {
   for (let d = 1; d <= daysInMonth; d++) {
     const date = new Date(y, m, d);
     const dateStr = localDateStr(date);
-    const dow = dowNames[date.getDay()];
-    const isRecDay = recurDays.includes(dow);
-    const isFuture = dateStr > today;
     const isSelected = _rtCalDates.has(dateStr);
     const isToday2 = dateStr === today;
 
-    const cls = ['rt-cal-day',
-      !isRecDay || isFuture ? '' : 'selectable',
+    const cls = ['rt-cal-day', 'selectable',
       isSelected ? 'selected' : '',
       isToday2 ? 'is-today' : '',
     ].filter(Boolean).join(' ');
 
-    const clickable = isRecDay && !isFuture;
-    html += `<div class="${cls}"${clickable ? ` onclick="rtCalToggleDate('${dateStr}')" style="cursor:pointer"` : ''}>${d}</div>`;
+    html += `<div class="${cls}" onclick="rtCalToggleDate('${dateStr}')" style="cursor:pointer">${d}</div>`;
   }
 
   document.getElementById('rt-cal-grid').innerHTML = html;
