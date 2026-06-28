@@ -1035,6 +1035,10 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
   .detail-note { font-size: 14px; color: var(--text2); line-height: 1.8; white-space: pre-wrap; }
   .detail-meta { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
   .detail-footer { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .detail-completed-date { font-size: 12px; color: var(--text3); border: none; background: none; padding: 0; font-family: inherit; cursor: pointer; outline: none; }
+  .detail-completed-date:hover { color: var(--blue500); }
+  .detail-completed-date:focus { color: var(--blue500); }
+  .detail-completed-label { font-size: 12px; color: var(--text3); }
 
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-thumb { background: var(--grey200); border-radius: 4px; }
@@ -3604,7 +3608,14 @@ function openTaskDetail(taskId) {
     : '';
   const detailFooter = document.getElementById('detail-footer');
   if (t.completedAt) {
-    detailFooter.innerHTML = `<span style="font-size:12px;color:var(--text3)">${fmt(t.completedAt)} 완료</span>${locBadge}`;
+    const isEditable = !taskId.startsWith('_rt_');
+    const dateHtml = isEditable
+      ? `<input type="date" class="detail-completed-date" value="${t.completedAt}"
+           onchange="updateCompletionDate('${taskId}', this.value)"
+           title="완료일 변경">
+         <span class="detail-completed-label">완료</span>`
+      : `<span class="detail-completed-label">${fmt(t.completedAt)} 완료</span>`;
+    detailFooter.innerHTML = dateHtml + locBadge;
     detailFooter.style.display = '';
     detailFooter.style.marginTop = (noteHtml || metaParts.length) ? '14px' : '0';
   } else if (locBadge) {
@@ -3618,6 +3629,23 @@ function openTaskDetail(taskId) {
 
   document.getElementById('detail-backdrop').classList.add('open');
   lockScroll();
+}
+
+async function updateCompletionDate(taskId, newDate) {
+  if (!newDate) return;
+  setStatus('loading', '완료일 변경 중...');
+  try {
+    await notionFetch(`pages/${taskId}`, 'PATCH', {
+      properties: { '완료일': { date: { start: newDate } } }
+    });
+    const t = tasks.find(t => t.id === taskId);
+    if (t) t.completedAt = newDate;
+    updateStats(); renderTasks();
+    if (viewMode === 'history') renderHistory();
+    setStatus('ok', '완료일이 변경됐습니다');
+  } catch(e) {
+    setStatus('err', '변경 실패: ' + e.message);
+  }
 }
 
 function closeTaskDetail() {
