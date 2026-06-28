@@ -959,6 +959,37 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
   .weekly-task-title { flex: 1; min-width: 0; }
   .weekly-task-dates { margin-left: auto; font-size: 12px; color: var(--text3); white-space: nowrap; flex-shrink: 0; }
 
+  /* Recurring task calendar date picker */
+  .rt-cal-modal { max-width: 360px; width: 100%; }
+  .rt-cal-header-title { font-size: 13px; font-weight: 600; color: var(--text1); margin-bottom: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rt-cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .rt-cal-nav-btn { background: none; border: none; cursor: pointer; padding: 6px 10px; border-radius: 8px; color: var(--text2); font-size: 18px; line-height: 1; transition: background 0.12s; }
+  .rt-cal-nav-btn:hover { background: var(--grey100); }
+  .rt-cal-nav-btn:disabled { opacity: 0.3; cursor: default; }
+  .rt-cal-month-label { font-size: 15px; font-weight: 700; color: var(--text1); }
+  .rt-cal-dow { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; margin-bottom: 4px; }
+  .rt-cal-dow span { font-size: 11px; font-weight: 600; color: var(--text3); padding: 3px 0; }
+  .rt-cal-dow span:first-child { color: var(--red500); }
+  .rt-cal-dow span:last-child { color: var(--blue500); }
+  .rt-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+  .rt-cal-day { aspect-ratio: 1; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; cursor: default; color: var(--grey300); background: none; border: none; font-family: inherit; transition: background 0.1s, color 0.1s; }
+  .rt-cal-day.selectable { color: var(--text2); cursor: pointer; }
+  .rt-cal-day.selectable:hover { background: var(--grey100); color: var(--text1); }
+  .rt-cal-day.selected { background: var(--blue500); color: #fff; font-weight: 700; }
+  .rt-cal-day.selected:hover { background: var(--blue500); opacity: 0.85; }
+  .rt-cal-day.is-today { box-shadow: inset 0 0 0 1.5px var(--blue500); color: var(--blue500); }
+  .rt-cal-day.is-today.selected { box-shadow: none; color: #fff; }
+  .rt-cal-day.filler { visibility: hidden; pointer-events: none; }
+  .rt-cal-count { font-size: 12px; color: var(--text3); text-align: center; margin-top: 14px; letter-spacing: -0.01em; }
+  .rt-cal-count strong { color: var(--blue500); font-weight: 700; }
+  .rt-cal-actions { display: flex; gap: 8px; margin-top: 18px; }
+  .rt-cal-actions .btn-secondary { flex: 1; padding: 10px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--surface); color: var(--text2); font-size: 14px; font-family: inherit; cursor: pointer; font-weight: 500; }
+  .rt-cal-actions .btn-primary { flex: 2; padding: 10px; border-radius: 10px; border: none; background: var(--blue500); color: #fff; font-size: 14px; font-family: inherit; cursor: pointer; font-weight: 600; }
+  /* Recurring task calendar button in today section */
+  .rt-cal-open-btn { margin-left: auto; flex-shrink: 0; background: none; border: none; cursor: pointer; padding: 4px 6px; border-radius: 6px; color: var(--text3); display: flex; align-items: center; transition: color 0.12s, background 0.12s; }
+  .rt-cal-open-btn:hover { color: var(--blue500); background: var(--blue50); }
+  .rt-cal-open-btn svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; }
+
   /* History search */
   .topbar-search-btn {
     display: flex; align-items: center; gap: 6px;
@@ -1404,6 +1435,33 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
       <div class="detail-meta" id="detail-meta"></div>
       <div class="detail-note" id="detail-note"></div>
       <div class="detail-footer" id="detail-footer"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Recurring Task Calendar Date Picker -->
+<div class="modal-backdrop" id="rt-cal-backdrop" onclick="if(event.target===this)closeRtCalModal()">
+  <div class="modal rt-cal-modal">
+    <div class="modal-header">
+      <div class="modal-title">완료 기록 편집</div>
+      <button class="modal-close" onclick="closeRtCalModal()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body" style="padding-top:0">
+      <div class="rt-cal-header-title" id="rt-cal-task-title"></div>
+      <div class="rt-cal-nav">
+        <button class="rt-cal-nav-btn" id="rt-cal-prev-btn" onclick="rtCalChangeMonth(-1)">‹</button>
+        <span class="rt-cal-month-label" id="rt-cal-month-label"></span>
+        <button class="rt-cal-nav-btn" id="rt-cal-next-btn" onclick="rtCalChangeMonth(1)">›</button>
+      </div>
+      <div class="rt-cal-dow">
+        <span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span>
+      </div>
+      <div class="rt-cal-grid" id="rt-cal-grid"></div>
+      <div class="rt-cal-count" id="rt-cal-count"></div>
+      <div class="rt-cal-actions">
+        <button class="btn-secondary" onclick="closeRtCalModal()">취소</button>
+        <button class="btn-primary" onclick="saveRtCalDates()">저장</button>
+      </div>
     </div>
   </div>
 </div>
@@ -2182,7 +2240,7 @@ async function confirmTodaySelection() {
 
   renderTodaySection();
 
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeConfig(); closeTaskDetail(); closeSearchModal(); closeTodayModal(); closeMobileSidebar(); closeCategoryModal(); closeNotifModal(); closeSettingsDropdown(); clearTaskSearch(); closeDayPopup(); closeWeeklyReportModal(); closeMonthlyReportModal(); document.getElementById('qa-cat-dropdown')?.classList.remove('open'); } });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeConfig(); closeTaskDetail(); closeSearchModal(); closeTodayModal(); closeMobileSidebar(); closeCategoryModal(); closeNotifModal(); closeSettingsDropdown(); clearTaskSearch(); closeDayPopup(); closeWeeklyReportModal(); closeMonthlyReportModal(); closeRtCalModal(); document.getElementById('qa-cat-dropdown')?.classList.remove('open'); } });
   document.addEventListener('click', e => {
     const wrap = document.getElementById('settings-wrap');
     if (wrap && !wrap.contains(e.target)) closeSettingsDropdown();
@@ -2614,6 +2672,10 @@ function taskItemHTML(t, isToday, showCheckbox = false, showAsDone = t.done) {
       </div>
       ${t.note ? `<div class="task-note">${linkify(tfEmoji(t.note))}</div>` : ''}
     </div>
+    ${isToday && t.id.startsWith('_rt_') ? `
+      <button class="rt-cal-open-btn" onclick="openRtCalModal('${t._rtId}')" title="완료 기록 편집">
+        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      </button>` : ''}
     ${isToday ? '' : `
       ${t.done && t.completedAt ? (() => {
         const extra = t._extraDates || [];
@@ -3739,6 +3801,115 @@ function getTasksForPeriod(startDate, endDate) {
     }
   }
   return [...regular, ...recurring];
+}
+
+/* ── 반복 일정 완료일 달력 선택기 ── */
+let _rtCalRtId = null;
+let _rtCalMonth = new Date();
+let _rtCalDates = new Set();
+const _RT_CAL_MIN_MONTHS = 12; // 최대 N개월 전까지 이동 가능
+
+function openRtCalModal(rtId) {
+  const rt = recurringTasks.find(r => r.id === rtId);
+  if (!rt) return;
+  _rtCalRtId = rtId;
+  _rtCalDates = new Set(rt.completedDates || []);
+  const now = new Date(Date.now() - DAY_CUTOFF_HOURS * 60 * 60 * 1000);
+  _rtCalMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  document.getElementById('rt-cal-task-title').textContent = rt.title;
+  renderRtCalGrid();
+  document.getElementById('rt-cal-backdrop').classList.add('open');
+  lockScroll();
+}
+
+function closeRtCalModal() {
+  document.getElementById('rt-cal-backdrop').classList.remove('open');
+  unlockScroll();
+}
+
+function rtCalChangeMonth(delta) {
+  const now = new Date(Date.now() - DAY_CUTOFF_HOURS * 60 * 60 * 1000);
+  const curMonth = new Date(_rtCalMonth);
+  curMonth.setMonth(curMonth.getMonth() + delta);
+  const minMonth = new Date(now.getFullYear(), now.getMonth() - _RT_CAL_MIN_MONTHS, 1);
+  const maxMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  if (curMonth < minMonth || curMonth > maxMonth) return;
+  _rtCalMonth = curMonth;
+  renderRtCalGrid();
+}
+
+function rtCalToggleDate(dateStr) {
+  const rt = recurringTasks.find(r => r.id === _rtCalRtId);
+  if (!rt) return;
+  const dow = ['일','월','화','수','목','금','토'][new Date(dateStr + 'T12:00:00').getDay()];
+  if (!rt.days.includes(dow)) return;
+  if (_rtCalDates.has(dateStr)) _rtCalDates.delete(dateStr);
+  else _rtCalDates.add(dateStr);
+  renderRtCalGrid();
+}
+
+function renderRtCalGrid() {
+  const today = todayKey();
+  const now = new Date(Date.now() - DAY_CUTOFF_HOURS * 60 * 60 * 1000);
+  const y = _rtCalMonth.getFullYear();
+  const m = _rtCalMonth.getMonth();
+
+  document.getElementById('rt-cal-month-label').textContent = `${y}년 ${m + 1}월`;
+
+  const minY = now.getFullYear(), minM = now.getMonth() - _RT_CAL_MIN_MONTHS;
+  const minMonth = new Date(minY, minM, 1);
+  const maxMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  document.getElementById('rt-cal-prev-btn').disabled = _rtCalMonth <= minMonth;
+  document.getElementById('rt-cal-next-btn').disabled = _rtCalMonth >= maxMonth;
+
+  const rt = recurringTasks.find(r => r.id === _rtCalRtId);
+  const recurDays = rt ? rt.days : [];
+  const dowNames = ['일','월','화','수','목','금','토'];
+
+  const firstDow = new Date(y, m, 1).getDay();
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+
+  let html = '';
+  for (let i = 0; i < firstDow; i++) html += `<div class="rt-cal-day filler"></div>`;
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = new Date(y, m, d);
+    const dateStr = localDateStr(date);
+    const dow = dowNames[date.getDay()];
+    const isRecDay = recurDays.includes(dow);
+    const isFuture = dateStr > today;
+    const isSelected = _rtCalDates.has(dateStr);
+    const isToday2 = dateStr === today;
+
+    const cls = ['rt-cal-day',
+      !isRecDay || isFuture ? '' : 'selectable',
+      isSelected ? 'selected' : '',
+      isToday2 ? 'is-today' : '',
+    ].filter(Boolean).join(' ');
+
+    const clickable = isRecDay && !isFuture;
+    html += `<div class="${cls}"${clickable ? ` onclick="rtCalToggleDate('${dateStr}')" style="cursor:pointer"` : ''}>${d}</div>`;
+  }
+
+  document.getElementById('rt-cal-grid').innerHTML = html;
+
+  const count = _rtCalDates.size;
+  document.getElementById('rt-cal-count').innerHTML = count > 0
+    ? `총 <strong>${count}회</strong> 완료 선택됨`
+    : '완료된 날짜를 선택하세요';
+}
+
+async function saveRtCalDates() {
+  const rt = recurringTasks.find(r => r.id === _rtCalRtId);
+  if (!rt) return;
+  rt.completedDates = [..._rtCalDates].sort();
+  saveRecurring();
+  syncRecurringVirtualTasks();
+  checkRecurringTasks();
+  updateStats(); renderTasks(); renderBriefing();
+  if (viewMode === 'history') renderHistory();
+  closeRtCalModal();
+  setStatus('ok', '완료 기록이 저장됐습니다');
 }
 
 function buildReportTaskList(ts) {
