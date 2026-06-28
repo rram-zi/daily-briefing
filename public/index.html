@@ -2448,13 +2448,20 @@ async function loadTasks() {
   btn.classList.add('spinning');
   setStatus('loading', 'Notion에서 할 일을 불러오는 중...');
   try {
-    const result = await notionFetch(`databases/${DB_ID}/query`, 'POST', {
-      sorts: [
-        { property: '우선순위', direction: 'descending' },
-        { property: '마감일',   direction: 'ascending'  }
-      ]
-    });
-    tasks = result.results.map(parsePage);
+    const sorts = [
+      { property: '우선순위', direction: 'descending' },
+      { property: '마감일',   direction: 'ascending'  }
+    ];
+    let allResults = [];
+    let cursor = undefined;
+    do {
+      const body = { sorts };
+      if (cursor) body.start_cursor = cursor;
+      const result = await notionFetch(`databases/${DB_ID}/query`, 'POST', body);
+      allResults = allResults.concat(result.results || []);
+      cursor = result.has_more ? result.next_cursor : undefined;
+    } while (cursor);
+    tasks = allResults.map(parsePage);
     loadTodayIds();
     renderTodaySection();
     loadCategoryOptions();
