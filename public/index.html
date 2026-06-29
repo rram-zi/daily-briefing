@@ -3409,6 +3409,8 @@ function buildDoneMap() {
   for (const rt of recurringTasks) {
     for (const dateStr of (rt.completedDates || [])) {
       if (!map[dateStr]) map[dateStr] = [];
+      // 같은 날짜에 동일 제목 Notion 페이지가 있으면 _rt_* 생략 (중복 방지)
+      if (map[dateStr].some(t => t.title === rt.title)) continue;
       map[dateStr].push({
         id: '_rt_' + rt.id + '::' + dateStr,
         title: rt.title, priority: rt.priority || '일반',
