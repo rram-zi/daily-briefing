@@ -3409,6 +3409,11 @@ function buildScheduledMap() {
   for (const rt of recurringTasks) {
     for (const d of rt.completedDates || []) doneOnDate.add(`${rt.title}::${d}`);
   }
+  // 오늘 오늘의 할 일에서 명시적으로 제거한 일반 태스크 → 오늘 예정에서도 숨김
+  const removedTodayRaw = JSON.parse(localStorage.getItem('removed_today_ids') || '{}');
+  const removedTodayIds = removedTodayRaw.date === today ? new Set(removedTodayRaw.ids || []) : new Set();
+  // 오늘 오늘의 할 일에서 명시적으로 제거한 반복 일정 → 오늘 예정에서도 숨김
+  const removedRtIds = getRemovedRtIds();
   const recurringTitles = new Set(recurringTasks.map(r => r.title));
   const recurringTitleSeen = {};
   const map = {};
@@ -3419,6 +3424,7 @@ function buildScheduledMap() {
     .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
   future.forEach(t => {
     if (doneOnDate.has(`${t.title}::${t.dueDate}`)) return;
+    if (t.dueDate === today && removedTodayIds.has(t.id)) return;
     if (recurringTitles.has(t.title)) {
       if (recurringTitleSeen[t.title]) return;
       recurringTitleSeen[t.title] = true;
@@ -3432,6 +3438,7 @@ function buildScheduledMap() {
     const nextDate = nextRecurringDate(rt, today);
     if (!nextDate) continue;
     if (doneOnDate.has(`${rt.title}::${nextDate}`)) continue;
+    if (nextDate === today && removedRtIds.has(rt.id)) continue;
     if (!map[nextDate]) map[nextDate] = [];
     map[nextDate].push({ id: '_rec_' + rt.id, title: rt.title, priority: rt.priority || '일반', category: rt.category || '', note: rt.note || '', done: false, dueDate: nextDate });
     recurringTitleSeen[rt.title] = true;
