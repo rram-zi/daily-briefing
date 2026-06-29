@@ -3372,6 +3372,12 @@ function goToDate(dateStr) {
   renderHistory();
 }
 
+function calCatIdx(t) {
+  if (!t.category) return categoryOptions.length;
+  const i = categoryOptions.findIndex(o => o.name === t.category);
+  return i === -1 ? categoryOptions.length : i;
+}
+
 function buildDoneMap() {
   const map = {};
   tasks.filter(t => t.done && t.completedAt && !t.id.startsWith('_rt_')).forEach(t => {
@@ -3389,6 +3395,7 @@ function buildDoneMap() {
       });
     }
   }
+  for (const d in map) map[d].sort((a, b) => calCatIdx(a) - calCatIdx(b));
   return map;
 }
 
@@ -3443,6 +3450,7 @@ function buildScheduledMap() {
     map[nextDate].push({ id: '_rec_' + rt.id, title: rt.title, priority: rt.priority || '일반', category: rt.category || '', note: rt.note || '', done: false, dueDate: nextDate });
     recurringTitleSeen[rt.title] = true;
   }
+  for (const d in map) map[d].sort((a, b) => calCatIdx(a) - calCatIdx(b));
   return map;
 }
 
