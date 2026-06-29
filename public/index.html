@@ -1898,10 +1898,21 @@ function syncRecurringVirtualTasks() {
   }
 }
 
+function getRemovedRtIds() {
+  try {
+    const s = JSON.parse(localStorage.getItem('removed_rt_ids') || '{}');
+    return s.date === todayKey() ? new Set(s.ids || []) : new Set();
+  } catch { return new Set(); }
+}
+function saveRemovedRtIds(set) {
+  localStorage.setItem('removed_rt_ids', JSON.stringify({ date: todayKey(), ids: [...set] }));
+}
+
 function checkRecurringTasks() {
   if (recurringTasks.length === 0) return;
   syncRecurringVirtualTasks();
   const dayName = ['일','월','화','수','목','금','토'][new Date(Date.now() - DAY_CUTOFF_HOURS * 60 * 60 * 1000).getDay()];
+  const removedRtIds = getRemovedRtIds(); // 사용자가 오늘 명시적으로 제거한 반복 일정
   let changed = false;
   // 삭제된 템플릿의 _rt_* ID 정리
   const validRtIds = new Set(recurringTasks.map(rt => '_rt_' + rt.id));
@@ -1913,11 +1924,12 @@ function checkRecurringTasks() {
     const vtId = '_rt_' + rt.id;
     const shouldBeToday = rt.days.includes(dayName);
     const isInToday = todayIds.includes(vtId);
-    if (shouldBeToday && !isInToday) {
+    const userRemoved = removedRtIds.has(rt.id);
+    if (shouldBeToday && !isInToday && !userRemoved) {
       todayIds.push(vtId);
       todayConfirmed = true;
       changed = true;
-    } else if (!shouldBeToday && isInToday) {
+    } else if ((!shouldBeToday || userRemoved) && isInToday) {
       todayIds = todayIds.filter(id => id !== vtId);
       changed = true;
     }
@@ -2057,8 +2069,7 @@ function renderTodaySection() {
   const filled = todayConfirmed && todayIds.length > 0;
   document.getElementById('today-empty-state').style.display  = filled ? 'none' : '';
   document.getElementById('today-filled-state').style.display = filled ? '' : 'none';
-  const countEl = document.getElementById('today-count');
-  if (countEl) countEl.textContent = filled ? `(${todayIds.length})` : '';
+  // 카운트는 renderTasks()에서 dedup 후 정확히 업데이트됨
 }
 
 let todaySelectTemp = [];
@@ -2200,6 +2211,16 @@ async function confirmTodaySelection() {
   // Notion에 실제 저장된 상태 기준으로 diff (localStorage 기준 아님)
   const notionSet = new Set(tasks.filter(t => t.todayDate === today).map(t => t.id));
   const nextSet   = new Set(todaySelectTemp);
+  // _rt_* 변화를 todayIds 덮어쓰기 전에 계산
+  const prevRtIds = todayIds.filter(id => id.startsWith('_rt_'));
+  const removedRtTemplateIds = prevRtIds.filter(id => !nextSet.has(id)).map(id => id.slice(4));
+  const addedRtTemplateIds   = todaySelectTemp.filter(id => id.startsWith('_rt_') && !todayIds.includes(id)).map(id => id.slice(4));
+  if (removedRtTemplateIds.length > 0 || addedRtTemplateIds.length > 0) {
+    const existing = getRemovedRtIds();
+    removedRtTemplateIds.forEach(id => existing.add(id));
+    addedRtTemplateIds.forEach(id => existing.delete(id));
+    saveRemovedRtIds(existing);
+  }
   todayIds = [...todaySelectTemp];
   todayConfirmed = true; // 빈 선택이어도 확인한 것으로 처리 → 새로고침 시 모달 자동 오픈 방지
   saveTodayIds();
@@ -2825,6 +2846,9 @@ function renderTasks() {
     })
     .filter(t => { if (seenTodayTitles.has(t.title)) return false; seenTodayTitles.add(t.title); return true; })
     .sort((a, b) => (b.done ? 1 : 0) - (a.done ? 1 : 0)); // 완료 먼저 표시
+  // dedup 후 실제 렌더 수로 카운트 업데이트
+  const todayCountEl = document.getElementById('today-count');
+  if (todayCountEl) todayCountEl.textContent = todayTasks.length > 0 ? `(${todayTasks.length})` : '';
 
   // 중복 제거만 적용한 기반 목록으로 탭 카운트 계산
   const baseVisible = tasks.filter(t => {
