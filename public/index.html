@@ -3708,7 +3708,7 @@ function openTaskDetail(taskId) {
     const dateStr = colonIdx !== -1 ? rest.slice(colonIdx + 2) : null;
     const rt = recurringTasks.find(r => r.id === rtId);
     if (!rt) return;
-    t = { id: taskId, title: rt.title, priority: rt.priority || '일반', category: rt.category || '', note: rt.note || '', done: true, completedAt: dateStr, location: '', dueDate: null };
+    t = { id: taskId, title: rt.title, priority: rt.priority || '일반', category: rt.category || '', note: rt.note || '', done: true, completedAt: dateStr, location: '', dueDate: null, _rtId: rtId };
   }
   if (!t) return;
 
