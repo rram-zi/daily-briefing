@@ -3430,7 +3430,12 @@ function buildDoneMap() {
       map[dateStr].push({ ..._t, completedAt: dateStr });
     }
   }
-  for (const d in map) map[d].sort((a, b) => calCatIdx(a) - calCatIdx(b));
+  // 날짜별 제목 중복 제거 (Notion 페이지 우선, _rt_* / extra 날짜는 후순위)
+  for (const d in map) {
+    const seen = new Set();
+    map[d] = map[d].filter(t => { if (seen.has(t.title)) return false; seen.add(t.title); return true; });
+    map[d].sort((a, b) => calCatIdx(a) - calCatIdx(b));
+  }
   return map;
 }
 
