@@ -3400,16 +3400,22 @@ function calCatIdx(t) {
   return i === -1 ? categoryOptions.length : i;
 }
 
+// 반복 일정의 모든 완료일: rt.completedDates + 같은 제목 Notion 페이지의 completedAt 합산
+function _getRecurringAllDates(rt) {
+  const notionDates = tasks
+    .filter(t => t.done && t.completedAt && t.title === rt.title && !t.id.startsWith('_rt_'))
+    .map(t => t.completedAt);
+  return [...new Set([...(rt.completedDates || []), ...notionDates])].sort();
+}
+
 function buildDoneMap() {
   const map = {};
-  tasks.filter(t => t.done && t.completedAt && !t.id.startsWith('_rt_')).forEach(t => {
-    if (!map[t.completedAt]) map[t.completedAt] = [];
-    map[t.completedAt].push(t);
-  });
+  const recurringTitleSet = new Set(recurringTasks.map(r => r.title));
+
+  // 반복 일정: rt.completedDates + 같은 제목 Notion 페이지 날짜를 합산하여 _rt_*로 표시
   for (const rt of recurringTasks) {
-    for (const dateStr of (rt.completedDates || [])) {
+    for (const dateStr of _getRecurringAllDates(rt)) {
       if (!map[dateStr]) map[dateStr] = [];
-      // 같은 날짜에 동일 제목 Notion 페이지가 있으면 _rt_* 생략 (중복 방지)
       if (map[dateStr].some(t => t.title === rt.title)) continue;
       map[dateStr].push({
         id: '_rt_' + rt.id + '::' + dateStr,
@@ -3419,23 +3425,26 @@ function buildDoneMap() {
       });
     }
   }
-  // 반복 템플릿 없는 일반 태스크의 extra_done_dates (멀티 완료일) 추가
+
+  // 반복 템플릿 없는 일반 태스크 Notion 페이지
+  tasks.filter(t => t.done && t.completedAt && !t.id.startsWith('_rt_') && !recurringTitleSet.has(t.title)).forEach(t => {
+    if (!map[t.completedAt]) map[t.completedAt] = [];
+    if (!map[t.completedAt].some(m => m.title === t.title)) map[t.completedAt].push(t);
+  });
+
+  // 일반 태스크의 extra_done_dates (멀티 완료일)
   const _extraDone = JSON.parse(localStorage.getItem('extra_done_dates') || '{}');
   for (const [taskId, dates] of Object.entries(_extraDone)) {
     const _t = tasks.find(t => t.id === taskId);
-    if (!_t || !_t.done) continue;
+    if (!_t || !_t.done || recurringTitleSet.has(_t.title)) continue;
     for (const dateStr of (dates || [])) {
-      if (dateStr === _t.completedAt) continue; // 이미 위에서 포함됨
+      if (dateStr === _t.completedAt) continue;
       if (!map[dateStr]) map[dateStr] = [];
-      map[dateStr].push({ ..._t, completedAt: dateStr });
+      if (!map[dateStr].some(m => m.title === _t.title)) map[dateStr].push({ ..._t, completedAt: dateStr });
     }
   }
-  // 날짜별 제목 중복 제거 (Notion 페이지 우선, _rt_* / extra 날짜는 후순위)
-  for (const d in map) {
-    const seen = new Set();
-    map[d] = map[d].filter(t => { if (seen.has(t.title)) return false; seen.add(t.title); return true; });
-    map[d].sort((a, b) => calCatIdx(a) - calCatIdx(b));
-  }
+
+  for (const d in map) map[d].sort((a, b) => calCatIdx(a) - calCatIdx(b));
   return map;
 }
 
@@ -3731,10 +3740,19 @@ function openTaskDetail(taskId) {
     : '';
   const detailFooter = document.getElementById('detail-footer');
   if (t.completedAt) {
-    const isEditable = !taskId.startsWith('_rt_');
     const escapedTitle = t.title.replace(/'/g, "\\'");
     let dateHtml;
-    if (isEditable) {
+    if (t._rtId) {
+      // 반복 일정: _getRecurringAllDates로 전체 완료일 표시, rt cal 모달로 수정
+      const _rt2 = recurringTasks.find(r => r.id === t._rtId);
+      const _allD = _rt2 ? _getRecurringAllDates(_rt2) : [t.completedAt];
+      const _cnt  = _allD.length;
+      const _prim = _allD[_allD.length - 1] || t.completedAt;
+      const _txt  = _cnt > 1 ? `${fmt(_prim)} 외 ${_cnt - 1} 완료` : `${fmt(_prim)} 완료`;
+      dateHtml = `<span class="detail-completed-date" id="detail-completedAt-label"
+           onclick="openRtCalModal('${t._rtId}')"
+           title="완료일 변경">${_txt} ✎</span>`;
+    } else if (!taskId.startsWith('_rt_')) {
       const _allD = _getAllDoneDates(taskId);
       const _cnt  = _allD.length;
       const _prim = _allD[_allD.length - 1] || t.completedAt;
@@ -3984,7 +4002,7 @@ function openRtCalModal(rtId) {
   _rtCalMode = 'multi';
   _rtCalRtId = rtId;
   _rtCalTaskId = null;
-  _rtCalDates = new Set(rt.completedDates || []);
+  _rtCalDates = new Set(_getRecurringAllDates(rt));
   const now = new Date(Date.now() - DAY_CUTOFF_HOURS * 60 * 60 * 1000);
   _openRtCal(rt.title, now);
 }
@@ -4030,7 +4048,7 @@ function _getAllDoneDates(taskId) {
   const task = tasks.find(t => t.id === taskId);
   if (!task) return [];
   const rt = recurringTasks.find(r => r.title === task.title);
-  if (rt) return [...(rt.completedDates || [])].sort();
+  if (rt) return _getRecurringAllDates(rt);
   const _extra = JSON.parse(localStorage.getItem('extra_done_dates') || '{}');
   return [...new Set([task.completedAt, ...(_extra[taskId] || [])].filter(Boolean))].sort();
 }
