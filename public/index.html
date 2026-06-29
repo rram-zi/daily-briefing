@@ -2811,9 +2811,14 @@ function renderTasks() {
 
   const seenTodayTitles = new Set();
   const todayTasks = todayIds.map(id => tasks.find(t => t.id === id)).filter(Boolean)
-    .sort((a, b) => (a.done ? 1 : 0) - (b.done ? 1 : 0)) // 미완료 우선
+    .sort((a, b) => {
+      // dedup priority: done wins > _rt_* among undone > regular undone
+      if (a.done !== b.done) return a.done ? -1 : 1;
+      const aRt = a.id.startsWith('_rt_'), bRt = b.id.startsWith('_rt_');
+      return aRt !== bRt ? (aRt ? -1 : 1) : 0;
+    })
     .filter(t => { if (seenTodayTitles.has(t.title)) return false; seenTodayTitles.add(t.title); return true; })
-    .sort((a, b) => (b.done ? 1 : 0) - (a.done ? 1 : 0)); // 완료된 것 아래로
+    .sort((a, b) => (b.done ? 1 : 0) - (a.done ? 1 : 0)); // 완료 먼저 표시
 
   // 중복 제거만 적용한 기반 목록으로 탭 카운트 계산
   const baseVisible = tasks.filter(t => {
@@ -3202,10 +3207,21 @@ async function toggleDone(id, done) {
     if (!rt.completedDates) rt.completedDates = [];
     if (done) { if (!rt.completedDates.includes(today)) rt.completedDates.push(today); }
     else { rt.completedDates = rt.completedDates.filter(d => d !== today); }
-    saveRecurring().catch(() => {});
+    // Optimistic UI update
     const vt = tasks.find(t => t.id === id);
     if (vt) { vt.done = done; vt.completedAt = done ? today : null; vt.status = done ? '완료' : '할 일'; }
     updateStats(); renderTasks(); renderBriefing();
+    try {
+      await saveRecurring();
+    } catch(e) {
+      // Revert in-memory state on failure
+      if (done) { rt.completedDates = rt.completedDates.filter(d => d !== today); }
+      else { if (!rt.completedDates.includes(today)) rt.completedDates.push(today); }
+      if (vt) { vt.done = !done; vt.completedAt = !done ? today : null; vt.status = !done ? '완료' : '할 일'; }
+      updateStats(); renderTasks(); renderBriefing();
+      setStatus('err', '저장 실패: ' + e.message);
+      return;
+    }
     if (viewMode === 'history') renderHistory();
     setStatus('ok', '업데이트 완료');
     return;
