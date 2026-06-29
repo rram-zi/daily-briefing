@@ -2181,7 +2181,13 @@ function handleTodayModalBackdropClick(e) {
 }
 function toggleTodaySelect(id, el) {
   if (todaySelectTemp.includes(id)) {
-    todaySelectTemp = todaySelectTemp.filter(i => i !== id);
+    const title = (tasks.find(t => t.id === id) || {}).title;
+    todaySelectTemp = todaySelectTemp.filter(i => {
+      if (i === id) return false;
+      // 같은 제목의 중복 ID도 함께 제거 (_rt_* ↔ 실제 Notion 페이지 혼재 케이스)
+      if (title) { const t = tasks.find(t => t.id === i); if (t && t.title === title) return false; }
+      return true;
+    });
     el.classList.remove('selected');
   } else {
     todaySelectTemp.push(id);
