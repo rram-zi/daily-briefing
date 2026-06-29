@@ -4144,6 +4144,7 @@ function renderRtCalGrid() {
   document.getElementById('rt-cal-grid').innerHTML = html;
 
   const count = _rtCalDates.size;
+  const todaySelected = _rtCalDates.has(today);
   if (_rtCalMode === 'single') {
     const sel = [..._rtCalDates][0];
     document.getElementById('rt-cal-count').innerHTML = sel
@@ -4151,7 +4152,7 @@ function renderRtCalGrid() {
       : '완료일을 선택하세요';
   } else {
     document.getElementById('rt-cal-count').innerHTML = count > 0
-      ? `총 <strong>${count}회</strong> 완료 선택됨`
+      ? `총 <strong>${count}회</strong> 완료 선택됨${todaySelected ? ' · <strong style="color:var(--blue500)">오늘 포함</strong>' : ''}`
       : '완료된 날짜를 선택하세요';
   }
 }
@@ -4215,7 +4216,7 @@ async function saveRtCalDates() {
     if (footerDate) footerDate.textContent = fmt(newDate) + ' 완료 ✎';
   } else {
     const rt = recurringTasks.find(r => r.id === _rtCalRtId);
-    if (!rt) return;
+    if (!rt) { setStatus('err', '반복 일정을 찾을 수 없습니다. 새로고침 후 다시 시도해주세요.'); return; }
     rt.completedDates = [..._rtCalDates].sort();
     try {
       await saveRecurring();
