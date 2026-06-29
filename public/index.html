@@ -3753,12 +3753,16 @@ function openTaskDetail(taskId) {
            onclick="openRtCalModal('${t._rtId}')"
            title="완료일 변경">${_txt} ✎</span>`;
     } else if (!taskId.startsWith('_rt_')) {
+      const _sameTitleCount = tasks.filter(tt => tt.done && tt.completedAt && tt.title === t.title && !tt.id.startsWith('_rt_')).length;
       const _allD = _getAllDoneDates(taskId);
       const _cnt  = _allD.length;
       const _prim = _allD[_allD.length - 1] || t.completedAt;
       const _txt  = _cnt > 1 ? `${fmt(_prim)} 외 ${_cnt - 1} 완료` : `${fmt(_prim)} 완료`;
+      const _onClickFn = _sameTitleCount > 1
+        ? `openTitleGroupDatePicker('${taskId}','${escapedTitle}')`
+        : `openDetailMultiDatePicker('${taskId}','${escapedTitle}')`;
       dateHtml = `<span class="detail-completed-date" id="detail-completedAt-label"
-           onclick="openDetailMultiDatePicker('${taskId}','${escapedTitle}')"
+           onclick="${_onClickFn}"
            title="완료일 변경">${_txt} ✎</span>`;
     } else {
       dateHtml = `<span class="detail-completed-label">${fmt(t.completedAt)} 완료</span>`;
@@ -4049,8 +4053,32 @@ function _getAllDoneDates(taskId) {
   if (!task) return [];
   const rt = recurringTasks.find(r => r.title === task.title);
   if (rt) return _getRecurringAllDates(rt);
+  // template 없는 경우: 같은 제목의 완료된 Notion 페이지 날짜 모두 수집
+  const titleDates = tasks
+    .filter(t => t.done && t.completedAt && t.title === task.title && !t.id.startsWith('_rt_'))
+    .map(t => t.completedAt);
   const _extra = JSON.parse(localStorage.getItem('extra_done_dates') || '{}');
-  return [...new Set([task.completedAt, ...(_extra[taskId] || [])].filter(Boolean))].sort();
+  return [...new Set([...titleDates, ...(_extra[taskId] || [])].filter(Boolean))].sort();
+}
+
+// template 없는 제목 그룹 — 클릭 시 template 즉시 생성 후 rt cal 모달 오픈
+async function openTitleGroupDatePicker(taskId, title) {
+  let rt = recurringTasks.find(r => r.title === title);
+  if (!rt) {
+    const allDates = _getAllDoneDates(taskId);
+    const repTask = tasks.find(t => t.done && t.title === title && !t.id.startsWith('_rt_')) || {};
+    rt = {
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      title, days: [], ended: true,
+      completedDates: allDates,
+      priority: repTask.priority || '일반',
+      category: repTask.category || '',
+      note: repTask.note || '',
+    };
+    recurringTasks.push(rt);
+    saveRecurring().catch(() => {});
+  }
+  openRtCalModal(rt.id);
 }
 
 // 일반 할 일 — 단일 선택 (mode: 'single'=task detail, 'form'=edit modal)
