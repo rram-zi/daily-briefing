@@ -3403,6 +3403,12 @@ function nextRecurringDate(rt, fromDate) {
 
 function buildScheduledMap() {
   const today = todayKey();
+  // 이미 완료된 (제목, 날짜) 조합 → scheduled에서 제외
+  const doneOnDate = new Set();
+  tasks.filter(t => t.done && t.completedAt).forEach(t => doneOnDate.add(`${t.title}::${t.completedAt}`));
+  for (const rt of recurringTasks) {
+    for (const d of rt.completedDates || []) doneOnDate.add(`${rt.title}::${d}`);
+  }
   const recurringTitles = new Set(recurringTasks.map(r => r.title));
   const recurringTitleSeen = {};
   const map = {};
@@ -3412,6 +3418,7 @@ function buildScheduledMap() {
     .filter(t => !t.done && t.dueDate && t.dueDate >= today && !t.id.startsWith('_rt_'))
     .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
   future.forEach(t => {
+    if (doneOnDate.has(`${t.title}::${t.dueDate}`)) return;
     if (recurringTitles.has(t.title)) {
       if (recurringTitleSeen[t.title]) return;
       recurringTitleSeen[t.title] = true;
@@ -3424,6 +3431,7 @@ function buildScheduledMap() {
     if (recurringTitleSeen[rt.title]) continue;
     const nextDate = nextRecurringDate(rt, today);
     if (!nextDate) continue;
+    if (doneOnDate.has(`${rt.title}::${nextDate}`)) continue;
     if (!map[nextDate]) map[nextDate] = [];
     map[nextDate].push({ id: '_rec_' + rt.id, title: rt.title, priority: rt.priority || '일반', category: rt.category || '', note: rt.note || '', done: false, dueDate: nextDate });
     recurringTitleSeen[rt.title] = true;
