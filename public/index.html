@@ -1647,7 +1647,7 @@ body.scroll-locked { overflow: hidden; position: fixed; width: 100%; }
           <label class="form-label">완료일</label>
           <input type="date" id="f-completed-at" style="display:none" />
           <button type="button" id="f-completed-at-btn" class="date-pick-btn"
-            onclick="openDatePickerModal(null, document.getElementById('f-completed-at').value, null, 'form')">
+            onclick="openCurrentCompletionDatePicker()">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             <span id="f-completed-at-label">날짜 선택</span>
           </button>
@@ -1879,6 +1879,7 @@ function syncRecurringVirtualTasks() {
   const today = todayKey();
   const dayName = ['일','월','화','수','목','금','토'][new Date(Date.now() - DAY_CUTOFF_HOURS * 60 * 60 * 1000).getDay()];
   for (const rt of recurringTasks) {
+    if (rt.ended) continue; // 종료된 반복 일정은 가상 태스크 생성 안 함
     if (!rt.days.includes(dayName)) continue;
     const isDone = (rt.completedDates || []).includes(today);
     tasks.unshift({
@@ -1921,6 +1922,7 @@ function checkRecurringTasks() {
   if (todayIds.length !== before) changed = true;
   // 오늘 요일에 맞는 반복 일정 추가/제거
   for (const rt of recurringTasks) {
+    if (rt.ended) continue; // 종료된 반복 일정은 자동 추가/제거 대상 아님
     const vtId = '_rt_' + rt.id;
     const shouldBeToday = rt.days.includes(dayName);
     const isInToday = todayIds.includes(vtId);
@@ -2971,7 +2973,7 @@ function openModal(taskId = null) {
       document.querySelectorAll('#f-days .day-btn').forEach(b => b.classList.remove('active'));
     }
 
-    document.getElementById('btn-end-recurring').style.display = rt ? '' : 'none';
+    document.getElementById('btn-end-recurring').style.display = (rt && !rt.ended) ? '' : 'none';
   } else {
     editingRecurringId = null;
     selectTaskType('once');
@@ -2983,8 +2985,25 @@ function openModal(taskId = null) {
   // 진행 예정일은 미완료 할 일에만 노출
   const isDone = task && task.done;
   document.getElementById('f-completed-at-row').style.display = isDone ? '' : 'none';
-  document.getElementById('f-completed-at').value = isDone ? (task.completedAt || '') : '';
-  document.getElementById('f-completed-at-label').textContent = isDone && task.completedAt ? fmt(task.completedAt) : '날짜 선택';
+  if (isDone) {
+    // 모든 완료일 수집 (반복 템플릿 or extra_done_dates)
+    let _allDates;
+    if (editingRecurringId) {
+      const _rt = recurringTasks.find(r => r.id === editingRecurringId);
+      _allDates = _rt ? [...(_rt.completedDates || [])].sort() : [task.completedAt].filter(Boolean);
+    } else {
+      const _extra = JSON.parse(localStorage.getItem('extra_done_dates') || '{}');
+      _allDates = [...new Set([task.completedAt, ...(_extra[taskId] || [])].filter(Boolean))].sort();
+    }
+    const _primaryDate = _allDates[_allDates.length - 1] || task.completedAt || '';
+    const _cnt = _allDates.length;
+    document.getElementById('f-completed-at').value = _primaryDate;
+    document.getElementById('f-completed-at-label').textContent =
+      _cnt > 1 ? `${fmt(_primaryDate)} 외 ${_cnt - 1}회` : (_primaryDate ? fmt(_primaryDate) : '날짜 선택');
+  } else {
+    document.getElementById('f-completed-at').value = '';
+    document.getElementById('f-completed-at-label').textContent = '날짜 선택';
+  }
   document.getElementById('f-date-row').style.display = isDone ? 'none' : '';
 
   // 편집 전용 컨트롤 표시
@@ -3099,11 +3118,14 @@ function endRecurring() {
   const vtId = '_rt_' + editingRecurringId;
   todayIds = todayIds.filter(id => id !== vtId);
   tasks = tasks.filter(t => t.id !== vtId);
-  recurringTasks = recurringTasks.filter(r => r.id !== editingRecurringId);
+  const rt = recurringTasks.find(r => r.id === editingRecurringId);
+  if (rt) rt.ended = true; // 템플릿 유지, ended 마킹
   saveRecurring().catch(() => {});
-  editingRecurringId = null;
+  saveTodayIds();
   document.getElementById('btn-end-recurring').style.display = 'none';
-  selectTaskType('once');
+  // 유형은 "반복"으로 유지 (selectTaskType 호출 없음)
+  syncRecurringVirtualTasks();
+  renderTasks();
   setStatus('ok', '반복 일정이 종료됐습니다');
 }
 
@@ -3395,6 +3417,17 @@ function buildDoneMap() {
       });
     }
   }
+  // 반복 템플릿 없는 일반 태스크의 extra_done_dates (멀티 완료일) 추가
+  const _extraDone = JSON.parse(localStorage.getItem('extra_done_dates') || '{}');
+  for (const [taskId, dates] of Object.entries(_extraDone)) {
+    const _t = tasks.find(t => t.id === taskId);
+    if (!_t || !_t.done) continue;
+    for (const dateStr of (dates || [])) {
+      if (dateStr === _t.completedAt) continue; // 이미 위에서 포함됨
+      if (!map[dateStr]) map[dateStr] = [];
+      map[dateStr].push({ ..._t, completedAt: dateStr });
+    }
+  }
   for (const d in map) map[d].sort((a, b) => calCatIdx(a) - calCatIdx(b));
   return map;
 }
@@ -3441,6 +3474,7 @@ function buildScheduledMap() {
   });
   // 아직 Notion 페이지가 없는 반복 일정의 다음 예정일을 가상으로 추가
   for (const rt of recurringTasks) {
+    if (rt.ended) continue; // 종료된 반복 일정은 예정에 표시 안 함
     if (recurringTitleSeen[rt.title]) continue;
     const nextDate = nextRecurringDate(rt, today);
     if (!nextDate) continue;
@@ -3692,11 +3726,18 @@ function openTaskDetail(taskId) {
   if (t.completedAt) {
     const isEditable = !taskId.startsWith('_rt_');
     const escapedTitle = t.title.replace(/'/g, "\\'");
-    const dateHtml = isEditable
-      ? `<span class="detail-completed-date" id="detail-completedAt-label"
-           onclick="openDatePickerModal('${taskId}','${t.completedAt}','${escapedTitle}')"
-           title="완료일 변경">${fmt(t.completedAt)} 완료 ✎</span>`
-      : `<span class="detail-completed-label">${fmt(t.completedAt)} 완료</span>`;
+    let dateHtml;
+    if (isEditable) {
+      const _allD = _getAllDoneDates(taskId);
+      const _cnt  = _allD.length;
+      const _prim = _allD[_allD.length - 1] || t.completedAt;
+      const _txt  = _cnt > 1 ? `${fmt(_prim)} 외 ${_cnt - 1} 완료` : `${fmt(_prim)} 완료`;
+      dateHtml = `<span class="detail-completed-date" id="detail-completedAt-label"
+           onclick="openDetailMultiDatePicker('${taskId}','${escapedTitle}')"
+           title="완료일 변경">${_txt} ✎</span>`;
+    } else {
+      dateHtml = `<span class="detail-completed-label">${fmt(t.completedAt)} 완료</span>`;
+    }
     detailFooter.innerHTML = dateHtml + locBadge;
     detailFooter.style.display = '';
     detailFooter.style.marginTop = (noteHtml || metaParts.length) ? '14px' : '0';
@@ -3941,6 +3982,52 @@ function openRtCalModal(rtId) {
   _openRtCal(rt.title, now);
 }
 
+// 편집 모달 완료일 — 멀티 선택
+function openCurrentCompletionDatePicker() {
+  let allDates;
+  if (editingRecurringId) {
+    const rt = recurringTasks.find(r => r.id === editingRecurringId);
+    allDates = rt ? [...(rt.completedDates || [])].sort() : [];
+  } else {
+    const _extra = JSON.parse(localStorage.getItem('extra_done_dates') || '{}');
+    const cur = document.getElementById('f-completed-at').value;
+    allDates = [...new Set([cur, ...(_extra[editingId] || [])].filter(Boolean))].sort();
+  }
+  _rtCalMode = 'form-multi';
+  _rtCalTaskId = editingId;
+  _rtCalRtId = editingRecurringId;
+  _rtCalDates = new Set(allDates);
+  const base = allDates.length > 0
+    ? new Date(allDates[allDates.length - 1] + 'T12:00:00')
+    : new Date(Date.now() - DAY_CUTOFF_HOURS * 60 * 60 * 1000);
+  _openRtCal('완료 날짜 선택', base);
+}
+
+// 캘린더 상세 완료일 — 멀티 선택 + 즉시 저장
+function openDetailMultiDatePicker(taskId, title) {
+  const allDates = _getAllDoneDates(taskId);
+  const task = tasks.find(t => t.id === taskId);
+  const rt = task ? recurringTasks.find(r => r.title === task.title) : null;
+  _rtCalMode = 'detail-multi';
+  _rtCalTaskId = taskId;
+  _rtCalRtId = rt ? rt.id : null;
+  _rtCalDates = new Set(allDates.filter(Boolean));
+  const base = allDates.length > 0
+    ? new Date(allDates[allDates.length - 1] + 'T12:00:00')
+    : new Date(Date.now() - DAY_CUTOFF_HOURS * 60 * 60 * 1000);
+  _openRtCal(title || '', base);
+}
+
+// 태스크의 모든 완료일 반환
+function _getAllDoneDates(taskId) {
+  const task = tasks.find(t => t.id === taskId);
+  if (!task) return [];
+  const rt = recurringTasks.find(r => r.title === task.title);
+  if (rt) return [...(rt.completedDates || [])].sort();
+  const _extra = JSON.parse(localStorage.getItem('extra_done_dates') || '{}');
+  return [...new Set([task.completedAt, ...(_extra[taskId] || [])].filter(Boolean))].sort();
+}
+
 // 일반 할 일 — 단일 선택 (mode: 'single'=task detail, 'form'=edit modal)
 function openDatePickerModal(taskId, currentDate, title, mode) {
   _rtCalMode = mode || 'single';
@@ -4018,11 +4105,54 @@ function renderRtCalGrid() {
 
 async function saveRtCalDates() {
   if (_rtCalMode === 'form') {
-    // edit 모달 완료일 필드 업데이트
+    // edit 모달 완료일 필드 업데이트 (단일)
     const newDate = [..._rtCalDates][0] || '';
     document.getElementById('f-completed-at').value = newDate;
     document.getElementById('f-completed-at-label').textContent = newDate ? fmt(newDate) : '날짜 선택';
     closeRtCalModal();
+  } else if (_rtCalMode === 'form-multi' || _rtCalMode === 'detail-multi') {
+    const dates = [..._rtCalDates].sort();
+    const primaryDate = dates[dates.length - 1] || '';
+    const cnt = dates.length;
+    const primaryFmt = primaryDate ? fmt(primaryDate) : '';
+    // 로컬/반복템플릿 저장
+    if (_rtCalRtId) {
+      const rt = recurringTasks.find(r => r.id === _rtCalRtId);
+      if (rt) {
+        rt.completedDates = dates;
+        try { await saveRecurring(); } catch(e) { setStatus('err', '저장 실패: ' + e.message); return; }
+      }
+    } else if (_rtCalTaskId) {
+      const _ex = JSON.parse(localStorage.getItem('extra_done_dates') || '{}');
+      _ex[_rtCalTaskId] = dates;
+      localStorage.setItem('extra_done_dates', JSON.stringify(_ex));
+    }
+    if (_rtCalMode === 'form-multi') {
+      document.getElementById('f-completed-at').value = primaryDate;
+      document.getElementById('f-completed-at-label').textContent =
+        cnt > 1 ? `${primaryFmt} 외 ${cnt - 1}회` : (primaryFmt || '날짜 선택');
+      closeRtCalModal();
+      if (viewMode === 'history') renderHistory();
+    } else { // detail-multi: Notion도 즉시 업데이트
+      closeRtCalModal();
+      setStatus('loading', '완료일 저장 중...');
+      try {
+        if (primaryDate && _rtCalTaskId && !_rtCalTaskId.startsWith('_rt_')) {
+          await notionFetch(`pages/${_rtCalTaskId}`, 'PATCH', {
+            properties: { '완료일': { date: { start: primaryDate } } }
+          });
+          const _t = tasks.find(t => t.id === _rtCalTaskId);
+          if (_t) _t.completedAt = primaryDate;
+        }
+        if (_rtCalRtId) { syncRecurringVirtualTasks(); checkRecurringTasks(); }
+        updateStats(); renderTasks(); renderBriefing();
+        if (viewMode === 'history') renderHistory();
+        const footerDate = document.getElementById('detail-completedAt-label');
+        if (footerDate) footerDate.textContent =
+          (cnt > 1 ? `${primaryFmt} 외 ${cnt - 1} 완료` : (primaryFmt ? `${primaryFmt} 완료` : '날짜 선택')) + ' ✎';
+        setStatus('ok', '완료 기록이 저장됐습니다');
+      } catch(e) { setStatus('err', '저장 실패: ' + e.message); }
+    }
   } else if (_rtCalMode === 'single') {
     const newDate = [..._rtCalDates][0] || null;
     if (!newDate) { closeRtCalModal(); return; }
