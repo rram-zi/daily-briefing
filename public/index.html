@@ -2077,8 +2077,11 @@ let todayModalSearchQuery = '';
 let _todayModalAvailable = [];
 let _todayModalRecommendedIds = new Set();
 
+function isTitleSelected(title) {
+  return todaySelectTemp.some(id => (tasks.find(tt => tt.id === id) || {}).title === title);
+}
 function todaySelectItemHTML(t) {
-  return `<div class="today-select-item${todaySelectTemp.includes(t.id) ? ' selected' : ''}"
+  return `<div class="today-select-item${isTitleSelected(t.title) ? ' selected' : ''}"
        onclick="toggleTodaySelect('${t.id}',this)">
     <div class="today-select-box">
       <svg viewBox="0 0 12 10"><polyline points="1,5 4.5,9 11,1"/></svg>
@@ -2191,13 +2194,12 @@ function handleTodayModalBackdropClick(e) {
   if (!isDesktop() && e.target === document.getElementById('today-modal-backdrop')) closeTodayModal();
 }
 function toggleTodaySelect(id, el) {
-  if (todaySelectTemp.includes(id)) {
-    const title = (tasks.find(t => t.id === id) || {}).title;
+  const title = (tasks.find(t => t.id === id) || {}).title;
+  if (isTitleSelected(title || '')) {
+    // 같은 제목의 모든 ID 제거 (_rt_* ↔ 실제 Notion 페이지 혼재 케이스 포함)
     todaySelectTemp = todaySelectTemp.filter(i => {
-      if (i === id) return false;
-      // 같은 제목의 중복 ID도 함께 제거 (_rt_* ↔ 실제 Notion 페이지 혼재 케이스)
-      if (title) { const t = tasks.find(t => t.id === i); if (t && t.title === title) return false; }
-      return true;
+      const t = tasks.find(tt => tt.id === i);
+      return !t || t.title !== title;
     });
     el.classList.remove('selected');
   } else {
