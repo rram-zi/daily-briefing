@@ -2667,13 +2667,18 @@ function dismissBriefing() {
 function renderBriefing() {
   if (isBriefingDismissed()) return;
   const todayStr = todayKey();
-  const todayDue = tasks.filter(t => t.dueDate === todayStr && !t.done);
-  const overdue  = tasks.filter(t => isOverdue(t.dueDate) && !t.done);
-  const urgent   = tasks.filter(t => t.priority === '긴급' && !t.done);
-  const done     = tasks.filter(t => t.done && t.completedAt === todayStr);
+  // 종료된 반복 일정에만 속하는 태스크는 브리핑에서 제외
+  const endedOnlyTitles = new Set(
+    recurringTasks.filter(r => r.ended && !recurringTasks.some(o => o.title === r.title && !o.ended)).map(r => r.title)
+  );
+  const activeTasks = tasks.filter(t => !endedOnlyTitles.has(t.title));
+  const todayDue = activeTasks.filter(t => t.dueDate === todayStr && !t.done);
+  const overdue  = activeTasks.filter(t => isOverdue(t.dueDate) && !t.done);
+  const urgent   = activeTasks.filter(t => t.priority === '긴급' && !t.done);
+  const done     = activeTasks.filter(t => t.done && t.completedAt === todayStr);
   const lines    = [];
   const ei = src => `<img class="t-emoji" src="/emoji/${src}" alt="">`;
-  const carryOver = tasks.filter(t => carryOverIds.has(t.id) && !t.done);
+  const carryOver = activeTasks.filter(t => carryOverIds.has(t.id) && !t.done);
   if (carryOver.length) lines.push({ i:ei('u1F4AB.svg'), t:`<strong>완료하지 못한 할일 ${carryOver.length}개</strong> — ${carryOver.slice(0,3).map(t=>tfEmoji(t.title)).join(', ')}${carryOver.length>3?` 외 ${carryOver.length-3}개`:''}` });
   if (overdue.length)  lines.push({ i:ei('u26A0.svg'),  t:`<strong>기한 초과 ${overdue.length}개</strong> — ${overdue.slice(0,3).map(t=>tfEmoji(t.title)).join(', ')}${overdue.length>3?` 외 ${overdue.length-3}개`:''}` });
   if (urgent.length)   lines.push({ i:ei('u1F6A8.svg'), t:`<strong>긴급 할 일 ${urgent.length}개</strong> — ${urgent.slice(0,3).map(t=>tfEmoji(t.title)).join(', ')}` });
