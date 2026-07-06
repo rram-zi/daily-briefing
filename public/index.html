@@ -1915,8 +1915,8 @@ function checkRecurringTasks() {
   const dayName = ['일','월','화','수','목','금','토'][new Date(Date.now() - DAY_CUTOFF_HOURS * 60 * 60 * 1000).getDay()];
   const removedRtIds = getRemovedRtIds(); // 사용자가 오늘 명시적으로 제거한 반복 일정
   let changed = false;
-  // 삭제된 템플릿의 _rt_* ID 정리
-  const validRtIds = new Set(recurringTasks.map(rt => '_rt_' + rt.id));
+  // 삭제됐거나 종료된 템플릿의 _rt_* ID 정리
+  const validRtIds = new Set(recurringTasks.filter(rt => !rt.ended).map(rt => '_rt_' + rt.id));
   const before = todayIds.length;
   todayIds = todayIds.filter(id => !id.startsWith('_rt_') || validRtIds.has(id));
   if (todayIds.length !== before) changed = true;
@@ -2098,11 +2098,13 @@ function todaySelectItemHTML(t) {
 function openTodayModal() {
   todaySelectTemp = [...todayIds];
   todayModalSearchQuery = '';
-  const isRec = t => recurringTasks.some(r => r.title === t.title);
+  const isRec = t => recurringTasks.some(r => r.title === t.title && !r.ended);
   const hasActive = t => tasks.some(o => o.id !== t.id && o.title === t.title && !o.done);
   // 오늘 가상 반복 할 일이 있는 제목 → 구 Notion 페이지 제외
   const virtualRtTitles = new Set(tasks.filter(t => t.id.startsWith('_rt_')).map(t => t.title));
   const rawAvailable = tasks.filter(t => {
+    // 종료된 반복 일정에만 속하는 태스크 제외
+    if (recurringTasks.some(r => r.title === t.title && r.ended) && !isRec(t)) return false;
     if (!t.id.startsWith('_rt_') && virtualRtTitles.has(t.title)) return false;
     if (t.done && isRec(t) && hasActive(t)) return false;
     return !t.done || isRec(t);
@@ -2820,7 +2822,7 @@ function attachDrag(container, onDrop) {
 
 function renderTasks() {
   const isRecurring = t => recurringTasks.some(r => r.title === t.title);
-  const hasActiveInstance = t => tasks.some(o => o.id !== t.id && o.title === t.title && !o.done);
+  const hasActiveInstance = t => tasks.some(o => o.id !== t.id && o.title === t.title && !o.done && !o.id.startsWith('_rt_'));
 
   // 완료 태스크를 제목 기준으로 그룹화 (isRecurring 무관하게 중복 제거)
   const doneByTitle = new Map();
@@ -3112,18 +3114,25 @@ function clearLocation() {
   if (btn) btn.style.display = '';
 }
 
-function endRecurring() {
+async function endRecurring() {
   if (!editingRecurringId) return;
   if (!confirm('반복 일정을 종료할까요?')) return;
   const vtId = '_rt_' + editingRecurringId;
+  const rt = recurringTasks.find(r => r.id === editingRecurringId);
+  if (rt) rt.ended = true;
   todayIds = todayIds.filter(id => id !== vtId);
   tasks = tasks.filter(t => t.id !== vtId);
-  const rt = recurringTasks.find(r => r.id === editingRecurringId);
-  if (rt) rt.ended = true; // 템플릿 유지, ended 마킹
-  saveRecurring().catch(() => {});
+  try {
+    await saveRecurring();
+  } catch(e) {
+    if (rt) rt.ended = false;
+    syncRecurringVirtualTasks();
+    renderTasks();
+    setStatus('err', '종료 저장 실패: ' + e.message);
+    return;
+  }
   saveTodayIds();
   document.getElementById('btn-end-recurring').style.display = 'none';
-  // 유형은 "반복"으로 유지 (selectTaskType 호출 없음)
   syncRecurringVirtualTasks();
   renderTasks();
   setStatus('ok', '반복 일정이 종료됐습니다');
@@ -3140,7 +3149,7 @@ async function saveTask() {
   const taskType = document.getElementById('f-task-type').dataset.value;
   const isRepeat = taskType === 'repeat';
 
-  // 신규 + 반복: 템플릿만 저장하고 Notion 페이지는 생성 안 함
+  // 신규 + 반복: 템플릿 저장 후 Notion 페이지도 생성
   if (!editingId && isRepeat) {
     const days = [...document.querySelectorAll('#f-days .day-btn.active')].map(b => b.dataset.day);
     if (days.length === 0) { alert('반복 요일을 선택해주세요'); return; }
@@ -3153,10 +3162,8 @@ async function saveTask() {
     };
     recurringTasks.push(rt);
     saveRecurring().catch(() => {});
-    closeModal();
     checkRecurringTasks();
-    setStatus('ok', `반복 할 일 "${title}" 이(가) 저장됐습니다 (${days.join(', ')} 반복)`);
-    return;
+    // fall through to create Notion page
   }
 
   // 편집 시 반복 템플릿 동기화
