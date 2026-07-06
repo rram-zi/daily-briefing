@@ -2826,7 +2826,7 @@ function attachDrag(container, onDrop) {
 }
 
 function renderTasks() {
-  const isRecurring = t => recurringTasks.some(r => r.title === t.title);
+  const isRecurring = t => recurringTasks.some(r => r.title === t.title && !r.ended);
   const hasActiveInstance = t => tasks.some(o => o.id !== t.id && o.title === t.title && !o.done && !o.id.startsWith('_rt_'));
 
   // 완료 태스크를 제목 기준으로 그룹화 (isRecurring 무관하게 중복 제거)
