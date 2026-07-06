@@ -2866,8 +2866,11 @@ function renderTasks() {
   document.getElementById('fc-todo').textContent = `할 일(${baseVisible.filter(t => !t.done || isRecurring(t)).length})`;
   document.getElementById('fc-done').textContent = `완료(${baseVisible.filter(t => t.done).length})`;
 
+  // Notion 페이지가 있는 제목 집합: _rt_* 는 대응 실제 페이지가 없을 때만 목록에 노출
+  const realPageTitles = new Set(baseVisible.filter(t => !t.id.startsWith('_rt_')).map(t => t.title));
+
   const allOtherTasks = baseVisible.filter(t => {
-    if (t.id.startsWith('_rt_')) return false;
+    if (t.id.startsWith('_rt_') && realPageTitles.has(t.title)) return false;
     if (currentFilter === 'done' && !t.done) return false;
     if (currentFilter === 'todo' && t.done && !isRecurring(t)) return false;
     if (currentCategories !== null && t.category && !currentCategories.has(t.category)) return false;
@@ -3191,6 +3194,9 @@ async function saveTask() {
       editingRecurringId = null;
     }
   }
+
+  // _rt_* 가상 태스크는 Notion 페이지가 없으므로 신규 생성으로 처리
+  if (editingId && editingId.startsWith('_rt_')) editingId = null;
 
   const btn = document.getElementById('btn-save');
   btn.disabled = true; btn.textContent = '저장 중...';
