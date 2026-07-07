@@ -3126,6 +3126,7 @@ async function endRecurring() {
   if (!editingRecurringId) return;
   if (!confirm('반복 일정을 종료할까요?')) return;
   const vtId = '_rt_' + editingRecurringId;
+  const notionPageId = editingId && !editingId.startsWith('_rt_') ? editingId : null;
   const rt = recurringTasks.find(r => r.id === editingRecurringId);
   if (rt) rt.ended = true;
   todayIds = todayIds.filter(id => id !== vtId);
@@ -3139,8 +3140,16 @@ async function endRecurring() {
     setStatus('err', '종료 저장 실패: ' + e.message);
     return;
   }
+  // 반복 할 일 생성 시 함께 만들어진 Notion 페이지도 아카이브
+  if (notionPageId) {
+    try {
+      await notionFetch(`pages/${notionPageId}`, 'PATCH', { archived: true });
+      tasks = tasks.filter(t => t.id !== notionPageId);
+      todayIds = todayIds.filter(id => id !== notionPageId);
+    } catch {}
+  }
   saveTodayIds();
-  document.getElementById('btn-end-recurring').style.display = 'none';
+  closeModal();
   syncRecurringVirtualTasks();
   renderTasks();
   setStatus('ok', '반복 일정이 종료됐습니다');
