@@ -2254,7 +2254,7 @@ async function confirmTodaySelection() {
     const doneRecurringIds = new Set(
       toAdd.filter(id => {
         const t = tasks.find(t => t.id === id);
-        return t && t.done && recurringTasks.some(r => r.title === t.title);
+        return t && t.done && recurringTasks.some(r => r.title === t.title && !r.ended);
       })
     );
     await Promise.all([
@@ -2968,7 +2968,7 @@ function openModal(taskId = null) {
   document.getElementById('task-type-row').style.display = '';
 
   if (task) {
-    const rt = recurringTasks.find(r => r.title === task.title);
+    const rt = recurringTasks.find(r => r.title === task.title && !r.ended);
     editingRecurringId = rt ? rt.id : null;
 
     if (rt) {
