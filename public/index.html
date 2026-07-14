@@ -2568,6 +2568,7 @@ async function loadTasks() {
       return 0;
     });
     updateStats(); renderTasks(); renderBriefing();
+    if (viewMode === 'history') renderHistory();
   } catch(e) {
     setStatus('err', '연결 실패: ' + e.message);
     document.getElementById('task-list').innerHTML =
@@ -3508,7 +3509,7 @@ function buildScheduledMap() {
   future.forEach(t => {
     if (doneOnDate.has(`${t.title}::${t.dueDate}`)) return;
     if (t.dueDate === today && removedTodayIds.has(t.id)) return;
-    if (recurringTitles.has(t.title)) {
+    if (t.source !== '구글캘린더' && recurringTitles.has(t.title)) {
       if (recurringTitleSeen[t.title]) return;
       recurringTitleSeen[t.title] = true;
     }
